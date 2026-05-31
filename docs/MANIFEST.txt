@@ -1,0 +1,76 @@
+SoulBound Phase 1 — Freeze Bundle MANIFEST
+Version: v1.3-FROZEN (0A+0B+0C)
+Built: 2026-05-31T06:47:56Z
+
+== VERSION ASSERTIONS (이 번들이 맞는지 1초 확인용) ==
+- handoff title: SoulBound — Cowork Freeze Commit (0A + 0B + 0C) 핸드오프
+- toolchain: 0C plumbing INCLUDED (package.json, pnpm-workspace.yaml, tsconfig.base, audit.sh, core configs)
+- tests: 19 RED (NOT_IMPLEMENTED) / typecheck CLEAN / build emits / audit PASS — 실제 0C config로 검증됨
+- node/pnpm: Node 24 / pnpm 11.1.3 (engineStrict로 Node<24 install 차단 실측)
+- BuildPlan: SoulBound_Phase1_MVP_BuildPlan_v1.3-FROZEN.md
+- ledger: chain-neutral (externalLedgerEnabled, 0 concrete-chain SDK)
+- AdmissionStatus includes: expired, withdrawn
+- AdmissionReasonCode includes: applicant_withdrew, application_expired
+- persona_clip_assets has: deletion_reason (enum, non-content)
+
+== GREP ASSERTIONS (working tree 기준, 모두 통과) ==
+toolchain files present           : 9/9 (expect 9)
+packageManager pin pnpm@11.1.3    : 1 (expect 1)
+engines node>=24                  : 1 (expect 1)
+engineStrict in workspace         : 1 (expect 1)
+minimumReleaseAge in workspace    : 1 (expect 1)
+suiTestnetEnabled in handoff      : 0 (expect 0)
+'15 tests' in handoff             : 0 (expect 0)
+externalLedgerEnabled in handoff  : 3 (expect >=1)
+'Task 9 옵션 브랜치' in BuildPlan  : 0 (expect 0)
+'전역 0건' in changeset           : 0 (expect 0)
+expired in AdmissionStatus        : 1 (expect >=1)
+applicant_withdrew in core        : 1 (expect 1)
+application_expired in core       : 1 (expect 1)
+deletion_reason in BuildPlan      : 5 (expect >=1)
+'sui' literal in core src (files) : 0 (expect 0)
+'@mysten' in packages (files)     : 0 (expect 0)
+guide: toolchain NOT in '없어야 정상'  : 0 (expect 0)
+
+== FILE LIST + SHA256 ==
+40625a890fc2c6f7200c2f48a6292558c51522b0f9ff840ccb64aa8a342525a3  .npmrc
+68ca3fba3b7e864770cb61aeb306d4bd4354b68ab4dd38450860c5d823e42a53  .nvmrc
+822419792ae0ff3e65104b2427e6e68b5fc0f32e24e1039b95ff682efd48c743  docs/CONTRACT_FREEZE_HANDOFF.md
+fc41f5d48008dd8f0d1c8b0b3326b38a061398be953b7efc6159eb5e2fc66247  docs/TOOLCHAIN_FREEZE_HANDOFF.md
+06abf8b068f3542e60ee96dd579cf5a5359c0633aaa0d7664532e0e533591f04  docs/V1.3_CHANGESET.md
+8fbd78e2a0402f1e25dfd9f92d40262dd5847077fdb4689e04b67337697eb3d5  docs/WORKSPACE_SETUP_GUIDE.md
+35f541da5e46f03ea7fc233ec6f20273af00881516d0c04d455d0ea006158b34  docs/architecture/SoulBound_Phase1_MVP_BuildPlan_v1.3-FROZEN.md
+303c0a8acd7cd2b485f65735e2bf52f293e82e6e78051e5e99cfcef342892444  package.json
+719ee228c3c413487d4ae7d5825c4bb98c67e335194633359e118ced6fa9b0ac  packages/core/package.json
+fbb547f42c4a143ebd081d23b79ff023be71d29e709bebd50afc45643a222960  packages/core/src/application/container.ts
+5144b885fb730100acafef9eb292babaded4ced66c3b6d4837d76f17b42f741c  packages/core/src/application/errors.ts
+8e28563b0fd643ded42a5a17107f6919ec17b9b4604794136ab110672438f7a2  packages/core/src/application/result.ts
+47569a893fc00d276de63609755175d66898a5f162f08ffb452d2809bb15a78c  packages/core/src/config/feature-flags.ts
+446f610a0eaa9cf89d2c78bb7fda46a6ccc882e319994e6ad6d6a0fcc9168446  packages/core/src/domain/admission/admission-policy.ts
+1c6b6674c34cdb5f5fd7e085f7c8e28f1b3f066a567c39d9b0eab96949e7ac17  packages/core/src/domain/admission/admission-service.test.ts
+e6ce3d051f49e94f6f25075a6d6d4fdb12da39f5738b49be0f9b503e673287c6  packages/core/src/domain/admission/admission-service.ts
+a59920eb926ee9b1b764164f821cd203e16d4dbdd72750f19bb94a8112c1272c  packages/core/src/domain/admission/types.ts
+699ce163988c42d24b02e288ab4ac03a36d52e44bdb1cc4c96de88b0e002d685  packages/core/src/domain/audit/types.ts
+00c8ad9d593c32f0c9766a414b64b71bb9ae18d757e6cf4ca5fa1d780d041808  packages/core/src/domain/ledger/types.ts
+3638db2cb8dcebe33a81cde7d6cc3b83d9175ba5e2c015f8b378d4286216994f  packages/core/src/domain/membership/membership-service.test.ts
+5a3bd1cb2a647801af47d4f36c30be931d3fc29ddf6c3b26a87e602773554f35  packages/core/src/domain/membership/membership-service.ts
+6d8bca429cd3a640daa50d44523ab6825900f1655906d726e6b43f9b6984c3ad  packages/core/src/domain/membership/types.ts
+dcc990f739ec1122455cdf99ea4d7a59958264e53fe450528a031ef017090b2a  packages/core/src/domain/outbox/types.ts
+0b7c02a93008fe6b0f1135723cce9364c828bc84862e0a648482939079bf9a51  packages/core/src/domain/shared/types.ts
+c92fc132a1fc2bf610d33b269990dfdfc461eff0b184a8a64005be9c148ce388  packages/core/src/domain/storage/types.ts
+560b564f5d85b647867041ed4f18c2f8a05687a9ad41c36b6443d31f76eada5f  packages/core/src/index.ts
+5eba711cd93db38c2d6bea9ad8811c538e34c361d40c61aedd71a3a8e262005b  packages/core/src/ports/admission-repository.ts
+73582dee2223aed56044b92308b5babaa00f09491c6879e19b55e7f5387f8f33  packages/core/src/ports/audit-log-repository.ts
+e2d067cc476fba1c0390f72ce0c18db0a65e23de3cd3b4846e9092249b928e3f  packages/core/src/ports/auth-port.ts
+b36aeac534940d4a12bf425b842573ff18272f8cf7da27c9e46fdb5863df39ed  packages/core/src/ports/ledger-port.ts
+45031e51d9e799af39782f104dfea93b7bc06286455f00c1e60b5063665e9373  packages/core/src/ports/membership-repository.ts
+ac3cb47396508f6d608dc5fb572c42fd5d6d57648cc7c50f3a192ac36b5e8861  packages/core/src/ports/notification-port.ts
+d6c409aa6b435d90629e39f095f3775e9496846300f7d170afd5fcef17150d91  packages/core/src/ports/outbox-repository.ts
+367fe49314120716ea51994e8151c02af602e77b686f2f60e9f2027a47e230c3  packages/core/src/ports/storage-port.ts
+3e99b06c1d6cb02f7a6ec91a9cf551ef97dba346d62c4dc43f46bc708db395c4  packages/core/src/test-support/mock-ports.ts
+acf2dbf9ad194488ac23ed4d7b933f566bfa3a38f80465198368c5d2bb3d2a65  packages/core/tsconfig.build.json
+1d867ad555861b8f5e9b2f2823509773218a5647832dc3b60c96b7bbb9635bc8  packages/core/tsconfig.json
+6c62b0fdf40bc31e43c65a79063bce4245ebd516b89883fbd6a0f1ca9e420cf7  packages/core/vitest.config.ts
+7e081fe709f6bccad9e598e11b6d4a43988fa4f93d27f96fd55f3c0bba4af836  pnpm-workspace.yaml
+2cb001bc9e0f9dfb648b8738667312c8acea891a677f2052fca2e2cad68b2483  scripts/audit.sh
+d75c0e855a9e23b2ace92aea6d72267059f9d31805ea54f51b787e1b47a660a2  tsconfig.base.json

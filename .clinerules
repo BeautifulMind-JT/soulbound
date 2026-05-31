@@ -1,0 +1,30 @@
+You are building SoulBound Phase 1 MVP.
+Frozen design contract: docs/architecture/SoulBound_Phase1_MVP_BuildPlan_v1.3-FROZEN.md
+Contract handoff: docs/CONTRACT_FREEZE_HANDOFF.md
+Toolchain handoff (0C): docs/TOOLCHAIN_FREEZE_HANDOFF.md
+
+TASK DISCIPLINE:
+- Implement ONLY the explicitly requested task. Do not proceed to later tasks.
+
+TOOLCHAIN IS PROVIDED (0C) — do not invent it:
+- package.json, pnpm-workspace.yaml, tsconfig.base.json, .nvmrc, .npmrc, scripts/audit.sh,
+  packages/core/package.json, packages/core/tsconfig.json, packages/core/tsconfig.build.json,
+  packages/core/vitest.config.ts already exist and are verified. Do NOT recreate or loosen them.
+
+FROZEN (do not touch unless user says "unfreeze contract"):
+- Files under packages/core/src marked "CONTRACT-FROZEN": signatures, types, enums, test assertions.
+- Do not .skip or .todo frozen tests.
+
+HARD RULES:
+1. React components must NOT call Supabase directly. Flow: component -> hook -> API route -> service -> repository -> adapter.
+2. packages/core must NOT import @supabase or any concrete-chain SDK. Pure TypeScript only.
+3. Business logic lives in application services, not in routes or components.
+4. Every admission status change emits admission_events; every admin action writes audit_logs and requires reasonCode (enum only).
+5. In P0 main branch, no real external side effect runs. LedgerPort = NoopLedgerAdapter only.
+6. Chain-neutral: do NOT import any concrete-chain SDK (@mysten, aleo, aztec, zcash) on main.
+7. direct_messages table is ciphertext-only. Never add plaintext/body_plain columns.
+8. Persona Clip: in-app recording only; no upload/preview/retake/edit; absence must never block submit;
+   storage access goes through StoragePort, never supabase.storage directly;
+   raw media deleted on terminal admission state.
+9. Do not implement ICP, Filecoin, IPFS, Arweave. Do not create chat/messages/inbox routes.
+10. Do not overbuild.
