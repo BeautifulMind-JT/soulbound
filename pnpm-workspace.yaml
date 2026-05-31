@@ -6,5 +6,7 @@ packages:
 engineStrict: true
 minimumReleaseAge: 1440
 blockExoticSubdeps: true
-allowBuilds:
-  esbuild: set this to true or false
+
+# esbuild(vitest 의존성)의 설치 빌드 스크립트만 허용 — Task 2의 pnpm test에 필요
+onlyBuiltDependencies:
+  - esbuild
