@@ -5,6 +5,9 @@
 > Appendix A~D는 빌더와 감사자(Codex/Cowork)가 같이 참조하는 정밀 스펙입니다.
 > 이 문서는 설계 계약이 아니라 **실행 지시문**입니다. 동결 계약은 여전히
 > `docs/architecture/SoulBound_Phase1_MVP_BuildPlan_v1.3-FROZEN.md` §5 가 진실의 원천입니다.
+>
+> **2026-06-01 (architect):** §1 COPY-PASTE 프롬프트에 ADD-1(rpc 상태 가드를 `admission-policy.ts`에서
+> 1:1 이식) + ADD-2(`supabase db reset` 로컬 Docker 전용, 클라우드 연결/push 금지) 보강 반영.
 
 ---
 
@@ -114,6 +117,25 @@ NOTE: actual Storage object deletion is a worker (Task 9). Here you only set del
 === STORAGE (Appendix D) ===
 Create a PRIVATE bucket 'persona-clips' (public=false). storage.objects RLS: applicant may insert/select/delete
 own clip; reviewer/admin read via signed URL minted server-side (service_role); no anon/public/member access.
+
+=== REINFORCEMENTS (ADD-1, ADD-2 — architect; do NOT skip) ===
+ADD-1 (rpc guards from the frozen source, NOT from memory):
+  Do NOT hand-write the status guards from recollection. OPEN
+  packages/core/src/domain/admission/admission-policy.ts and read the actual transition predicates,
+  then translate each 1:1 into the SQL `raise exception` guards in 0004_rpc.sql:
+    - canStartReviewFrom(status)      => start_review_tx allowed ONLY from 'submitted'
+    - canDecideFrom(status)           => approve_application_tx / reject_application_tx allowed ONLY
+                                         from 'under_review' OR 'needs_more_info'
+    - canRequestMoreInfoFrom(status)  => request_more_info_tx allowed ONLY from 'under_review'
+    - submit_application_tx           => 'draft' -> 'submitted' (per the lifecycle header in that file)
+  The values above are an architect cross-check; you STILL must open the file and verify 1:1.
+  If your SQL guard and admission-policy.ts ever disagree, the FROZEN policy wins — STOP and report,
+  do not "fix" the frozen side.
+
+ADD-2 (local Docker only — never the cloud):
+  `supabase db reset` initializes the LOCAL Docker Postgres ONLY. In this task do NOT run
+  `supabase link`, do NOT `supabase db push`, and do NOT connect to / migrate any remote or cloud
+  Supabase project. The apply gate is local-only.
 
 === ACCEPTANCE (all must pass; report each verbatim) ===
   supabase db reset                         # applies ALL migrations + seed cleanly (Docker required)
