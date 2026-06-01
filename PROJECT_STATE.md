@@ -5,7 +5,7 @@
 > 자기 기억이 아니라 여기 적힌 결정과 그 *이유*를 기준으로 판단하세요.
 > 결정을 바꾸면 반드시 이 파일을 갱신하고 커밋하세요(머릿속에만 두지 말 것).
 
-마지막 갱신: Task 2 완료 / Task 3 직전. 빌드 브랜치 `phase1-p0-mvp`.
+마지막 갱신: Task 3 완료(Codex 재구현 + Cowork 최종 감사 **PASS**, uncommitted) / Task 4 직전. 빌드 브랜치 `phase1-p0-mvp`.
 
 ---
 
@@ -52,7 +52,11 @@ trust-first, 입장심사 기반 비공개 메신저(SoulBound) Phase 1 MVP를, 
 Task 1 게이트    ✅ typecheck/build/audit 통과, 19 RED 정상
 Task 2 구현      ✅ admission-service.ts + membership-service.ts 바디만 구현, 19 GREEN
                     Codex 1차 + Cowork 최종 감사 통과. (커밋은 JT가 진행 중)
-Task 3           ⏭ 직전. 빌더 프롬프트 = docs/TASK3_BUILDER_PROMPT.md (Cowork 작성, 검증됨)
+Task 3 (R1 GLM)  ❌ 반려. Codex 1차 + Cowork 최종 둘 다 FAIL (P0 2건/P1 4건). 산출물 폐기.
+                    증적: docs/TASK3_AUDIT_FINDINGS.md, docs/TASK3_REIMPLEMENTATION_DECISION.md (커밋 910b85f)
+Task 3 (R2 Codex)✅ DB레이어 재구현. Cowork 최종 감사 PASS. 아직 uncommitted → 호스트에서 커밋하면 Task 4로.
+                    예외: 이 Task만 Codex가 빌더, Cowork가 감사(자기승인 금지). supabase/ 만 변경, core/docs 무손상.
+Task 4           ⏭ 직전(Task 3 커밋 후). adapters(supabase + noop).
 ```
 
 빌드 순서(10 Task, 하나씩 / 사이마다 Codex→Cowork 감사):
@@ -124,6 +128,10 @@ Task 3           ⏭ 직전. 빌더 프롬프트 = docs/TASK3_BUILDER_PROMPT.md 
 
 ## 4. 미결 항목 (잊으면 안 됨 — 기록 안 하면 사라진다)
 
+- **[Task 3→4 권고] 재현가능한 rpc/RLS smoke test 커밋.** R1 교훈 = `supabase db reset` 통과는 함정
+  (plpgsql 컬럼/타입 오류는 *호출 시* 터짐). Codex의 smoke test는 ad-hoc/uncommitted였음. `supabase/tests/`에
+  submit→start_review→approve/reject/more_info 구동 + RLS 거부(applicant가 review_summary 못 읽음, role 못 바꿈)
+  단언하는 SQL/pgTAP를 커밋해 CI/감사에서 재실행 가능하게 할 것. (Cowork R2 권고, non-blocking.)
 - **[Task 10-1] outbox vs ledger 직접호출 책임 분리.** 현재 approve 후처리가 `outbox.enqueue` +
   `ledger.issueMembershipCredential`를 *둘 다* 직접 실행(INV-13 테스트가 그렇게 강제). P0는
   `externalLedgerEnabled=false`라 안 돌지만, Task 10에서 outbox processor가 `external_ledger`
@@ -161,6 +169,13 @@ Task별로 Codex 1차(AGENTS.md, 기계검사) 통과 후, 설계세션이 코�
   터미널**에서. 락 걸리면 `rm -f .git/index.lock .git/HEAD.lock`.
 - **빌더 폭주(GLM):** 컴포넌트서 Supabase 직접호출 / service 우회 / UI부터 / overbuild.
   → HARD RULES 1·2·3 + BUILD ORDER가 항상 이김. 가드레일 상·하단 중복 명시.
+- **`db reset` 통과 함정 + GLM의 DB/RLS 한계 (Task 3 R1):** GLM의 Task 3가 mechanical 게이트(db reset/
+  typecheck/test/audit)는 다 통과했는데 의미가 깨져 있었다 — rpc가 없는 컬럼(audit_logs.idempotency_key)에
+  insert, frozen enum 밖 reason code, RLS로 컬럼 못 숨김(review_summary 노출 + role 자가승격 가능), approve
+  from_status 오기록, prompt doc 손상. plpgsql 오류는 *호출 시* 터지므로 apply-only 검증은 불충분.
+  → 대응: (a) DB/RLS/rpc 같은 보안경계 고정밀 작업은 **Task 3 한정 Codex 빌더 예외**(자기승인 금지, Cowork 감사).
+  (b) 감사는 apply뿐 아니라 실제 rpc 호출 + RLS 역할 단언까지. (c) 재현가능 smoke test 커밋(§4 권고).
+  R2(Codex 재구현)는 6건 전부 수정 + Cowork PASS. 증적: docs/TASK3_AUDIT_FINDINGS.md "Round 2".
 
 ---
 

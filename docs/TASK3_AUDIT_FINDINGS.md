@@ -170,3 +170,60 @@ git checkout HEAD -- docs/TASK3_BUILDER_PROMPT.md   # host terminal (sandbox .gi
 After restore I will (a) re-add the ADD-1/ADD-2 reinforcement block, and (b) fix the Appendix A spec bug:
 change `admission_events` / `audit_logs` `reason_code text not null` → nullable + the enum CHECK, so the spec
 itself no longer collides with the frozen contract (the root cause of P0-2).
+
+---
+
+# Round 2 — Codex clean reimplementation: FINAL AUDIT (Cowork) = **PASS**
+
+> Round 1 (GLM) was discarded; Task 3 was reimplemented from a clean post-Task-2 state by **Codex**
+> (one-time exception per `TASK3_REIMPLEMENTATION_DECISION.md`). I (Cowork) am a different model from
+> the implementer, so this final approval respects the builder≠auditor rule. Reviewed **uncommitted**
+> working tree on 2026-06-01. I re-read every file and re-derived the facts; I did not trust the
+> implementer's self-report (Round 1's lesson: green `db reset` hides runtime-only RPC failures).
+
+## Verdict: PASS — clear to commit, then proceed to Task 4. No blocking defects found.
+
+### How I verified (independent)
+- Full line-by-line read of `supabase/{config.toml, migrations/0001–0005, seed.sql}`.
+- Deterministic column/enum cross-reference script over schema↔RPC: **0 column-existence problems**
+  across all 13 RPC inserts; **6/6** `audit_logs` inserts free of `idempotency_key`; **0** invented
+  reason codes; `reason_code` nullable+CHECK on both event/audit tables; `security definer`+
+  `search_path=''`+`revoke`/`grant` on all 5 RPC.
+- `bash scripts/audit.sh` → **AUDIT PASSED** with the `supabase/migrations` checks now ACTIVE
+  (no plaintext/key columns; no commit/rollback tokens). Zero concrete-chain tokens in `supabase/`.
+- `git diff --stat packages/core/src` empty; `docs/` diff empty (prompt intact, no scope drift).
+
+### Each Round-1 finding — confirmed fixed
+| # | Round-1 finding | Round-2 status | Evidence |
+|---|---|---|---|
+| P0-1 | `audit_logs` insert of nonexistent `idempotency_key` | FIXED | audit inserts are `(actor_id, action, entity_type, entity_id, reason_code, metadata)` only; idempotency via `admission_events.idempotency_key UNIQUE` checked first |
+| P0-2 | invented reason codes `application_submitted`/`review_started` | FIXED | submit/start_review write `reason_code = null`; decisions validate against the 7 frozen values inline + DB CHECK |
+| P1 | `review_summary` readable by applicant | FIXED | `grant select(...)` on `admission_applications` omits `review_summary` (and `role` on profiles) |
+| P1 | column-unrestricted updates (self-promote to admin) | FIXED | `revoke all ... from authenticated` + `grant update(handle,display_name,bio,avatar_url)` / `(applicant_statement,motivation,referral_code)` only |
+| P1 | approve `from_status` recorded as approved→approved | FIXED | `v_from_status := v_app.status` captured before the UPDATE (0004:295), mirrored in reject/more_info |
+| P1 | builder corrupted `TASK3_BUILDER_PROMPT.md` | RESOLVED | prompt restored; Codex stayed in scope (`supabase/` only) |
+
+### Decision-doc review checklist (TASK3_REIMPLEMENTATION_DECISION.md §Review)
+scope control ✓ · RLS semantics ✓ (column-grant, not row-policy, for column protection) · RPC guards 1:1
+with `admission-policy.ts` ✓ · idempotency schema-consistent ✓ · `review_summary` non-exposure ✓ ·
+restricted-column non-mutability ✓ · Persona Clip terminal retention ✓ (approve/reject mark
+`delete_after`+`deletion_reason`; more_info does not) · `packages/core/src` untouched ✓ · no Task 4 leakage ✓.
+
+### Caveat + one recommendation (non-blocking)
+- **Runtime gates are host-only.** A faithful run of `supabase db reset` + actual RPC execution + RLS
+  enforcement under real `anon`/`authenticated`/`service_role` needs the Supabase/Docker stack; the
+  sandbox has no Postgres. Codex reported these green and my static cross-ref corroborates RPC
+  correctness, but I could not re-execute them here.
+- **Recommend before/with Task 4: commit a reproducible smoke/integration test** (e.g. a SQL or pgTAP
+  script under `supabase/tests/`) that drives submit→start_review→approve/reject/more_info and asserts
+  RLS denials (applicant cannot read `review_summary`; cannot update `role`). Codex's smoke test was
+  ad-hoc/uncommitted. This is the durable guard against exactly the Round-1 trap (green `db reset` ≠
+  correct RPC) and turns "looks right" into "stays proven."
+
+### Minor notes (P3, non-blocking)
+- `request_more_info_tx` sets `reviewed_at` on a non-terminal transition — cosmetic.
+- `evidence_files` stub carries `ipfs_cid`/`filecoin_deal_id`/`arweave_tx_id` columns — inert and
+  sanctioned by the frozen outbox `target` enum (`internal|external_ledger|icp|filecoin|arweave`); no
+  logic/adapters → HARD RULE 9 (no IMPLEMENTATION) holds.
+- Double-submit with a different idempotency key surfaces a raw unique-violation from the
+  one-active-application partial index; the service layer maps it to a domain error in Task 5.
