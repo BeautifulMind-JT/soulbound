@@ -61,6 +61,12 @@ packages/core/vitest.config.ts
    raw media deleted on terminal admission state.
 9. Do not implement ICP, Filecoin, IPFS, Arweave. Do not create chat/messages/inbox routes.
 10. Do not overbuild.
+11. Role/builder boundary — canonical: `docs/WORKFLOW.md`. Builder is chosen by **layer risk**: security layer
+    (DB/RLS/RPC/adapter-client boundary/auth/idempotency/audit/retention/frozen-adjacent) = **Codex** default;
+    GLM/Claude Code is NOT the primary builder there (bounded scaffolding/logs/commands only). Surface layer
+    (UI/boilerplate/repetitive/mechanical wiring) = **GLM/Claude Code**. INVARIANT: the final approver of a
+    change is never the actor that built or patched it; the builder never self-approves (final gate = Cowork,
+    or a Codex session that did not build it).
 
 ---
 
@@ -100,6 +106,9 @@ Task 10  (옵션, 별도 브랜치) External Ledger PoC — 체인 선택은 다
 
 → 충돌 시 **HARD RULES 1·2·3 과 BUILD ORDER(a부터)** 가 항상 이긴다. 애매하면 멈추고 경계를 따른다.
 
-## 역할 경계 (파이프라인)
-- 빌더(= 이 에이전트, Claude Code + GLM 5.1)는 **감사하지 않는다.** 감사는 Codex(1차) + Cowork(최종)가 한다.
-- 빌더와 감사자는 서로 다른 모델이어야 한다. 자기가 짠 코드를 자기가 최종 승인하지 말 것.
+## 역할 경계 (파이프라인) — 정본: `docs/WORKFLOW.md`
+- 운영 루프는 **레이어 위험도 기준**(2026-06-01, JT 승인). 이 에이전트(Claude Code + GLM 5.1)는
+  **표면층 빌더**(UI/boilerplate/반복/기계적 wiring)다. 보안층(DB/RLS/RPC/adapter 경계/auth/idempotency/
+  audit/retention/frozen 인접)의 **주빌더가 되지 마라** — 거긴 Codex 디폴트. 보안층에선 로그/명령 실행 보조만.
+- 빌더는 **감사하지 않는다.** 감사는 Codex(1차) + Cowork(최종). 빌더와 감사자는 다른 행위자.
+- **불변식:** 어떤 변경의 최종 승인자는 그걸 짠/보수한 주체가 절대 아니다. 자기가 짠 걸 자기가 최종 승인 금지.

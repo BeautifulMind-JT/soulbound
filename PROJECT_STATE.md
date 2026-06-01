@@ -20,6 +20,11 @@ trust-first, 입장심사 기반 비공개 메신저(SoulBound) Phase 1 MVP를, 
 
 ## 1. 4-ACTOR 파이프라인 (역할 분리 — 절대 섞지 말 것)
 
+> **운영 루프 정본 = `docs/WORKFLOW.md`** (2026-06-01, JT 승인). 빌더는 **레이어 위험도**로 선택:
+> 보안층(DB/RLS/RPC/adapter 경계/auth/idempotency/audit/retention/frozen 인접) = **Codex 디폴트 빌더**,
+> 표면층(UI/boilerplate/반복/기계적 wiring) = **GLM/Claude Code**. 불변식: 최종 승인자 ≠ 그걸 짠/보수한 주체.
+> HARD RULES는 CLAUDE.md/.clinerules/AGENTS.md/이 문서 네 곳을 함께 갱신(드리프트 금지, §6).
+
 ```text
 [0] Architect/Auditor  설계 동결 + 최종 의미감사   ← Cowork 한 세션 OR 채팅 (단, 하나로 고정)
 [1] Builder            Claude Code + GLM 5.1       ← 코드를 짠다
