@@ -133,10 +133,12 @@ Task 4           ⏭ 직전(Task 3 커밋 후). adapters(supabase + noop).
 
 ## 4. 미결 항목 (잊으면 안 됨 — 기록 안 하면 사라진다)
 
-- **[Task 3→4 권고] 재현가능한 rpc/RLS smoke test 커밋.** R1 교훈 = `supabase db reset` 통과는 함정
-  (plpgsql 컬럼/타입 오류는 *호출 시* 터짐). Codex의 smoke test는 ad-hoc/uncommitted였음. `supabase/tests/`에
-  submit→start_review→approve/reject/more_info 구동 + RLS 거부(applicant가 review_summary 못 읽음, role 못 바꿈)
-  단언하는 SQL/pgTAP를 커밋해 CI/감사에서 재실행 가능하게 할 것. (Cowork R2 권고, non-blocking.)
+- **[Task 5 직전 필수 게이트 — 2026-06-01 JT 결정] 재현가능한 rpc/RLS smoke test 커밋.** R1 교훈 =
+  `supabase db reset` 통과는 함정(plpgsql 컬럼/타입 오류는 *호출 시* 터짐). Codex의 smoke test는
+  ad-hoc/uncommitted였음. `supabase/tests/`에 submit→start_review→approve/reject/more_info 구동 +
+  RLS 거부(applicant가 review_summary 못 읽음, role 못 바꿈) 단언하는 SQL/pgTAP를 커밋해 CI/감사에서
+  재실행 가능하게 할 것. **결정:** Task 4 어댑터(순수 mapper/Noop 단위테스트, 런타임 RPC 미실행)는 이것 없이
+  진행; 어댑터가 실제로 DB를 치는 **Task 5(wiring) 직전에 필수 게이트**로 커밋한다.
 - **[Task 10-1] outbox vs ledger 직접호출 책임 분리.** 현재 approve 후처리가 `outbox.enqueue` +
   `ledger.issueMembershipCredential`를 *둘 다* 직접 실행(INV-13 테스트가 그렇게 강제). P0는
   `externalLedgerEnabled=false`라 안 돌지만, Task 10에서 outbox processor가 `external_ledger`
