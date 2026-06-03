@@ -5,7 +5,7 @@
 > 자기 기억이 아니라 여기 적힌 결정과 그 *이유*를 기준으로 판단하세요.
 > 결정을 바꾸면 반드시 이 파일을 갱신하고 커밋하세요(머릿속에만 두지 말 것).
 
-마지막 갱신: Task 3 완료(Codex 재구현 + Cowork 최종 감사 **PASS**, uncommitted) / Task 4 직전. 빌드 브랜치 `phase1-p0-mvp`.
+마지막 갱신: Task 4 adapters 구현(Codex) + Cowork R1 감사 = **HOLD**(P1 applicant read-path, 패치 대기). Task 3는 커밋됨(2583f6f·bd052b0). 빌드 브랜치 `phase1-p0-mvp`.
 
 ---
 
@@ -59,9 +59,14 @@ Task 2 구현      ✅ admission-service.ts + membership-service.ts 바디만 �
                     Codex 1차 + Cowork 최종 감사 통과. (커밋은 JT가 진행 중)
 Task 3 (R1 GLM)  ❌ 반려. Codex 1차 + Cowork 최종 둘 다 FAIL (P0 2건/P1 4건). 산출물 폐기.
                     증적: docs/TASK3_AUDIT_FINDINGS.md, docs/TASK3_REIMPLEMENTATION_DECISION.md (커밋 910b85f)
-Task 3 (R2 Codex)✅ DB레이어 재구현. Cowork 최종 감사 PASS. 아직 uncommitted → 호스트에서 커밋하면 Task 4로.
+Task 3 (R2 Codex)✅ DB레이어 재구현. Cowork 최종 감사 PASS. 커밋됨 2583f6f + 감사증적 bd052b0.
                     예외: 이 Task만 Codex가 빌더, Cowork가 감사(자기승인 금지). supabase/ 만 변경, core/docs 무손상.
-Task 4           ⏭ 직전(Task 3 커밋 후). adapters(supabase + noop).
+Task 4 (Codex)   ✅ adapters(@soulbound/adapters). Cowork 감사 3라운드 끝 **PASS**(uncommitted).
+                    R1 P1(read 컬럼) → admission/membership 안전컬럼 분리로 수정. R2 P1(보안: auth role이
+                    user_metadata 폴백 → 자가승격) → app_metadata 전용으로 수정, 테스트가 위조 user_metadata 무시 단언.
+                    증적 docs/TASK4_AUDIT_FINDINGS.md(R1~R3). → JT 2커밋(feat adapters / docs audit).
+                    이월(Task 4 비차단): ① approve composite 라이브 shape = pre-Task5 smoke test. ② 신뢰 role 소스
+                    (security definer `current_user_role()` rpc 권장) + 시드 role을 user_metadata→신뢰소스로 = Task 6 전.
 ```
 
 빌드 순서(10 Task, 하나씩 / 사이마다 Codex→Cowork 감사):
