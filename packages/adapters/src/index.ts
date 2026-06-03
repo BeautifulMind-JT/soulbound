@@ -1,0 +1,52 @@
+export {
+  createAnonSupabaseClient,
+  createServiceRoleSupabaseClient,
+  createUserSupabaseClient,
+} from "./supabase/clients";
+export type { SupabaseAdapterClient } from "./supabase/clients";
+
+export {
+  mapAdmissionApplicationRow,
+  mapApproveOutcomeRow,
+  mapMembershipRow,
+  mapOutboxEventRow,
+} from "./supabase/mappers";
+export {
+  mapPostgresError,
+  throwIfSupabaseError,
+} from "./supabase/errors";
+
+export {
+  SupabaseAuthAdapter,
+  makeSupabaseAuthAdapter,
+} from "./supabase/supabase-auth-adapter";
+export {
+  SupabaseAdmissionRepository,
+  makeServiceRoleAdmissionRepository,
+  makeUserScopedAdmissionRepository,
+} from "./supabase/supabase-admission-repository";
+export {
+  SupabaseMembershipRepository,
+  makeSupabaseMembershipRepository,
+} from "./supabase/supabase-membership-repository";
+export {
+  SupabaseAuditLogRepository,
+  makeSupabaseAuditLogRepository,
+} from "./supabase/supabase-audit-log-repository";
+export {
+  SupabaseOutboxRepository,
+  makeSupabaseOutboxRepository,
+} from "./supabase/supabase-outbox-repository";
+export {
+  SupabaseStorageAdapter,
+  makeSupabaseStorageAdapter,
+} from "./supabase/supabase-storage-adapter";
+
+export {
+  NoopLedgerAdapter,
+  makeNoopLedgerAdapter,
+} from "./noop/noop-ledger-adapter";
+export {
+  NoopNotificationAdapter,
+  makeNoopNotificationAdapter,
+} from "./noop/noop-notification-adapter";
