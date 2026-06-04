@@ -24,6 +24,12 @@ interface TestApplicant {
   readonly accessToken: string;
 }
 
+interface AuthRetryOptions {
+  readonly label: string;
+  readonly attempts?: number;
+  readonly delayMs?: number;
+}
+
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
@@ -45,6 +51,56 @@ function readConfig(): IntegrationConfig {
 
 function uniqueSuffix(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function describeError(error: unknown): string {
+  if (error instanceof Error) {
+    return `${error.name}: ${error.message}`;
+  }
+
+  return JSON.stringify(error);
+}
+
+function isRetryableAuthError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return (
+    error.name === "AuthRetryableFetchError"
+    || error.message === "fetch failed"
+    || error.message.includes("fetch failed")
+  );
+}
+
+async function retryAuthFixtureOperation<T>(
+  options: AuthRetryOptions,
+  operation: () => Promise<T>,
+): Promise<T> {
+  const attempts = options.attempts ?? 4;
+  const delayMs = options.delayMs ?? 250;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableAuthError(error) || attempt === attempts) {
+        break;
+      }
+
+      await sleep(delayMs * attempt);
+    }
+  }
+
+  throw new Error(
+    `Auth fixture operation '${options.label}' failed after ${attempts} attempts: ${describeError(lastError)}`,
+  );
 }
 
 function authedRequest(
@@ -72,17 +128,22 @@ async function createApplicant(
   const email = `task6a-applicant-${suffix}@soulbound.local`;
   const password = `Task6a-${suffix}!`;
 
-  const { data: created, error: createError } =
-    await serviceRoleClient.auth.admin.createUser({
+  const created = await retryAuthFixtureOperation({
+    label: `admin.createUser(${email})`,
+  }, async () => {
+    const { data, error } = await serviceRoleClient.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
       user_metadata: {},
       app_metadata: {},
     });
-  if (createError) {
-    throw createError;
-  }
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  });
 
   const id = created.user?.id;
   if (!id) {
@@ -105,14 +166,19 @@ async function createApplicant(
     url: config.url,
     anonKey: config.anonKey,
   });
-  const { data: signIn, error: signInError } =
-    await anonClient.auth.signInWithPassword({
+  const signIn = await retryAuthFixtureOperation({
+    label: `signInWithPassword(${email})`,
+  }, async () => {
+    const { data, error } = await anonClient.auth.signInWithPassword({
       email,
       password,
     });
-  if (signInError) {
-    throw signInError;
-  }
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  });
 
   const accessToken = signIn.session?.access_token;
   if (!accessToken) {
