@@ -5,7 +5,7 @@
 > 자기 기억이 아니라 여기 적힌 결정과 그 *이유*를 기준으로 판단하세요.
 > 결정을 바꾸면 반드시 이 파일을 갱신하고 커밋하세요(머릿속에만 두지 말 것).
 
-마지막 갱신: Task 4 adapters = Cowork 3라운드 감사 **PASS**, 커밋됨(4899ca8 feat + 4de4513 docs, pushed). Task 1–4 커밋 완료. **pre-Task-5 rpc/RLS smoke test = Opus 감사세션 최종 PASS**(Codex 빌드, 41 pgTAP green; 증적 docs/PRE_TASK5_SMOKE_TEST_AUDIT.md). 커밋 = JT(`test(db)`+`docs`). 이제 **Task 5(service 배선) 착수 가능.** 브랜치 `phase1-p0-mvp`.
+마지막 갱신: Task 4 adapters = Cowork 3라운드 감사 **PASS**, 커밋됨(4899ca8 feat + 4de4513 docs, pushed). Task 1–4 커밋 완료. **pre-Task-5 rpc/RLS smoke test = Opus 감사세션 최종 PASS**(Codex 빌드, 41 pgTAP green; 증적 docs/PRE_TASK5_SMOKE_TEST_AUDIT.md). 커밋 = JT(`test(db)`+`docs`). **Task 4.5(신뢰 role 소스, carry-forward ②) = Opus 감사세션 PASS**(0006 `current_user_role()` + adapter RPC 해석 + seed 정리 + smoke 41→49; 증적 docs/TASK4_5_AUDIT_FINDINGS.md). 커밋 = JT. 이제 **Task 5(service 배선) 착수 가능** — canReview가 실 reviewer를 end-to-end 인가. 브랜치 `phase1-p0-mvp`.
 
 ---
 
@@ -66,12 +66,14 @@ Task 4 (Codex)   ✅ adapters(@soulbound/adapters). Cowork 감사 3라운드 끝
                     user_metadata 폴백 → 자가승격) → app_metadata 전용으로 수정, 테스트가 위조 user_metadata 무시 단언.
                     증적 docs/TASK4_AUDIT_FINDINGS.md(R1~R3).
                     이월(Task 4 비차단): ① approve composite 라이브 shape → **smoke test로 종결**(composite .application
-                    +.membership 직접 단언). ② 신뢰 role 소스(security definer `current_user_role()` rpc 권장) +
-                    시드 role을 user_metadata→신뢰소스로 = **Task 6 전, 아직 미결**.
-Pre-Task5 게이트  ✅ supabase/tests/pre_task5_rpc_rls_smoke.sql (41 pgTAP). Opus 감사세션 최종 PASS —
+                    +.membership 직접 단언). ② 신뢰 role 소스 → **Task 4.5로 종결**(0006 current_user_role + adapter RPC).
+Pre-Task5 게이트  ✅ supabase/tests/pre_task5_rpc_rls_smoke.sql (49 pgTAP, Task 4.5에서 41→49 확장). Opus PASS —
                     R1 빌더 자가수정 P0(partial-unique 충돌), R2 Cowork findings #2(storage_path vacuous)·
                     #3(composite membership 미검증)·#4(auth.uid 양성), R3 clean. 증적 docs/PRE_TASK5_SMOKE_TEST_AUDIT.md.
                     런타임 그린(db reset/test db)은 host 전용 → JT가 커밋 시 재확인.
+Task 4.5 (Codex) ✅ 신뢰 role 소스(carry-forward ②). 0006 current_user_role() security-definer + adapter가
+                    app_metadata→RPC로 role 해석(claim 무신뢰, fail-closed) + seed user_metadata.role 제거 +
+                    smoke 49(role 증명·anti-escalation·anon 거부). Opus 1라운드 clean PASS. 증적 docs/TASK4_5_AUDIT_FINDINGS.md.
 ```
 
 빌드 순서(10 Task, 하나씩 / 사이마다 Codex→Cowork 감사):
@@ -148,9 +150,12 @@ Pre-Task5 게이트  ✅ supabase/tests/pre_task5_rpc_rls_smoke.sql (41 pgTAP). 
   닫음: 실제 `authenticated` 세션 RLS·컬럼거부 + RPC 런타임 흐름 + approve composite 양쪽(.application/.membership) +
   idempotency 무중복 + P0001/P0002 + content-minimization + persona clip terminal 마킹을 *호출 시점*에 단언.
   커밋 = JT(`test(db)`). 증적 docs/PRE_TASK5_SMOKE_TEST_AUDIT.md.
-  ⚠️ **남은 보안 미결(②, Task 6 전):** 신뢰 role 소스 — 이 테스트는 현 상태(seed가 app_metadata에 role 없음,
-  user_metadata + profiles.role만)를 *문서화*만 하고 수정하지 않음. security definer `current_user_role()` rpc OR
-  service-role app_metadata 주입 + 시드 role을 신뢰소스로 이전 = 별도 보안층 task(Codex 빌드, Opus 감사).
+- **✅ [완료 — carry-forward ②, Task 4.5] 신뢰 role 소스.** `supabase/migrations/0006_role_source.sql`의
+  security-definer `current_user_role()`(profiles.role를 auth.uid 키로 서버사이드 해석). adapter가 JWT
+  claim(user_metadata/app_metadata) 대신 이 RPC로 role 해석(fail-closed to applicant), seed에서
+  user_metadata.role 제거(profiles.role 단일 진실원). smoke 49 pgTAP가 실 `authenticated` 세션서 admin/
+  reviewer/applicant role 증명 + anti-escalation(위조 claim 무시) + anon 거부. Opus 1라운드 clean PASS.
+  증적 docs/TASK4_5_AUDIT_FINDINGS.md. (escalation-proof: applicant는 profiles.role 못 씀 — 42501 증명됨.)
 - **[Task 10-1] outbox vs ledger 직접호출 책임 분리.** 현재 approve 후처리가 `outbox.enqueue` +
   `ledger.issueMembershipCredential`를 *둘 다* 직접 실행(INV-13 테스트가 그렇게 강제). P0는
   `externalLedgerEnabled=false`라 안 돌지만, Task 10에서 outbox processor가 `external_ledger`
