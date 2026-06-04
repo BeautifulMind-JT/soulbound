@@ -5,7 +5,7 @@
 > 자기 기억이 아니라 여기 적힌 결정과 그 *이유*를 기준으로 판단하세요.
 > 결정을 바꾸면 반드시 이 파일을 갱신하고 커밋하세요(머릿속에만 두지 말 것).
 
-마지막 갱신: Task 4 adapters = Cowork 3라운드 감사 **PASS**, 커밋됨(4899ca8 feat + 4de4513 docs, pushed). Task 1–4 커밋 완료. **pre-Task-5 rpc/RLS smoke test = Opus 감사세션 최종 PASS**(Codex 빌드, 41 pgTAP green; 증적 docs/PRE_TASK5_SMOKE_TEST_AUDIT.md). 커밋 = JT(`test(db)`+`docs`). **Task 4.5(신뢰 role 소스, carry-forward ②) = Opus 감사세션 PASS**(0006 `current_user_role()` + adapter RPC 해석 + seed 정리 + smoke 41→49; 증적 docs/TASK4_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5(service 배선) = Opus 감사세션 PASS**(makeCoreContainer + 실 reviewer 승인경로 live 통합테스트; 증적 docs/TASK5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5.5(seed sign-in 수정) = Opus 감사세션 PASS**(seed에 auth.identities + aud/instance_id/'' token 보강[role은 metadata에 안 넣음], 시드 유저 실 sign-in 런타임 게이트; 증적 docs/TASK5_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 6a = Opus 감사세션 PASS**(apps/web 스캐폴드 + applicant 라우트). 최초 PASS는 flaky 통합테스트로 성급(§6 교훈) → HOLD → **corrective(4fa4755: fixture-auth bounded retry, fixture 전용·route/단언 무손상, tsbuildinfo 정리)** → **JT 호스트 5/5 연속 + db reset 후 green = 결정성 확정** → 최종 PASS. audit.sh 빌드아티팩트 보정(1c243c1) 별개 유효. 증적 docs/TASK6A_AUDIT_FINDINGS.md. 이제 **Task 6b(admin/reviewer 라우트)**. 브랜치 `phase1-p0-mvp`.
+마지막 갱신: Task 4 adapters = Cowork 3라운드 감사 **PASS**, 커밋됨(4899ca8 feat + 4de4513 docs, pushed). Task 1–4 커밋 완료. **pre-Task-5 rpc/RLS smoke test = Opus 감사세션 최종 PASS**(Codex 빌드, 41 pgTAP green; 증적 docs/PRE_TASK5_SMOKE_TEST_AUDIT.md). 커밋 = JT(`test(db)`+`docs`). **Task 4.5(신뢰 role 소스, carry-forward ②) = Opus 감사세션 PASS**(0006 `current_user_role()` + adapter RPC 해석 + seed 정리 + smoke 41→49; 증적 docs/TASK4_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5(service 배선) = Opus 감사세션 PASS**(makeCoreContainer + 실 reviewer 승인경로 live 통합테스트; 증적 docs/TASK5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5.5(seed sign-in 수정) = Opus 감사세션 PASS**(seed에 auth.identities + aud/instance_id/'' token 보강[role은 metadata에 안 넣음], 시드 유저 실 sign-in 런타임 게이트; 증적 docs/TASK5_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 6a = Opus 감사세션 PASS**(apps/web 스캐폴드 + applicant 라우트). 최초 PASS는 flaky 통합테스트로 성급(§6 교훈) → HOLD → **corrective(4fa4755: fixture-auth bounded retry, fixture 전용·route/단언 무손상, tsbuildinfo 정리)** → **JT 호스트 5/5 연속 + db reset 후 green = 결정성 확정** → 최종 PASS. audit.sh 빌드아티팩트 보정(1c243c1) 별개 유효. 증적 docs/TASK6A_AUDIT_FINDINGS.md. **Task 6b(admin/reviewer 라우트) = Opus 감사세션 PASS**(reviewer 큐/상세 read + 4전이; route 역할게이트가 service-role read의 유일 보호막, review_summary 경계 양방향; RLS 정책 미추가=service-role route, BuildPlan §5.3.2; 증적 docs/TASK6B_AUDIT_FINDINGS.md). 커밋 = JT. **Task 6(API routes) 완료** → 다음 **Task 7(Persona Clip route + recorder)**. 브랜치 `phase1-p0-mvp`.
 
 ---
 
@@ -92,6 +92,14 @@ Task 6a (Codex)  ✅ apps/web 스캐폴드 + 요청인증(resolveActor: getUser 
                     [flaky→해결] 통합테스트가 fixture(createUser/signIn) AuthRetryableFetchError로 비결정적이었음
                     → corrective(4fa4755) fixture-auth bounded retry(retryable-only, fixture 전용, route/단언 무손상)
                     → JT 호스트 5/5 + reset 후 green으로 결정성 확정. route 보안로직은 처음부터 정상(원인=fixture transport).
+Task 6b (Codex)  ✅ admin/reviewer 라우트(큐 list/상세 GET + review/approve/reject/request-more-info). 모든 reviewer
+                    READ에 requireReviewer(applicant→403; RLS-우회 service-role read의 유일 보호막), 쓰기=service(canReview
+                    재검사), actor/id=resolved actor·URL(body 위조 차단), frozen-enum zod. **review_summary 경계 양방향**
+                    증명(reviewer 상세=노출 / 같은 신청서 applicant 본인 라우트=비노출). RLS 정책 미추가(BuildPlan §5.3.2 =
+                    service-role route + route gate). 결정성: 호스트 5/5 + (reset 컨테이너 실패→stop/start 복구 후) 깨끗한
+                    reset→smoke49→integration 4/4. 그 1회 실패는 `db reset` 인프라 실패(broken stack)였고 테스트가 fail-loud로
+                    정직히 surfaced(masking 아님, non-retryable "DB error"). Opus PASS. 증적 docs/TASK6B_AUDIT_FINDINGS.md.
+                    (minor cosmetic: retry 에러메시지가 non-retryable에도 "after 4 attempts" 표기 — 후속 정리.)
 ```
 
 빌드 순서(10 Task, 하나씩 / 사이마다 Codex→Cowork 감사):
