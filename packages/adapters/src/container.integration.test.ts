@@ -101,6 +101,30 @@ async function createThrowawayUser(
 }
 
 describe("makeCoreContainer integration", () => {
+  it("signs in seeded users and resolves roles from current_user_role", async () => {
+    const config = readConfig();
+    const seededUsers = [
+      {
+        email: "admin@soulbound.local",
+        role: "admin",
+      },
+      {
+        email: "reviewer@soulbound.local",
+        role: "reviewer",
+      },
+      {
+        email: "applicant@soulbound.local",
+        role: "applicant",
+      },
+    ] as const;
+
+    for (const seededUser of seededUsers) {
+      const session = await signIn(config, seededUser.email, "password123");
+
+      expect(session.role).toBe(seededUser.role);
+    }
+  });
+
   it("wires the reviewer approval path through live auth, services, and Supabase adapters", async () => {
     const config = readConfig();
     const container = makeCoreContainer({
