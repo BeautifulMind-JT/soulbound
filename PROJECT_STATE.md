@@ -5,7 +5,7 @@
 > 자기 기억이 아니라 여기 적힌 결정과 그 *이유*를 기준으로 판단하세요.
 > 결정을 바꾸면 반드시 이 파일을 갱신하고 커밋하세요(머릿속에만 두지 말 것).
 
-마지막 갱신: Task 4 adapters = Cowork 3라운드 감사 **PASS**, 커밋됨(4899ca8 feat + 4de4513 docs, pushed). Task 1–4 커밋 완료. **pre-Task-5 rpc/RLS smoke test = Opus 감사세션 최종 PASS**(Codex 빌드, 41 pgTAP green; 증적 docs/PRE_TASK5_SMOKE_TEST_AUDIT.md). 커밋 = JT(`test(db)`+`docs`). **Task 4.5(신뢰 role 소스, carry-forward ②) = Opus 감사세션 PASS**(0006 `current_user_role()` + adapter RPC 해석 + seed 정리 + smoke 41→49; 증적 docs/TASK4_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5(service 배선) = Opus 감사세션 PASS**(makeCoreContainer + 실 reviewer 승인경로 live 통합테스트; 증적 docs/TASK5_AUDIT_FINDINGS.md). 커밋 = JT. ⚠️ Task 5서 발견: **seed auth.users가 GoTrue password sign-in 거부**(통합테스트는 throwaway 유저로 우회) → **Task 6(라우트 로그인) 전 seed 수정 필수**(§4). 브랜치 `phase1-p0-mvp`.
+마지막 갱신: Task 4 adapters = Cowork 3라운드 감사 **PASS**, 커밋됨(4899ca8 feat + 4de4513 docs, pushed). Task 1–4 커밋 완료. **pre-Task-5 rpc/RLS smoke test = Opus 감사세션 최종 PASS**(Codex 빌드, 41 pgTAP green; 증적 docs/PRE_TASK5_SMOKE_TEST_AUDIT.md). 커밋 = JT(`test(db)`+`docs`). **Task 4.5(신뢰 role 소스, carry-forward ②) = Opus 감사세션 PASS**(0006 `current_user_role()` + adapter RPC 해석 + seed 정리 + smoke 41→49; 증적 docs/TASK4_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5(service 배선) = Opus 감사세션 PASS**(makeCoreContainer + 실 reviewer 승인경로 live 통합테스트; 증적 docs/TASK5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5.5(seed sign-in 수정) = Opus 감사세션 PASS**(seed에 auth.identities + aud/instance_id/'' token 보강[role은 metadata에 안 넣음], 시드 유저 실 sign-in 런타임 게이트; 증적 docs/TASK5_5_AUDIT_FINDINGS.md). 커밋 = JT. 이제 **Task 6(API routes) 착수 가능** — 시드 fixture로 실 로그인 가능. 브랜치 `phase1-p0-mvp`.
 
 ---
 
@@ -77,7 +77,11 @@ Task 4.5 (Codex) ✅ 신뢰 role 소스(carry-forward ②). 0006 current_user_ro
 Task 5 (Codex)   ✅ service wiring. makeCoreContainer(service-role repos + NoopLedger + featureFlags, AuthPort 분리)
                     + live-Supabase 통합테스트(실 reviewer signIn→current_user_role→canReview→approve RPC→membership,
                     applicant→FORBIDDEN). unit↔integration vitest 분리(pnpm test 스택-free 유지). Opus 1라운드 PASS.
-                    증적 docs/TASK5_AUDIT_FINDINGS.md. ⚠️ seed 유저 GoTrue sign-in 불가 발견(§4) — Task 6 전 seed 수정 필수.
+                    증적 docs/TASK5_AUDIT_FINDINGS.md. ⚠️ seed 유저 GoTrue sign-in 불가 발견(§4) — Task 5.5서 종결.
+Task 5.5 (Codex) ✅ seed sign-in 수정(auth-plumbing only). seed에 auth.identities + aud/instance_id/'' token +
+                    created/updated 보강(role은 어느 metadata에도 안 넣음 → smoke 49 유지). read-only 게이트: 시드
+                    admin/reviewer/applicant 실 password sign-in + current_user_role 해석 증명(재실행 안전).
+                    full-flow는 throwaway 유지. Opus 1라운드 clean PASS. 증적 docs/TASK5_5_AUDIT_FINDINGS.md.
 ```
 
 빌드 순서(10 Task, 하나씩 / 사이마다 Codex→Cowork 감사):
@@ -160,13 +164,13 @@ Task 5 (Codex)   ✅ service wiring. makeCoreContainer(service-role repos + Noop
   user_metadata.role 제거(profiles.role 단일 진실원). smoke 49 pgTAP가 실 `authenticated` 세션서 admin/
   reviewer/applicant role 증명 + anti-escalation(위조 claim 무시) + anon 거부. Opus 1라운드 clean PASS.
   증적 docs/TASK4_5_AUDIT_FINDINGS.md. (escalation-proof: applicant는 profiles.role 못 씀 — 42501 증명됨.)
-- **⚠️ [신규 — Task 6 전 필수] seed auth.users가 GoTrue password sign-in을 거부.** Task 5 통합테스트가 발견
-  (빌더 정직 보고 → Opus 검증). `supabase/seed.sql`이 auth.users를 손삽입하며 GoTrue 필수 필드(`aud`/
-  `instance_id`, 빈문자열 token 컬럼 등)를 빠뜨려, 시드된 admin/reviewer/applicant가 **실제 로그인 불가**;
-  admin-API로 만든 유저만 로그인됨 → Task 5 통합테스트는 throwaway 유저로 우회(claim 비우고 profiles.role만 부여,
-  (b) 증명은 오히려 강화됨). pgTAP smoke는 JWT claim을 `set_config`로 위조해 GoTrue를 안 거쳐서 이걸 못 잡았음.
-  **Task 6 라우트가 실 sign-in을 쓰기 전 필수로 닫을 것.** 보안/DB층(seed) → Codex 빌드, Opus 감사.
-  (seed 수정 + 가능하면 통합테스트가 *시드* 유저 로그인까지 증명하도록 확장.)
+- **✅ [완료 — Task 5.5] seed auth.users GoTrue password sign-in 수정됨.** Task 5 통합테스트가 발견(빌더 정직
+  보고 → Opus 검증), Task 5.5서 종결. 진단(실측): 시드 유저가 `auth.identities` 행 부재 + `aud`/`instance_id`/
+  NULL token 컬럼 결여로 GoTrue 로그인 불가였음(admin-API 유저만 로그인). 수정: `supabase/seed.sql`에
+  `auth.identities`(provider=email, identity_data {sub,email}) + `aud`/`instance_id`/`''` token + created/updated
+  보강 — **role은 어느 metadata에도 안 넣음**(Task 4.5 불변식 + smoke 49 "claim에 role 없음" 유지). 게이트:
+  read-only 통합테스트가 시드 admin/reviewer/applicant **실 password sign-in + current_user_role 해석**을 런타임
+  증명(재실행 안전); full-flow 테스트는 throwaway 유지. Opus 1라운드 clean PASS. 증적 docs/TASK5_5_AUDIT_FINDINGS.md.
 - **[Task 10-1] outbox vs ledger 직접호출 책임 분리.** 현재 approve 후처리가 `outbox.enqueue` +
   `ledger.issueMembershipCredential`를 *둘 다* 직접 실행(INV-13 테스트가 그렇게 강제). P0는
   `externalLedgerEnabled=false`라 안 돌지만, Task 10에서 outbox processor가 `external_ledger`
