@@ -5,7 +5,7 @@
 > 자기 기억이 아니라 여기 적힌 결정과 그 *이유*를 기준으로 판단하세요.
 > 결정을 바꾸면 반드시 이 파일을 갱신하고 커밋하세요(머릿속에만 두지 말 것).
 
-마지막 갱신: Task 4 adapters = Cowork 3라운드 감사 **PASS**, 커밋됨(4899ca8 feat + 4de4513 docs, pushed). Task 1–4 커밋 완료. **pre-Task-5 rpc/RLS smoke test = Opus 감사세션 최종 PASS**(Codex 빌드, 41 pgTAP green; 증적 docs/PRE_TASK5_SMOKE_TEST_AUDIT.md). 커밋 = JT(`test(db)`+`docs`). **Task 4.5(신뢰 role 소스, carry-forward ②) = Opus 감사세션 PASS**(0006 `current_user_role()` + adapter RPC 해석 + seed 정리 + smoke 41→49; 증적 docs/TASK4_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5(service 배선) = Opus 감사세션 PASS**(makeCoreContainer + 실 reviewer 승인경로 live 통합테스트; 증적 docs/TASK5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5.5(seed sign-in 수정) = Opus 감사세션 PASS**(seed에 auth.identities + aud/instance_id/'' token 보강[role은 metadata에 안 넣음], 시드 유저 실 sign-in 런타임 게이트; 증적 docs/TASK5_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 6a(apps/web 스캐폴드 + applicant API routes) = Opus 감사세션 PASS** + **audit.sh 빌드아티팩트 제외 보정**(JT 승인); 증적 docs/TASK6A_AUDIT_FINDINGS.md. 커밋 = JT. 이제 **Task 6b(admin/reviewer 라우트)** — create-as-submitted 확정(P0 draft 경로 없음). 브랜치 `phase1-p0-mvp`.
+마지막 갱신: Task 4 adapters = Cowork 3라운드 감사 **PASS**, 커밋됨(4899ca8 feat + 4de4513 docs, pushed). Task 1–4 커밋 완료. **pre-Task-5 rpc/RLS smoke test = Opus 감사세션 최종 PASS**(Codex 빌드, 41 pgTAP green; 증적 docs/PRE_TASK5_SMOKE_TEST_AUDIT.md). 커밋 = JT(`test(db)`+`docs`). **Task 4.5(신뢰 role 소스, carry-forward ②) = Opus 감사세션 PASS**(0006 `current_user_role()` + adapter RPC 해석 + seed 정리 + smoke 41→49; 증적 docs/TASK4_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5(service 배선) = Opus 감사세션 PASS**(makeCoreContainer + 실 reviewer 승인경로 live 통합테스트; 증적 docs/TASK5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5.5(seed sign-in 수정) = Opus 감사세션 PASS**(seed에 auth.identities + aud/instance_id/'' token 보강[role은 metadata에 안 넣음], 시드 유저 실 sign-in 런타임 게이트; 증적 docs/TASK5_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 6a = ⚠️ HOLD**(코드 커밋됨 98d79fe, 그러나 **web 통합테스트가 non-deterministic** — fixture가 반복 실행/`db reset` 후 `AuthRetryableFetchError`로 실패; 1회 PASS했으나 재현 안 됨). audit.sh 빌드아티팩트 보정(1c243c1)은 유효·별개. **6a corrective(통합테스트 결정성 확보) → Opus 재감사 후에야 진짜 PASS이며, 그 전 Task 6b 금지.** (이전 "Task 6a PASS" 기록은 성급 — 호스트 런타임 게이트를 "passed twice" 보고로 통과시킨 감사 오류, §6.) 브랜치 `phase1-p0-mvp`.
 
 ---
 
@@ -82,13 +82,16 @@ Task 5.5 (Codex) ✅ seed sign-in 수정(auth-plumbing only). seed에 auth.ident
                     created/updated 보강(role은 어느 metadata에도 안 넣음 → smoke 49 유지). read-only 게이트: 시드
                     admin/reviewer/applicant 실 password sign-in + current_user_role 해석 증명(재실행 안전).
                     full-flow는 throwaway 유지. Opus 1라운드 clean PASS. 증적 docs/TASK5_5_AUDIT_FINDINGS.md.
-Task 6a (Codex)  ✅ apps/web 스캐폴드 + 요청인증(resolveActor: getUser 실검증 + current_user_role, claim 무신뢰,
+Task 6a (Codex)  ⚠️HOLD apps/web 스캐폴드 + 요청인증(resolveActor: getUser 실검증 + current_user_role, claim 무신뢰,
                     fail-closed) + applicant 라우트(POST applications=submit / GET me·[id] / membership/me). 3-client:
                     읽기=user-scoped repo(RLS), 쓰기=service-role container. service-role 키 server-only(INV-17),
                     applicantId=actor(body 위조 차단), 타인 [id]→404, 무세션/invalid→401, Result→HTTP 매핑 누수 0.
                     route-handler 통합테스트(실 토큰 invoke, body주입 능동검증, 재실행) + unit 7. Opus PASS.
                     증적 docs/TASK6A_AUDIT_FINDINGS.md. +audit.sh GREP() .next/dist/node_modules 제외 보정(JT 승인).
                     create-as-submitted 확정(P0 draft 생성경로 없음 — [id]/submit 라우트 미구현).
+                    ⚠️ HOLD: 통합테스트 non-deterministic(fixture가 createUser/signIn서 AuthRetryableFetchError로
+                    반복 실패, db reset 후에도). 코드 보안로직은 검증됐으나 (b)게이트가 신뢰성 미달 → corrective로
+                    테스트 결정성 확보 후 재감사. 코드/route 변경 아닌 fixture 안정화가 원인.
 ```
 
 빌드 순서(10 Task, 하나씩 / 사이마다 Codex→Cowork 감사):
@@ -211,6 +214,11 @@ Task별로 Codex 1차(AGENTS.md, 기계검사) 통과 후, 설계세션이 코�
   → `GREP()`에서 `.next/dist/node_modules` 제외(rg glob + grep `--exclude-dir`)로 결정적화. 교훈: 정적 게이트는
   **소스만** 스캔하고 빌드/deps 출력을 배제해야 한다(안 그러면 false-FAIL이 진짜 위반을 가리는 습관을 만든다).
   JT 승인 하 frozen audit.sh 보정.
+- **flaky 런타임 게이트를 'passed twice'로 통과 (Task 6a):** web 통합테스트가 빌더 환경 + 호스트 1회 PASS → Opus가
+  PASS 판정. 그러나 fixture(`createUser`/`signInWithPassword`)가 비결정적(`AuthRetryableFetchError`)이라 반복 실행/
+  `db reset` 후 계속 실패. (b)게이트의 존재이유 = *신뢰성 있는* 런타임 증명인데 1~2회 통과는 결정성 증거가 아니다.
+  → 교훈: **호스트 전용 런타임 게이트는 "passed N times" 보고가 아니라 *연속 다회 + reset 후* 재현된 green을 봐야 PASS.**
+  fixture 불안정은 bounded retry/유니크화/정리로 닫되, assertion·route 호출은 결정적으로 유지(retry로 가리지 말 것).
 - **stale 아티팩트 드리프트:** 산출물 여러 버전이 떠다녀 옛 버전을 받아 작업 → 여러 번 사고.
   → 대응: 단일 번들 + `MANIFEST.txt`(version assertion + grep + sha256). 받으면 MANIFEST부터 확인.
 - **"했다고 말한 것" ≠ "실제 파일":** 보고는 v1.3인데 zip 안은 v1.2였던 적 다수.
