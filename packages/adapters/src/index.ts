@@ -50,3 +50,6 @@ export {
   NoopNotificationAdapter,
   makeNoopNotificationAdapter,
 } from "./noop/noop-notification-adapter";
+
+export { makeCoreContainer } from "./container";
+export type { CoreContainerConfig } from "./container";
