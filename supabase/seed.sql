@@ -15,7 +15,7 @@ values
     now(),
     'authenticated',
     '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"role":"admin"}'::jsonb
+    '{}'::jsonb
   ),
   (
     'a0000000-0000-0000-0000-000000000002',
@@ -24,7 +24,7 @@ values
     now(),
     'authenticated',
     '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"role":"reviewer"}'::jsonb
+    '{}'::jsonb
   ),
   (
     'a0000000-0000-0000-0000-000000000003',
@@ -33,7 +33,7 @@ values
     now(),
     'authenticated',
     '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"role":"applicant"}'::jsonb
+    '{}'::jsonb
   )
 on conflict (id) do nothing;
 

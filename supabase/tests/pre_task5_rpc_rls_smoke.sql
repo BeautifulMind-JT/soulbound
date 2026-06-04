@@ -35,7 +35,7 @@ values (
   now(),
   'authenticated',
   '{"provider":"email","providers":["email"]}'::jsonb,
-  '{"role":"applicant"}'::jsonb
+  '{}'::jsonb
 )
 on conflict (id) do nothing;
 
@@ -622,6 +622,12 @@ select is(
 );
 
 select is(
+  public.current_user_role(),
+  'applicant',
+  'current_user_role returns applicant for seeded applicant session'
+);
+
+select is(
   pg_temp.sqlstate_for(format(
     $sql$
       select
@@ -760,6 +766,109 @@ select is(
 
 reset role;
 
+do $$
+begin
+  perform set_config(
+    'request.jwt.claims',
+    '{"sub":"a0000000-0000-0000-0000-000000000001","role":"authenticated"}',
+    true
+  );
+  perform set_config(
+    'request.jwt.claim.sub',
+    'a0000000-0000-0000-0000-000000000001',
+    true
+  );
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+end;
+$$;
+set local role authenticated;
+
+select is(
+  auth.uid(),
+  'a0000000-0000-0000-0000-000000000001'::uuid,
+  'authenticated smoke session resolves auth.uid() to seeded admin'
+);
+
+select is(
+  public.current_user_role(),
+  'admin',
+  'current_user_role returns admin for seeded admin session'
+);
+
+reset role;
+
+do $$
+begin
+  perform set_config(
+    'request.jwt.claims',
+    '{"sub":"a0000000-0000-0000-0000-000000000002","role":"authenticated"}',
+    true
+  );
+  perform set_config(
+    'request.jwt.claim.sub',
+    'a0000000-0000-0000-0000-000000000002',
+    true
+  );
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+end;
+$$;
+set local role authenticated;
+
+select is(
+  auth.uid(),
+  'a0000000-0000-0000-0000-000000000002'::uuid,
+  'authenticated smoke session resolves auth.uid() to seeded reviewer'
+);
+
+select is(
+  public.current_user_role(),
+  'reviewer',
+  'current_user_role returns reviewer for seeded reviewer session'
+);
+
+reset role;
+
+do $$
+begin
+  perform set_config(
+    'request.jwt.claims',
+    '{"sub":"a0000000-0000-0000-0000-000000000003","role":"authenticated","user_metadata":{"role":"reviewer"},"app_metadata":{"role":"reviewer"}}',
+    true
+  );
+  perform set_config(
+    'request.jwt.claim.sub',
+    'a0000000-0000-0000-0000-000000000003',
+    true
+  );
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+end;
+$$;
+set local role authenticated;
+
+select is(
+  auth.uid(),
+  'a0000000-0000-0000-0000-000000000003'::uuid,
+  'forged-role smoke session still resolves auth.uid() to seeded applicant'
+);
+
+select is(
+  public.current_user_role(),
+  'applicant',
+  'current_user_role ignores forged role claims and returns profile role'
+);
+
+reset role;
+
+set local role anon;
+
+select is(
+  pg_temp.sqlstate_for('select public.current_user_role()'),
+  '42501',
+  'anon cannot execute current_user_role'
+);
+
+reset role;
+
 select is(
   (
     select role::text
@@ -784,14 +893,19 @@ select ok(
   'seeded users do not yet have trusted app_metadata role'
 );
 
-select is(
-  (
-    select raw_user_meta_data->>'role'
+select ok(
+  not exists (
+    select 1
     from auth.users
-    where id = 'a0000000-0000-0000-0000-000000000002'::uuid
+    where id in (
+      'a0000000-0000-0000-0000-000000000001'::uuid,
+      'a0000000-0000-0000-0000-000000000002'::uuid,
+      'a0000000-0000-0000-0000-000000000003'::uuid,
+      'b0000000-0000-0000-0000-000000000004'::uuid
+    )
+    and raw_user_meta_data ? 'role'
   ),
-  'reviewer',
-  'seeded reviewer role currently lives in user_metadata'
+  'seeded and smoke-test users do not have user_metadata role'
 );
 
 select is(

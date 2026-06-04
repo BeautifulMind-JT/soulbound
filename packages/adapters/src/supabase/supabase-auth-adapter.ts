@@ -24,16 +24,6 @@ function isUserRole(value: unknown): value is UserRole {
   );
 }
 
-function roleFromAppMetadata(
-  appMetadata: Record<string, unknown> | null | undefined,
-): UserRole {
-  if (isUserRole(appMetadata?.role)) {
-    return appMetadata.role;
-  }
-
-  return "applicant";
-}
-
 export class SupabaseAuthAdapter implements AuthPort {
   constructor(private readonly client: SupabaseAdapterClient) {}
 
@@ -51,7 +41,7 @@ export class SupabaseAuthAdapter implements AuthPort {
 
     return sessionFromUser(
       data.user.id,
-      roleFromAppMetadata(data.user.app_metadata),
+      "applicant",
     );
   }
 
@@ -69,7 +59,7 @@ export class SupabaseAuthAdapter implements AuthPort {
 
     return sessionFromUser(
       data.user.id,
-      roleFromAppMetadata(data.user.app_metadata),
+      await this.resolveCurrentUserRole(),
     );
   }
 
@@ -84,7 +74,7 @@ export class SupabaseAuthAdapter implements AuthPort {
 
     return sessionFromUser(
       userId,
-      roleFromAppMetadata(data.session?.user.app_metadata),
+      await this.resolveCurrentUserRole(),
     );
   }
 
@@ -94,6 +84,14 @@ export class SupabaseAuthAdapter implements AuthPort {
     return data.user?.id ?? null;
   }
 
+  private async resolveCurrentUserRole(): Promise<UserRole> {
+    const { data, error } = await this.client.rpc("current_user_role");
+    if (error) {
+      return "applicant";
+    }
+
+    return isUserRole(data) ? data : "applicant";
+  }
 }
 
 export function makeSupabaseAuthAdapter(

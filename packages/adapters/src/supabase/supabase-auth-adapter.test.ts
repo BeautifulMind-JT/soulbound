@@ -5,6 +5,9 @@ function makeClientWithSignInUser(user: {
   readonly id: string;
   readonly app_metadata?: Record<string, unknown>;
   readonly user_metadata?: Record<string, unknown>;
+}, rpcResult: { readonly data: unknown; readonly error: unknown } = {
+  data: "applicant",
+  error: null,
 }): SupabaseAdapterClient {
   return {
     auth: {
@@ -15,20 +18,24 @@ function makeClientWithSignInUser(user: {
         error: null,
       }),
     },
-    from: () => {
-      throw new Error("profiles.role must not be queried by AuthPort");
+    rpc: async (fn: string) => {
+      if (fn !== "current_user_role") {
+        throw new Error(`unexpected rpc: ${fn}`);
+      }
+
+      return rpcResult;
     },
   } as unknown as SupabaseAdapterClient;
 }
 
 describe("SupabaseAuthAdapter", () => {
-  it("reads role from trusted app metadata without querying profiles.role", async () => {
+  it("reads role from current_user_role RPC", async () => {
     const adapter = new SupabaseAuthAdapter(
       makeClientWithSignInUser({
         id: "user-1",
-        app_metadata: {
-          role: "reviewer",
-        },
+      }, {
+        data: "reviewer",
+        error: null,
       }),
     );
 
@@ -43,13 +50,61 @@ describe("SupabaseAuthAdapter", () => {
     });
   });
 
-  it("ignores user-editable user metadata role claims", async () => {
+  it("ignores user-editable user metadata and app metadata role claims", async () => {
     const adapter = new SupabaseAuthAdapter(
       makeClientWithSignInUser({
         id: "user-1",
-        user_metadata: {
+        app_metadata: {
           role: "admin",
         },
+        user_metadata: {
+          role: "reviewer",
+        },
+      }, {
+        data: "applicant",
+        error: null,
+      }),
+    );
+
+    await expect(
+      adapter.signIn({
+        email: "applicant@soulbound.local",
+        password: "password123",
+      }),
+    ).resolves.toEqual({
+      userId: "user-1",
+      role: "applicant",
+    });
+  });
+
+  it("fails closed to applicant when role RPC returns null", async () => {
+    const adapter = new SupabaseAuthAdapter(
+      makeClientWithSignInUser({
+        id: "user-1",
+      }, {
+        data: null,
+        error: null,
+      }),
+    );
+
+    await expect(
+      adapter.signIn({
+        email: "applicant@soulbound.local",
+        password: "password123",
+      }),
+    ).resolves.toEqual({
+      userId: "user-1",
+      role: "applicant",
+    });
+  });
+
+  it("fails closed to applicant when role RPC errors", async () => {
+    const adapter = new SupabaseAuthAdapter(
+      makeClientWithSignInUser({
+        id: "user-1",
+      }, {
+        data: null,
+        error: { message: "rpc failed" },
       }),
     );
 
