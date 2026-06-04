@@ -5,7 +5,7 @@
 > 자기 기억이 아니라 여기 적힌 결정과 그 *이유*를 기준으로 판단하세요.
 > 결정을 바꾸면 반드시 이 파일을 갱신하고 커밋하세요(머릿속에만 두지 말 것).
 
-마지막 갱신: Task 4 adapters = Cowork 3라운드 감사 **PASS**, 커밋됨(4899ca8 feat + 4de4513 docs, pushed). Task 1–4 커밋 완료. **pre-Task-5 rpc/RLS smoke test = Opus 감사세션 최종 PASS**(Codex 빌드, 41 pgTAP green; 증적 docs/PRE_TASK5_SMOKE_TEST_AUDIT.md). 커밋 = JT(`test(db)`+`docs`). **Task 4.5(신뢰 role 소스, carry-forward ②) = Opus 감사세션 PASS**(0006 `current_user_role()` + adapter RPC 해석 + seed 정리 + smoke 41→49; 증적 docs/TASK4_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5(service 배선) = Opus 감사세션 PASS**(makeCoreContainer + 실 reviewer 승인경로 live 통합테스트; 증적 docs/TASK5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5.5(seed sign-in 수정) = Opus 감사세션 PASS**(seed에 auth.identities + aud/instance_id/'' token 보강[role은 metadata에 안 넣음], 시드 유저 실 sign-in 런타임 게이트; 증적 docs/TASK5_5_AUDIT_FINDINGS.md). 커밋 = JT. 이제 **Task 6(API routes) 착수 가능** — 시드 fixture로 실 로그인 가능. 브랜치 `phase1-p0-mvp`.
+마지막 갱신: Task 4 adapters = Cowork 3라운드 감사 **PASS**, 커밋됨(4899ca8 feat + 4de4513 docs, pushed). Task 1–4 커밋 완료. **pre-Task-5 rpc/RLS smoke test = Opus 감사세션 최종 PASS**(Codex 빌드, 41 pgTAP green; 증적 docs/PRE_TASK5_SMOKE_TEST_AUDIT.md). 커밋 = JT(`test(db)`+`docs`). **Task 4.5(신뢰 role 소스, carry-forward ②) = Opus 감사세션 PASS**(0006 `current_user_role()` + adapter RPC 해석 + seed 정리 + smoke 41→49; 증적 docs/TASK4_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5(service 배선) = Opus 감사세션 PASS**(makeCoreContainer + 실 reviewer 승인경로 live 통합테스트; 증적 docs/TASK5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5.5(seed sign-in 수정) = Opus 감사세션 PASS**(seed에 auth.identities + aud/instance_id/'' token 보강[role은 metadata에 안 넣음], 시드 유저 실 sign-in 런타임 게이트; 증적 docs/TASK5_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 6a(apps/web 스캐폴드 + applicant API routes) = Opus 감사세션 PASS** + **audit.sh 빌드아티팩트 제외 보정**(JT 승인); 증적 docs/TASK6A_AUDIT_FINDINGS.md. 커밋 = JT. 이제 **Task 6b(admin/reviewer 라우트)** — create-as-submitted 확정(P0 draft 경로 없음). 브랜치 `phase1-p0-mvp`.
 
 ---
 
@@ -82,6 +82,13 @@ Task 5.5 (Codex) ✅ seed sign-in 수정(auth-plumbing only). seed에 auth.ident
                     created/updated 보강(role은 어느 metadata에도 안 넣음 → smoke 49 유지). read-only 게이트: 시드
                     admin/reviewer/applicant 실 password sign-in + current_user_role 해석 증명(재실행 안전).
                     full-flow는 throwaway 유지. Opus 1라운드 clean PASS. 증적 docs/TASK5_5_AUDIT_FINDINGS.md.
+Task 6a (Codex)  ✅ apps/web 스캐폴드 + 요청인증(resolveActor: getUser 실검증 + current_user_role, claim 무신뢰,
+                    fail-closed) + applicant 라우트(POST applications=submit / GET me·[id] / membership/me). 3-client:
+                    읽기=user-scoped repo(RLS), 쓰기=service-role container. service-role 키 server-only(INV-17),
+                    applicantId=actor(body 위조 차단), 타인 [id]→404, 무세션/invalid→401, Result→HTTP 매핑 누수 0.
+                    route-handler 통합테스트(실 토큰 invoke, body주입 능동검증, 재실행) + unit 7. Opus PASS.
+                    증적 docs/TASK6A_AUDIT_FINDINGS.md. +audit.sh GREP() .next/dist/node_modules 제외 보정(JT 승인).
+                    create-as-submitted 확정(P0 draft 생성경로 없음 — [id]/submit 라우트 미구현).
 ```
 
 빌드 순서(10 Task, 하나씩 / 사이마다 Codex→Cowork 감사):
@@ -198,6 +205,12 @@ Task별로 Codex 1차(AGENTS.md, 기계검사) 통과 후, 설계세션이 코�
 
 ## 6. 반복된 실패 모드 (같은 실수 반복 금지)
 
+- **게이트 비결정성 — audit.sh가 빌드 아티팩트를 grep (Task 6a):** apps/web 도입 후 `bash scripts/audit.sh`가
+  머신마다 다르게 동작 — `rg` 있으면 .gitignore 존중해 PASS, 없으면 `grep -rEn`가 gitignore된 `apps/web/.next`
+  (번들된 supabase-js)까지 훑어 `supabase.storage` **false-FAIL**. 빌더는 rg로 PASS·감사자는 rg 없이 FAIL → 발견.
+  → `GREP()`에서 `.next/dist/node_modules` 제외(rg glob + grep `--exclude-dir`)로 결정적화. 교훈: 정적 게이트는
+  **소스만** 스캔하고 빌드/deps 출력을 배제해야 한다(안 그러면 false-FAIL이 진짜 위반을 가리는 습관을 만든다).
+  JT 승인 하 frozen audit.sh 보정.
 - **stale 아티팩트 드리프트:** 산출물 여러 버전이 떠다녀 옛 버전을 받아 작업 → 여러 번 사고.
   → 대응: 단일 번들 + `MANIFEST.txt`(version assertion + grep + sha256). 받으면 MANIFEST부터 확인.
 - **"했다고 말한 것" ≠ "실제 파일":** 보고는 v1.3인데 zip 안은 v1.2였던 적 다수.
