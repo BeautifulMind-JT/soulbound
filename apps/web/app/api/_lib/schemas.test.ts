@@ -1,4 +1,6 @@
 import {
+  createPersonaClipSchema,
+  deletePersonaClipQuerySchema,
   reviewDecisionSchema,
   reviewQueueQuerySchema,
   startReviewSchema,
@@ -66,5 +68,42 @@ describe("admin route schemas", () => {
     });
     expect(reviewQueueQuerySchema.safeParse({ limit: "101" }).success)
       .toBe(false);
+  });
+});
+
+describe("persona clip schemas", () => {
+  it("accepts supported private-bucket mime types", () => {
+    expect(createPersonaClipSchema.parse({
+      contentHash: "abc12345",
+      mimeType: "video/webm",
+      durationSeconds: 12,
+    })).toEqual({
+      contentHash: "abc12345",
+      mimeType: "video/webm",
+      durationSeconds: 12,
+    });
+  });
+
+  it("rejects path-like hashes and unsupported mime types", () => {
+    expect(createPersonaClipSchema.safeParse({
+      contentHash: "../abc12345",
+      mimeType: "video/webm",
+    }).success).toBe(false);
+
+    expect(createPersonaClipSchema.safeParse({
+      contentHash: "abc12345",
+      mimeType: "image/png",
+    }).success).toBe(false);
+  });
+
+  it("validates persona clip delete query params", () => {
+    expect(deletePersonaClipQuerySchema.parse({
+      assetId: "11111111-1111-4111-8111-111111111111",
+    })).toEqual({
+      assetId: "11111111-1111-4111-8111-111111111111",
+    });
+    expect(deletePersonaClipQuerySchema.safeParse({
+      assetId: "not-a-uuid",
+    }).success).toBe(false);
   });
 });

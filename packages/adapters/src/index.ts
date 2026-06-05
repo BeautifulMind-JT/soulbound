@@ -41,6 +41,13 @@ export {
   SupabaseStorageAdapter,
   makeSupabaseStorageAdapter,
 } from "./supabase/supabase-storage-adapter";
+export type {
+  ClearSubmittedPersonaClipRetentionInput,
+  CreatePersonaClipUploadUrlInput,
+  MarkOwnDraftForDeletionInput,
+  PersonaClipUploadContract,
+  PersonaClipUploadUrl,
+} from "./supabase/supabase-storage-adapter";
 
 export {
   NoopLedgerAdapter,

@@ -9,6 +9,7 @@ import {
 } from "../../_lib/http";
 import { submitApplicationSchema } from "../../_lib/schemas";
 import type { SubmitApplicationBody } from "../../_lib/schemas";
+import { serviceRoleStorageAdapter } from "../../_lib/storage";
 
 function optionalProps(
   body: SubmitApplicationBody,
@@ -49,6 +50,20 @@ export async function POST(request: Request): Promise<Response> {
       idempotencyKey: parsed.data.idempotencyKey,
       ...optionalProps(parsed.data),
     });
+
+    if (result.ok && typeof parsed.data.personaClipAssetId === "string") {
+      const cleared =
+        await serviceRoleStorageAdapter().clearSubmittedRetention({
+          ownerId: actor.id,
+          assetId: parsed.data.personaClipAssetId,
+          applicationId: result.value.id,
+        });
+      if (!cleared) {
+        return dependencyFailure(
+          new Error("submitted persona clip retention was not cleared"),
+        );
+      }
+    }
 
     return resultToResponse(result, 201);
   } catch (error) {

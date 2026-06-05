@@ -6,6 +6,12 @@ import type {
 
 const optionalString = z.string().trim().min(1).optional();
 const optionalNullableString = z.string().trim().min(1).nullable().optional();
+const personaClipMimeTypes = [
+  "video/webm",
+  "video/mp4",
+  "audio/webm",
+  "audio/mp4",
+] as const;
 
 const admissionStatusValues = [
   "draft",
@@ -69,3 +75,23 @@ export const reviewQueueQuerySchema = z.object({
 
 export type ReviewQueueQueryParams =
   z.infer<typeof reviewQueueQuerySchema>;
+
+export const createPersonaClipSchema = z.object({
+  contentHash: z.string()
+    .trim()
+    .min(8)
+    .max(256)
+    .regex(/^[A-Za-z0-9._:-]+$/),
+  mimeType: z.enum(personaClipMimeTypes),
+  durationSeconds: z.number().int().min(0).max(600).optional(),
+});
+
+export type CreatePersonaClipBody =
+  z.infer<typeof createPersonaClipSchema>;
+
+export const deletePersonaClipQuerySchema = z.object({
+  assetId: z.string().uuid(),
+});
+
+export type DeletePersonaClipQuery =
+  z.infer<typeof deletePersonaClipQuerySchema>;
