@@ -43,6 +43,21 @@
 
 ---
 
+## 0.5 JT corrections (MUST honor — threaded into §1; also the audit checklist)
+
+1. **UPLOAD signed-URL TTL is provider-defined** (Supabase ~2h). Do NOT claim a shorter TTL than the API gives.
+   The READ url (`getSignedUrl` / `createSignedUrl(path, expiresIn)`) IS short — that one we control.
+2. **Do NOT assume the signed-upload response shape or "fetch PUT".** Probe the real `createSignedUploadUrl`
+   return (likely `{ signedUrl, token, path }`; SDK uses `uploadToSignedUrl(path, token, body)`). The route returns
+   a **plain-fetch-compatible signed-upload contract** the browser can use WITHOUT importing the Supabase SDK;
+   the gate must exercise that exact contract.
+3. **Asset row at issuance:** `status='draft'` (the frozen 0002 enum is draft|attached|deleted — `pending_upload`
+   is NOT valid), `delete_after` per the draft-abandoned 24h policy. A URL issued-but-not-uploaded just leaves a
+   draft for the Task 9 worker. Real upload success is proven by the gate (and used by 7b).
+4. **No core unfreeze** (StoragePort stays frozen — extension lives in the adapter). 5. **No `supabase.storage`**
+   in apps/web or the recorder (only inside packages/adapters). 6. **No signed-url / storage_path / raw bytes /
+   transcript / screenshot** in audit_logs / outbox_events / logs (INV-PC-06).
+
 ## 1. COPY-PASTE PROMPT (paste into the Codex builder)
 
 ```text
@@ -56,14 +71,23 @@ auth-retry + throwaway-applicant pattern).
 
 A) Adapter (packages/adapters/src/supabase/supabase-storage-adapter.ts) — ADD a signed-upload capability; do NOT
    change the frozen StoragePort interface in packages/core:
-   - createUploadUrl(input: { ownerId, contentHash, mimeType, durationSeconds? }):
-       Promise<{ assetId: string; uploadUrl: string; path: string }>
-     -> insert a DRAFT persona_clip_assets row (applicant_id=ownerId, storage_path={ownerId}/{contentHash},
-        content_hash, mime_type, status='draft'); call this.client.storage.from('persona-clips')
-        .createSignedUploadUrl(path) (short TTL); return { assetId=row.id, uploadUrl, path }.
+   - createUploadUrl(input: { ownerId, contentHash, mimeType, durationSeconds? }) -> { assetId, <signed-upload
+     contract> }:
+     * Create a persona_clip_assets row: applicant_id=ownerId, storage_path={ownerId}/{contentHash}, content_hash,
+       mime_type, status='draft'. NOTE: the frozen 0002 CHECK constraint allows status only in
+       (draft|attached|deleted) — use 'draft' (NOT 'pending_upload'; that would need a migration = out of scope).
+       Set delete_after per the draft-abandoned 24h policy (BuildPlan §496), deletion_reason=null. (A user who
+       gets a URL but never uploads just leaves a draft the Task 9 worker cleans up — that is fine.)
+     * Call this.client.storage.from('persona-clips').createSignedUploadUrl(path) and **probe its REAL return
+       shape** — do NOT assume a bare PUT-able URL. Supabase returns e.g. { signedUrl, token, path } and the SDK
+       uploads via uploadToSignedUrl(path, token, body). Return whatever the BROWSER needs to upload WITHOUT
+       importing the Supabase SDK (a plain-fetch-compatible contract: the exact url + method + any header/token).
+       Document the exact shape in code; cover it in the gate.
+     * TTL: the UPLOAD signed URL TTL is PROVIDER-DEFINED (Supabase ~2h) — do NOT claim a shorter TTL than the API
+       returns; keep the route response minimal. (The READ url in getSignedUrl IS short — createSignedUrl(path,
+       expiresIn) — that TTL you control.)
    - Export it via the make* factory's concrete type (or a small adapters-local interface) so apps/web can call it.
-   - The recorder will PUT the blob to uploadUrl by plain fetch — the adapter NEVER returns raw bytes, and no
-     storage_path / signed url is logged.
+   - The adapter NEVER returns raw bytes; no storage_path / signed url / token is written to any log/audit/outbox.
 
 B) apps/web storage helpers (app/api/_lib/storage.ts):
    - userScopedStorageAdapter(request): makeSupabaseStorageAdapter(<user client from the request session>) — for
@@ -74,7 +98,9 @@ B) apps/web storage helpers (app/api/_lib/storage.ts):
 C) Routes:
    - POST api/admission/persona-clip: resolveActor->401; zod body { contentHash, mimeType, durationSeconds? };
      ownerId = actor.id (NEVER from body); userScopedStorageAdapter(req).createUploadUrl({ownerId, ...}); 200
-     { assetId, uploadUrl }. (The recorder uploads to uploadUrl, then references assetId in submitApplication.)
+     { assetId, <signed-upload contract> } — the EXACT minimal shape the probed createSignedUploadUrl gives, only
+     what the browser needs to upload without the Supabase SDK. (7b records, uploads via this contract, then
+     references assetId in submitApplication.)
    - DELETE api/admission/persona-clip?assetId=...: resolveActor->401; mark the caller's OWN draft clip for
      deletion (markForDeletion) — own-only (user-scoped RLS or verify applicant_id=actor.id); 200/404.
    - GET api/admin/applications/[id]/persona-clip-url: resolveActor->401; requireReviewer->403; load the
@@ -83,7 +109,8 @@ C) Routes:
      write it/the storage_path to audit_logs/outbox (INV-PC-06).
 
 D) Gate — route-handler integration tests (live Supabase, deterministic 5x+reset, fail-loud, reuse 6a/6b fixtures):
-   - applicant POST persona-clip -> 200 {assetId, uploadUrl}; fetch-PUT a tiny blob to uploadUrl -> 2xx;
+   - applicant POST persona-clip -> 200 {assetId, <upload contract>}; upload a tiny blob using ONLY the route's
+     plain-fetch-compatible contract (no Supabase SDK import) — the exact method/header/token must work -> 2xx;
    - applicant submitApplication with personaClipAssetId=assetId (+personaClipHash=contentHash) -> 201;
    - reviewer (seeded) startReview; reviewer GET persona-clip-url -> 200 {url}; fetch(url) -> 2xx and returns the
      uploaded bytes (proves upload->store->reviewer-read end to end);
@@ -92,7 +119,9 @@ D) Gate — route-handler integration tests (live Supabase, deterministic 5x+res
      contain NO storage_path and NO signed-url substring (only asset_id/hash/status/deletion_reason/etc.);
    - INV-PC-01: submitApplication with NO clip -> 201 (absence never blocks);
    - retention: after approve, the clip row has delete_after set + deletion_reason='application_approved'
-     (already done by the rpc — assert it holds through this path).
+     (already done by the rpc — assert it holds through this path). NOTE for Task 9 (flag, do NOT fix here): the
+     frozen submit_application_tx attaches the clip (status='attached') but does NOT clear the draft delete_after,
+     so the Task 9 delete worker must scope draft-cleanup to status='draft' and never delete 'attached' clips.
 
 FORBIDDEN (violation = redo):
  - editing packages/core/src/** (StoragePort/types stay frozen) or supabase/** (RLS/storage already exist);
