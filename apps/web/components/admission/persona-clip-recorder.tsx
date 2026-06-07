@@ -5,10 +5,12 @@ import {
   usePersonaClipRecorder,
   type PersonaClipResult,
 } from "./use-persona-clip-recorder";
+import type { AuthedFetch } from "../../lib/auth-provider";
 
 export type PersonaClipRecorderProps = {
   onComplete: (result: PersonaClipResult) => void;
   onSkip: () => void;
+  authedFetch?: AuthedFetch;
 };
 
 const buttonStyle = {
@@ -32,6 +34,7 @@ const primaryButtonStyle = {
 export function PersonaClipRecorder({
   onComplete,
   onSkip,
+  authedFetch,
 }: PersonaClipRecorderProps) {
   const {
     status,
@@ -40,7 +43,11 @@ export function PersonaClipRecorder({
     start,
     stop,
     skip,
-  } = usePersonaClipRecorder({ onComplete, onSkip });
+  } = usePersonaClipRecorder({
+    onComplete,
+    onSkip,
+    ...(authedFetch ? { authedFetch } : {}),
+  });
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {

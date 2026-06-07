@@ -194,6 +194,74 @@ describe("usePersonaClipRecorder", () => {
     expect(trackStop).toHaveBeenCalled();
   });
 
+  it("uses injected bearer fetch for route creation and plain fetch for upload", async () => {
+    const routeTransport = vi.fn(async (
+      input: RequestInfo | URL,
+      init: RequestInit = {},
+    ) => {
+      const headers = new Headers(init.headers);
+      headers.set("authorization", "Bearer applicant-token");
+      return globalThis.fetch(input, { ...init, headers });
+    });
+    const transportFetch = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        assetId: "asset-bearer",
+        upload: {
+          url: "https://storage.test/upload",
+          method: "PUT",
+          headers: { "x-upload-token": "signed" },
+        },
+      }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }))
+      .mockResolvedValueOnce(new Response(null, { status: 200 }));
+    vi.stubGlobal("fetch", transportFetch);
+    const onComplete = vi.fn();
+    const { result } = renderHook(() =>
+      usePersonaClipRecorder({
+        onComplete,
+        onSkip: vi.fn(),
+        authedFetch: routeTransport,
+      })
+    );
+
+    await act(async () => {
+      await result.current.start();
+    });
+    act(() => {
+      result.current.stop();
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("done"));
+    expect(routeTransport).toHaveBeenCalledOnce();
+    expect(routeTransport).toHaveBeenCalledWith(
+      "/api/admission/persona-clip",
+      expect.objectContaining({ method: "POST" }),
+    );
+
+    const [routeUrl, routeInit] = transportFetch.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(routeUrl).toBe("/api/admission/persona-clip");
+    expect(new Headers(routeInit.headers).get("authorization")).toBe(
+      "Bearer applicant-token",
+    );
+
+    const [uploadUrl, uploadInit] = transportFetch.mock.calls[1] as [
+      string,
+      RequestInit,
+    ];
+    expect(uploadUrl).toBe("https://storage.test/upload");
+    expect(new Headers(uploadInit.headers).has("authorization")).toBe(false);
+    expect(uploadInit.headers).toEqual({ "x-upload-token": "signed" });
+    expect(onComplete).toHaveBeenCalledWith({
+      assetId: "asset-bearer",
+      contentHash: "abcd",
+    });
+  });
+
   it("does not complete when the signed upload fails", async () => {
     const onComplete = vi.fn();
     vi.stubGlobal("fetch", vi.fn()

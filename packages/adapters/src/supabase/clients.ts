@@ -30,6 +30,17 @@ export function createAnonSupabaseClient(
   });
 }
 
+export function createBrowserSupabaseClient(
+  config: SupabaseAnonClientConfig,
+): SupabaseAdapterClient {
+  return createClient(config.url, config.anonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  });
+}
+
 export function createUserSupabaseClient(
   config: SupabaseUserClientConfig,
 ): SupabaseAdapterClient {

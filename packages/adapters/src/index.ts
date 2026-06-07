@@ -1,5 +1,6 @@
 export {
   createAnonSupabaseClient,
+  createBrowserSupabaseClient,
   createServiceRoleSupabaseClient,
   createUserSupabaseClient,
 } from "./supabase/clients";

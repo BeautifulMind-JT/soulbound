@@ -31,9 +31,15 @@ type CreateClipResponse = {
   upload: UploadContract;
 };
 
+type RecorderRouteFetch = (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+) => Promise<Response>;
+
 type UsePersonaClipRecorderOptions = {
   onComplete: (result: PersonaClipResult) => void;
   onSkip: () => void;
+  authedFetch?: RecorderRouteFetch;
 };
 
 function isCreateClipResponse(value: unknown): value is CreateClipResponse {
@@ -68,6 +74,7 @@ function stopStream(stream: MediaStream | null): void {
 export function usePersonaClipRecorder({
   onComplete,
   onSkip,
+  authedFetch,
 }: UsePersonaClipRecorderOptions) {
   const [status, setStatus] = useState<PersonaClipRecorderStatus>("idle");
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -135,7 +142,8 @@ export function usePersonaClipRecorder({
         return;
       }
 
-      const createResponse = await fetch("/api/admission/persona-clip", {
+      const routeFetch = authedFetch ?? globalThis.fetch;
+      const createResponse = await routeFetch("/api/admission/persona-clip", {
         method: "POST",
         credentials: "include",
         headers: { "content-type": "application/json" },
@@ -155,7 +163,7 @@ export function usePersonaClipRecorder({
         throw new Error("invalid persona clip upload contract");
       }
 
-      const uploadResponse = await fetch(payload.upload.url, {
+      const uploadResponse = await globalThis.fetch(payload.upload.url, {
         method: payload.upload.method,
         headers: payload.upload.headers,
         body: blob,
@@ -184,7 +192,7 @@ export function usePersonaClipRecorder({
         abortControllerRef.current = null;
       }
     }
-  }, [isActiveOperation, setRetryableError]);
+  }, [authedFetch, isActiveOperation, setRetryableError]);
 
   const start = useCallback(async () => {
     if (
