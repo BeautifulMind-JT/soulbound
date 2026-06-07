@@ -1,6 +1,7 @@
 # SoulBound — Claude Code 작업 지침
 
 > 이 파일은 `.clinerules`의 **Claude Code 미러**입니다. 빌더 = Claude Code + GLM 5.1.
+> **(2026-06-05 개정: 빌더는 Codex 전 레이어로 일원화 — Claude Code+GLM은 빌더 은퇴. HARD RULE 11 참조.)**
 > Cline은 `.clinerules`를, Claude Code는 이 `CLAUDE.md`를 자동으로 읽습니다.
 > 두 파일의 **HARD RULES는 항상 동일하게** 유지하세요(드리프트 방지). 규칙을 바꾸면 양쪽 다 바꿉니다.
 
@@ -61,12 +62,12 @@ packages/core/vitest.config.ts
    raw media deleted on terminal admission state.
 9. Do not implement ICP, Filecoin, IPFS, Arweave. Do not create chat/messages/inbox routes.
 10. Do not overbuild.
-11. Role/builder boundary — canonical: `docs/WORKFLOW.md`. Builder is chosen by **layer risk**: security layer
-    (DB/RLS/RPC/adapter-client boundary/auth/idempotency/audit/retention/frozen-adjacent) = **Codex** default;
-    GLM/Claude Code is NOT the primary builder there (bounded scaffolding/logs/commands only). Surface layer
-    (UI/boilerplate/repetitive/mechanical wiring) = **GLM/Claude Code**. INVARIANT: the final approver of a
-    change is never the actor that built or patched it; the builder never self-approves (final gate = Cowork,
-    or a Codex session that did not build it).
+11. Role/builder boundary — canonical: `docs/WORKFLOW.md`. **As of 2026-06-05 (JT-approved amendment): Codex
+    builds ALL tiers; GLM/Claude Code is retired as an active builder (not used).** Layer risk now governs only
+    *audit depth* (surface = fast loop, security = full loop), NOT who builds. INVARIANT (unchanged): the final
+    approver of a change is never the actor that built or patched it; the builder never self-approves (final
+    gate = Cowork/Opus, or a Codex session that did not build it). Preserved by Codex-builds → Opus/Cowork-finals.
+    If GLM/Claude Code is reactivated, the §6 exception + the surface/security split apply again.
 
 ---
 
@@ -107,8 +108,9 @@ Task 10  (옵션, 별도 브랜치) External Ledger PoC — 체인 선택은 다
 → 충돌 시 **HARD RULES 1·2·3 과 BUILD ORDER(a부터)** 가 항상 이긴다. 애매하면 멈추고 경계를 따른다.
 
 ## 역할 경계 (파이프라인) — 정본: `docs/WORKFLOW.md`
-- 운영 루프는 **레이어 위험도 기준**(2026-06-01, JT 승인). 이 에이전트(Claude Code + GLM 5.1)는
-  **표면층 빌더**(UI/boilerplate/반복/기계적 wiring)다. 보안층(DB/RLS/RPC/adapter 경계/auth/idempotency/
-  audit/retention/frozen 인접)의 **주빌더가 되지 마라** — 거긴 Codex 디폴트. 보안층에선 로그/명령 실행 보조만.
+- 운영 루프 정본 = `docs/WORKFLOW.md`(2026-06-01 채택, **2026-06-05 개정**, JT 승인). **개정: Codex가 전 레이어
+  (표면 UI + 보안)를 빌드, GLM/Claude Code는 빌더에서 은퇴(미사용).** 이 에이전트(Claude Code + GLM 5.1)는
+  더 이상 활성 빌더가 아니다. 레이어 위험도는 이제 *감사 깊이*만 좌우(표면=fast loop, 보안=full loop).
+  (재활성화 시 §6 예외 + 보안층 주빌더 금지 규칙이 다시 적용된다.)
 - 빌더는 **감사하지 않는다.** 감사는 Codex(1차) + Cowork(최종). 빌더와 감사자는 다른 행위자.
 - **불변식:** 어떤 변경의 최종 승인자는 그걸 짠/보수한 주체가 절대 아니다. 자기가 짠 걸 자기가 최종 승인 금지.

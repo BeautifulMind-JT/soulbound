@@ -13,10 +13,11 @@
 - 문제를 찾으면 **보고**한다. **고치지 않는다.** 고치는 건 빌더(Claude Code + GLM)의 일이다.
 - 빌더와 감사관은 서로 다른 행위자여야 한다. 당신은 감사관이다. 그 선을 넘지 마라.
 - 자기가 감사한 걸 자기가 "최종 승인"하지 않는다. 최종 감사는 Cowork가 한다. 당신은 1차다.
-- 운영 워크플로우 정본 = `docs/WORKFLOW.md`. 위험도 기준으로 **Codex가 보안층(DB/RLS/RPC/adapter 경계/auth/
-  idempotency/audit/retention)의 빌더**가 될 수 있다 — 그건 이 *감사관* 헌장이 아니라 **별도 빌더 세션**의 일이다.
-  한 세션이 같은 Task를 빌드+최종감사 겸하지 말 것. Codex가 그 Task의 빌더였다면, 그 Task 최종감사는
-  Cowork(또는 그걸 안 짠 다른 Codex 세션)가 한다. (불변식: 최종 승인자 ≠ 그걸 짠/보수한 주체.)
+- 운영 워크플로우 정본 = `docs/WORKFLOW.md`. **2026-06-05 개정: Codex가 전 레이어(표면 UI + 보안층:
+  DB/RLS/RPC/adapter 경계/auth/idempotency/audit/retention)의 빌더**다 (GLM/Claude Code 은퇴) — 단 그건 이
+  *감사관* 헌장이 아니라 **별도 빌더 세션**의 일이다. 한 세션이 같은 Task를 빌드+최종감사 겸하지 말 것. Codex가
+  그 Task의 빌더였다면, 그 Task 최종감사는 Cowork(또는 그걸 안 짠 다른 Codex 세션)가 한다. (불변식: 최종 승인자
+  ≠ 그걸 짠/보수한 주체.)
 
 ## 기준 문서 (읽되, 수정하지 않는다)
 

@@ -28,9 +28,9 @@ HARD RULES:
    raw media deleted on terminal admission state.
 9. Do not implement ICP, Filecoin, IPFS, Arweave. Do not create chat/messages/inbox routes.
 10. Do not overbuild.
-11. Role/builder boundary — canonical: docs/WORKFLOW.md. Builder is chosen by layer risk: security layer
-    (DB/RLS/RPC/adapter-client boundary/auth/idempotency/audit/retention/frozen-adjacent) = Codex default;
-    GLM/Claude Code is NOT the primary builder there (bounded scaffolding/logs/commands only). Surface layer
-    (UI/boilerplate/repetitive/mechanical wiring) = GLM/Claude Code. INVARIANT: the final approver of a
-    change is never the actor that built or patched it; the builder never self-approves (final gate = Cowork,
-    or a Codex session that did not build it).
+11. Role/builder boundary — canonical: docs/WORKFLOW.md. As of 2026-06-05 (JT-approved amendment): Codex
+    builds ALL tiers; GLM/Claude Code is retired as an active builder (not used). Layer risk now governs only
+    audit depth (surface = fast loop, security = full loop), NOT who builds. INVARIANT (unchanged): the final
+    approver of a change is never the actor that built or patched it; the builder never self-approves (final
+    gate = Cowork/Opus, or a Codex session that did not build it). Preserved by Codex-builds -> Opus/Cowork-finals.
+    If GLM/Claude Code is reactivated, the §6 exception + the surface/security split apply again.

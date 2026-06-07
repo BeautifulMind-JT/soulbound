@@ -7,6 +7,15 @@
 >
 > Adopted 2026-06-01 after the Task 3 episode (GLM output rejected → Codex reimplemented → Cowork PASS).
 > Builder selection is **risk-tiered** (JT-approved).
+>
+> **AMENDMENT 2026-06-05 (JT-approved): Codex builds ALL tiers; GLM / Claude Code is retired as an active
+> builder (not used).** The risk-tier framework below is kept as the rationale for *audit depth* (surface =
+> fast loop §4a, security = full loop §4b), but the *builder* for both tiers is now **Codex**. Reason: the §6
+> "stability" reassignment fired on **every** surface task through 7b — GLM proved unreliable even at the
+> surface (e.g. the Supabase-in-component risk), so Codex-builds-all is the rule, not a recurring exception.
+> The load-bearing invariant (§2 — builder ≠ final approver) is preserved by **Codex builds → Opus/Cowork
+> finals**. If GLM/Claude Code is ever reactivated as a builder, the §6 exception protocol + the surface rules
+> below apply again.
 
 ---
 
@@ -15,8 +24,8 @@
 | Actor | Role | One line |
 |---|---|---|
 | **Cowork** | Architect / Final Auditor / Judge | Designs contract, invariants, Task prompts, acceptance gates; final semantic approval. Does **not** mass-implement. |
-| **Codex** | Security-layer Builder *and* first-pass Auditor / precision repair | Builds the constitutional layer; or audits + surgically patches another builder's work. Never both for the **same** change. |
-| **GLM / Claude Code** | Surface-layer Builder (bounded labor) | UI, boilerplate, repetitive edits, mechanical wiring, scaffolding, logs, command execution. |
+| **Codex** | Builder (**all tiers** since 2026-06-05) *and* first-pass Auditor / precision repair | Builds surface + constitutional layers; or audits + surgically patches. Never builds **and** finally-approves the **same** change. |
+| **GLM / Claude Code** | Surface-layer Builder — **retired 2026-06-05** (not used) | Was: UI, boilerplate, repetitive edits, mechanical wiring. If reactivated, §6 exception + §3 surface rules apply. |
 | **JT** | Site lead / commit authority | Runs host commands; sole `git add/commit/push`. Approves exceptions. |
 
 ---
@@ -45,7 +54,8 @@ primary builder here (bounded scaffolding / logs / command execution only).
 - authorization, state-transition guards, idempotency, audit trail, retention/deletion
 - anything touching or adjacent to a frozen contract
 
-**Surface / bulk layer → GLM / Claude Code is the default builder.** Codex audits; Cowork finals.
+**Surface / bulk layer → Codex builds too (GLM / Claude Code retired 2026-06-05).** The tier now governs
+*audit depth* — surface uses the fast loop (§4a) and Codex still builds it; Cowork finals.
 - UI pages and components, forms, loading/error states
 - boilerplate, repetitive file generation, mechanical route/wiring scaffolds
 - log collection, running acceptance commands
@@ -65,10 +75,10 @@ primary builder here (bounded scaffolding / logs / command execution only).
 ```
 [0] JT: name the Task
 [1] Cowork: Task prompt — scope, forbidden list, acceptance gates, expected failure points
-[2] GLM/Claude Code: implement (this Task only; stop, do not advance)
-[3] Codex: first-pass audit (scope, regressions, typecheck/build/test, invariants)
-[4] GLM/Claude Code: fix the findings
-[5] Cowork: final semantic review (independent — see §5)
+[2] Codex (Builder session): implement (this Task only; stop, do not advance)
+[3] Cowork — or a separate Codex session that did NOT build it: first-pass review (scope, regressions, typecheck/build/test, invariants)
+[4] Codex (Builder session): fix the findings
+[5] Cowork: final semantic review (independent — see §5; never the session that built it)
 [6] JT: commit / push
 ```
 
@@ -105,8 +115,8 @@ security layer.
 
 ## 6. Exception protocol (builder reassignment)
 
-Reassigning a task's builder away from the risk-tier default (e.g. Codex reimplementing a surface task
-GLM botched, or GLM touching a security task) requires, every time:
+Reassigning a task's builder away from the default (since 2026-06-05: **Codex builds all tiers**) — e.g.
+**reactivating GLM/Claude Code** for a surface task, or any non-Codex builder — requires, every time:
 1. explicit **JT** authorization;
 2. a one-line documented reason (audit findings link);
 3. builder ≠ final auditor preserved;
@@ -114,6 +124,10 @@ GLM botched, or GLM touching a security task) requires, every time:
 
 Task 3 was such an exception and is the worked precedent: see `docs/TASK3_REIMPLEMENTATION_DECISION.md`
 and `docs/TASK3_AUDIT_FINDINGS.md` (Round 2).
+
+Precedent (the other direction): 7b's GLM→Codex "stability" reassignment **recurred on every surface task**,
+so per clause 4 it stopped being an exception — it was **formalized** into the 2026-06-05 amendment (Codex
+builds all tiers) rather than re-invoked per task. When an "exception" stops being exceptional, amend the rule.
 
 ---
 
@@ -136,10 +150,12 @@ and `docs/TASK3_AUDIT_FINDINGS.md` (Round 2).
 | 4 — Supabase + noop adapters | security (3-client boundary) | **Codex** | Cowork (+ separate Codex pass) |
 | 5 — service wiring / container | security (no business logic in container) | **Codex** | Cowork |
 | 6 — API routes | security (route→service, no direct supabase, no key leak) | **Codex** | Cowork |
-| 7 — Persona Clip route + recorder | mixed | Codex (route/retention) + GLM (recorder UI) | Cowork (security/retention) |
-| 8 — UI pages | surface | **GLM / Claude Code** | Codex → Cowork |
+| 7 — Persona Clip route + recorder | mixed | **Codex** (7a routes/retention + 7b recorder UI) | Cowork *(done)* |
+| 8 — UI pages | surface | **Codex** *(amendment 2026-06-05; was GLM)* | Cowork (Codex may first-pass) |
 | 9 — audit/outbox hardening | security | **Codex** | Cowork |
 | 10 — external ledger PoC (옵션) | security | **Codex** | Cowork |
 
 GLM/Claude Code must **not** be the primary builder for DB/RLS/RPC, authorization, idempotency, audit,
-retention, adapter client boundaries, or frozen-contract work — even when "assisting."
+retention, adapter client boundaries, or frozen-contract work — even when "assisting." (As of 2026-06-05
+GLM/Claude Code is not an active builder at all — Codex builds every tier; this clause governs any future
+reactivation.)
