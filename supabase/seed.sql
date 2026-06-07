@@ -145,4 +145,9 @@ values
     'applicant',
     'none'
   )
-on conflict (id) do nothing;
+on conflict (id) do update set
+  handle = excluded.handle,
+  display_name = excluded.display_name,
+  bio = excluded.bio,
+  role = excluded.role,
+  membership_status = excluded.membership_status;
