@@ -86,12 +86,15 @@ async function createThrowawayUser(
 
   const { error: profileError } = await serviceRoleClient
     .from("profiles")
-    .insert({
-      id: userId,
-      handle: `task5-${role}-${suffix}`,
-      role,
-      membership_status: role === "reviewer" ? "active" : "none",
-    });
+    .upsert(
+      {
+        id: userId,
+        handle: `task5-${role}-${suffix}`,
+        role,
+        membership_status: role === "reviewer" ? "active" : "none",
+      },
+      { onConflict: "id" },
+    );
 
   if (profileError) {
     throw profileError;

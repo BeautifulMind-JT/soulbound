@@ -152,12 +152,15 @@ async function createApplicant(
 
   const { error: profileError } = await serviceRoleClient
     .from("profiles")
-    .insert({
-      id,
-      handle: `task6a-${suffix}`,
-      role: "applicant",
-      membership_status: "none",
-    });
+    .upsert(
+      {
+        id,
+        handle: `task6a-${suffix}`,
+        role: "applicant",
+        membership_status: "none",
+      },
+      { onConflict: "id" },
+    );
   if (profileError) {
     throw profileError;
   }
