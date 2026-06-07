@@ -5,7 +5,7 @@
 > 자기 기억이 아니라 여기 적힌 결정과 그 *이유*를 기준으로 판단하세요.
 > 결정을 바꾸면 반드시 이 파일을 갱신하고 커밋하세요(머릿속에만 두지 말 것).
 
-마지막 갱신: Task 4 adapters = Cowork 3라운드 감사 **PASS**, 커밋됨(4899ca8 feat + 4de4513 docs, pushed). Task 1–4 커밋 완료. **pre-Task-5 rpc/RLS smoke test = Opus 감사세션 최종 PASS**(Codex 빌드, 41 pgTAP green; 증적 docs/PRE_TASK5_SMOKE_TEST_AUDIT.md). 커밋 = JT(`test(db)`+`docs`). **Task 4.5(신뢰 role 소스, carry-forward ②) = Opus 감사세션 PASS**(0006 `current_user_role()` + adapter RPC 해석 + seed 정리 + smoke 41→49; 증적 docs/TASK4_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5(service 배선) = Opus 감사세션 PASS**(makeCoreContainer + 실 reviewer 승인경로 live 통합테스트; 증적 docs/TASK5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5.5(seed sign-in 수정) = Opus 감사세션 PASS**(seed에 auth.identities + aud/instance_id/'' token 보강[role은 metadata에 안 넣음], 시드 유저 실 sign-in 런타임 게이트; 증적 docs/TASK5_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 6a = Opus 감사세션 PASS**(apps/web 스캐폴드 + applicant 라우트). 최초 PASS는 flaky 통합테스트로 성급(§6 교훈) → HOLD → **corrective(4fa4755: fixture-auth bounded retry, fixture 전용·route/단언 무손상, tsbuildinfo 정리)** → **JT 호스트 5/5 연속 + db reset 후 green = 결정성 확정** → 최종 PASS. audit.sh 빌드아티팩트 보정(1c243c1) 별개 유효. 증적 docs/TASK6A_AUDIT_FINDINGS.md. **Task 6b(admin/reviewer 라우트) = Opus 감사세션 PASS**(reviewer 큐/상세 read + 4전이; route 역할게이트가 service-role read의 유일 보호막, review_summary 경계 양방향; RLS 정책 미추가=service-role route, BuildPlan §5.3.2; 증적 docs/TASK6B_AUDIT_FINDINGS.md). 커밋 = JT. **Task 6(API routes) 완료**. **Task 7a(persona-clip routes + signed-upload adapter) = Opus 감사세션 PASS**(adapter `createUploadUrl`[core StoragePort frozen 유지·concrete adapter 확장]·reviewer signed-read-url·submit-attach시 retention clear corrective; INV-PC-06 누수 0 런타임검증; 호스트 5/5+reset 결정성; 증적 docs/TASK7A_AUDIT_FINDINGS.md). 커밋 = JT. **Task 7b(persona-clip-recorder 컴포넌트) = Opus 감사세션 PASS**(Codex 빌드[§6 표면 예외·안정성]; INV-PC-05 components에 supabase/createClient/service-role **0**·upload-before-onComplete[7a 잔여#2 차단]·라이브 viewfinder/녹화후 no-preview·retake; mocked 단위테스트 6개 결정성[flaky 위험 0]; 증적 docs/TASK7B_AUDIT_FINDINGS.md). 커밋 = JT. **Task 7 완료**. **§8 빌더정책 공식화(2026-06-05, JT 승인): Codex가 전 레이어 빌드, GLM/Claude Code는 빌더 은퇴 — 5개 정본(WORKFLOW/CLAUDE/AGENTS/.clinerules/PROJECT_STATE) 동기화, 개정 배너 + 스테일 GLM-배정 0 검증.** **Task 8(UI) = 8a/8b 분할(JT 승인).** 다음 **Task 8a(auth foundation + 공개/신청 UI)** = 프롬프트 docs/TASK8A_AUTH_APPLICANT_UI_PROMPT.md 작성완료, **Codex 빌드 대기**(브라우저 anon 클라이언트 persistSession + authedFetch bearer + current_user_role 역할해석[새 라우트 0] + 7b recorder bearer 배선보정 + landing/login/signup/gate/apply/status). 브랜치 `phase1-p0-mvp`.
+마지막 갱신: Task 4 adapters = Cowork 3라운드 감사 **PASS**, 커밋됨(4899ca8 feat + 4de4513 docs, pushed). Task 1–4 커밋 완료. **pre-Task-5 rpc/RLS smoke test = Opus 감사세션 최종 PASS**(Codex 빌드, 41 pgTAP green; 증적 docs/PRE_TASK5_SMOKE_TEST_AUDIT.md). 커밋 = JT(`test(db)`+`docs`). **Task 4.5(신뢰 role 소스, carry-forward ②) = Opus 감사세션 PASS**(0006 `current_user_role()` + adapter RPC 해석 + seed 정리 + smoke 41→49; 증적 docs/TASK4_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5(service 배선) = Opus 감사세션 PASS**(makeCoreContainer + 실 reviewer 승인경로 live 통합테스트; 증적 docs/TASK5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5.5(seed sign-in 수정) = Opus 감사세션 PASS**(seed에 auth.identities + aud/instance_id/'' token 보강[role은 metadata에 안 넣음], 시드 유저 실 sign-in 런타임 게이트; 증적 docs/TASK5_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 6a = Opus 감사세션 PASS**(apps/web 스캐폴드 + applicant 라우트). 최초 PASS는 flaky 통합테스트로 성급(§6 교훈) → HOLD → **corrective(4fa4755: fixture-auth bounded retry, fixture 전용·route/단언 무손상, tsbuildinfo 정리)** → **JT 호스트 5/5 연속 + db reset 후 green = 결정성 확정** → 최종 PASS. audit.sh 빌드아티팩트 보정(1c243c1) 별개 유효. 증적 docs/TASK6A_AUDIT_FINDINGS.md. **Task 6b(admin/reviewer 라우트) = Opus 감사세션 PASS**(reviewer 큐/상세 read + 4전이; route 역할게이트가 service-role read의 유일 보호막, review_summary 경계 양방향; RLS 정책 미추가=service-role route, BuildPlan §5.3.2; 증적 docs/TASK6B_AUDIT_FINDINGS.md). 커밋 = JT. **Task 6(API routes) 완료**. **Task 7a(persona-clip routes + signed-upload adapter) = Opus 감사세션 PASS**(adapter `createUploadUrl`[core StoragePort frozen 유지·concrete adapter 확장]·reviewer signed-read-url·submit-attach시 retention clear corrective; INV-PC-06 누수 0 런타임검증; 호스트 5/5+reset 결정성; 증적 docs/TASK7A_AUDIT_FINDINGS.md). 커밋 = JT. **Task 7b(persona-clip-recorder 컴포넌트) = Opus 감사세션 PASS**(Codex 빌드[§6 표면 예외·안정성]; INV-PC-05 components에 supabase/createClient/service-role **0**·upload-before-onComplete[7a 잔여#2 차단]·라이브 viewfinder/녹화후 no-preview·retake; mocked 단위테스트 6개 결정성[flaky 위험 0]; 증적 docs/TASK7B_AUDIT_FINDINGS.md). 커밋 = JT. **Task 7 완료**. **§8 빌더정책 공식화(2026-06-05, JT 승인): Codex가 전 레이어 빌드, GLM/Claude Code는 빌더 은퇴 — 5개 정본(WORKFLOW/CLAUDE/AGENTS/.clinerules/PROJECT_STATE) 동기화, 개정 배너 + 스테일 GLM-배정 0 검증.** **Task 8(UI) = 8a/8b 분할(JT 승인).** 다음 **Task 8a(auth foundation + 공개/신청 UI) = Opus 감사세션 PASS**(Codex 빌드; browser anon 클라이언트 persistSession·authedFetch bearer·current_user_role 역할해석[새 라우트 0]·7b recorder bearer 배선보정·페이지 7; INV-17 service-role 0[소스+`.next` 번들 재확인]·PC-01·idempotency; 결정성 단위 29/29[내 재실행]·audit.sh PASS; 증적 docs/TASK8A_AUDIT_FINDINGS.md). 커밋 = JT. 🔴 **HIGH carry-forward: 신규 browser signup이 public.profiles 행 미생성 → submit FK 막힘**(8a 범위 밖 정당; §4 — profiles-provisioning 트리거 태스크를 8b 전에 권장). 다음 **profiles provisioning(권장) → Task 8b(member+admin)**. 브랜치 `phase1-p0-mvp`.
 
 ---
 
@@ -117,6 +117,15 @@ Task 7b (Codex)  ✅ persona-clip-recorder 컴포넌트(표면, §6 예외로 Co
                     **upload-before-onComplete**: onComplete가 upload 2xx 후에만(7a 잔여#2 차단) — 훅 코드+테스트 검증.
                     PC-01 skip/unavailable graceful. 6 hook 단위테스트(media/fetch/crypto 모킹·결정성, flaky 위험 0).
                     실카메라=manual-qa.md(Task8 마운트 시 JT). Opus PASS. 증적 docs/TASK7B_AUDIT_FINDINGS.md.
+Task 8a (Codex)  ✅ auth foundation + 공개/신청 UI(§8 개정: Codex 전 레이어). adapters createBrowserSupabaseClient
+                    (anon키·persistSession) + AuthProvider(브라우저 anon 클라이언트=auth+current_user_role만, authedFetch가
+                    bearer 주입·no-session throw, 역할=신뢰 RPC) + 페이지 7(landing/login/signup/gate/apply/status +layout)
+                    + 7b recorder bearer 배선보정(authedFetch 주입; route POST만 bearer, upload PUT은 plain; 6테스트 무변+1).
+                    **INV-17**: service-role **0**(클라이언트 소스 + `.next` 번들 둘 다 — 내가 재확인)·createClient 0(components)
+                    ·브라우저 .from/.storage 0. PC-01(skip→clip필드 생략·제출 진행, 테스트)·idempotencyKey(1회·재사용·성공시 클리어).
+                    게이트=결정성 단위테스트(내 재실행 `pnpm -F web test` 29/29)+audit.sh PASS(내 재실행)+번들 grep. Opus PASS.
+                    증적 docs/TASK8A_AUDIT_FINDINGS.md. 🔴 carry-forward(HIGH): 신규 signup이 profiles 행 미생성→submit FK
+                    막힘(8a 범위 밖, §4 참조).
 ```
 
 빌드 순서(10 Task, 하나씩 / 사이마다 Codex→Cowork 감사):
@@ -206,6 +215,16 @@ Task 7b (Codex)  ✅ persona-clip-recorder 컴포넌트(표면, §6 예외로 Co
   보강 — **role은 어느 metadata에도 안 넣음**(Task 4.5 불변식 + smoke 49 "claim에 role 없음" 유지). 게이트:
   read-only 통합테스트가 시드 admin/reviewer/applicant **실 password sign-in + current_user_role 해석**을 런타임
   증명(재실행 안전); full-flow 테스트는 throwaway 유지. Opus 1라운드 clean PASS. 증적 docs/TASK5_5_AUDIT_FINDINGS.md.
+- 🔴 **[HIGH — Task 8a서 발견, 8b 전 권장] 신규 signup profiles 자동 provision 부재.**
+  `admission_applications.applicant_id NOT NULL → profiles(id)`, profiles→`auth.users(id)`, 그러나 `on auth.users`
+  트리거 없음(grep 0). 브라우저 `signUp`은 auth.users 행만 만들고 profiles 행 미생성 → `submitApplication` FK 위반.
+  시드 유저(`*@soulbound.local`)는 profiles 보유라 빌더 수동테스트가 갭을 가림. **신규 applicant happy-path 차단.**
+  → 전용 보안태스크(Codex): security-definer `handle_new_user()` + `after insert on auth.users` 트리거
+  (→`public.profiles(id, role='applicant')`) 마이그레이션 + pgTAP(신규 auth user → applicant profile 단언). 8a는
+  supabase/·신규라우트 금지라 정당히 미수정. 증적 docs/TASK8A_AUDIT_FINDINGS.md #1.
+- **[Task 8a 잔여, LOW/latent] status 페이지가 reasonCode를 신청자에게 표시하도록 배선됨**(현재 dormant — applicant
+  AdmissionApplication에 reasonCode 없어 렌더 안 됨, 실누수 0). reasonCode는 내부 분류 enum, 신청자-대면은 applicantNotice.
+  의도 확인 필요: 신청자 비노출이면 dormant 분기 제거(미래 API 변경 시 내부 분류 우발노출 방지). 증적 #2.
 - **[Task 10-1] outbox vs ledger 직접호출 책임 분리.** 현재 approve 후처리가 `outbox.enqueue` +
   `ledger.issueMembershipCredential`를 *둘 다* 직접 실행(INV-13 테스트가 그렇게 강제). P0는
   `externalLedgerEnabled=false`라 안 돌지만, Task 10에서 outbox processor가 `external_ledger`
@@ -244,6 +263,10 @@ Task별로 Codex 1차(AGENTS.md, 기계검사) 통과 후, 설계세션이 코�
   `db reset` 후 계속 실패. (b)게이트의 존재이유 = *신뢰성 있는* 런타임 증명인데 1~2회 통과는 결정성 증거가 아니다.
   → 교훈: **호스트 전용 런타임 게이트는 "passed N times" 보고가 아니라 *연속 다회 + reset 후* 재현된 green을 봐야 PASS.**
   fixture 불안정은 bounded retry/유니크화/정리로 닫되, assertion·route 호출은 결정적으로 유지(retry로 가리지 말 것).
+- **시드 데이터 수동 QA가 신규-유저 provisioning 갭을 가린다 (Task 8a):** 빌더가 시드 applicant로 login→gate→apply
+  수동확인=통과. 그러나 시드 유저는 `seed.sql`이 profiles 행을 미리 박음. 실제 브라우저 `signUp`은 profiles 트리거
+  부재로 행을 안 만들어 submit이 FK에서 막힘(§4 HIGH). → 교훈: **수동/통합 QA의 happy-path는 시드 픽스처가 아니라
+  *제품이 실제로 만드는* 신규 엔티티로 최소 1회 통과시켜라**(provisioning/트리거/기본값 누락은 시드가 항상 가린다).
 - **stale 아티팩트 드리프트:** 산출물 여러 버전이 떠다녀 옛 버전을 받아 작업 → 여러 번 사고.
   → 대응: 단일 번들 + `MANIFEST.txt`(version assertion + grep + sha256). 받으면 MANIFEST부터 확인.
 - **"했다고 말한 것" ≠ "실제 파일":** 보고는 v1.3인데 zip 안은 v1.2였던 적 다수.
