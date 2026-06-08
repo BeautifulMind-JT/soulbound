@@ -43,12 +43,31 @@ export interface ClearSubmittedPersonaClipRetentionInput {
   readonly applicationId: string;
 }
 
-function buildObjectPath(input: PutEvidenceInput): string {
-  return `${input.ownerId}/${input.contentHash}`;
+export interface ReapDeletablePersonaClipsInput {
+  readonly limit?: number;
 }
 
-function buildUploadObjectPath(input: CreatePersonaClipUploadUrlInput): string {
-  return `${input.ownerId}/${input.contentHash}`;
+export interface ReapDeletablePersonaClipsResult {
+  readonly scanned: number;
+  readonly deleted: number;
+  readonly failed: number;
+  readonly deletedAssetIds: string[];
+}
+
+interface DeletablePersonaClipRow {
+  readonly id: string;
+  readonly storage_path: string;
+  readonly status: string;
+  readonly deletion_reason: string | null;
+  readonly delete_after: string | null;
+}
+
+declare const crypto: {
+  randomUUID(): string;
+};
+
+function buildObjectPath(ownerId: string, assetId: string): string {
+  return `${ownerId}/${assetId}`;
 }
 
 function draftDeleteAfter(): string {
@@ -61,10 +80,12 @@ export class SupabaseStorageAdapter implements StoragePort {
   async createUploadUrl(
     input: CreatePersonaClipUploadUrlInput,
   ): Promise<PersonaClipUploadUrl> {
-    const storagePath = buildUploadObjectPath(input);
+    const assetId = crypto.randomUUID();
+    const storagePath = buildObjectPath(input.ownerId, assetId);
     const { data: clip, error: clipError } = await this.client
       .from("persona_clip_assets")
       .insert({
+        id: assetId,
         applicant_id: input.ownerId,
         application_id: null,
         storage_provider: "supabase",
@@ -82,8 +103,8 @@ export class SupabaseStorageAdapter implements StoragePort {
 
     throwIfSupabaseError(clipError);
 
-    const assetId = (clip as { id?: string } | null)?.id;
-    if (!assetId) {
+    const insertedAssetId = (clip as { id?: string } | null)?.id;
+    if (!insertedAssetId) {
       throw dependencyFailure("supabase returned no persona clip asset id");
     }
 
@@ -101,7 +122,7 @@ export class SupabaseStorageAdapter implements StoragePort {
     // This mirrors storage-js uploadToSignedUrl's raw-body branch, without
     // requiring the browser to import the Supabase SDK.
     return {
-      assetId,
+      assetId: insertedAssetId,
       upload: {
         url: data.signedUrl,
         method: "PUT",
@@ -115,13 +136,15 @@ export class SupabaseStorageAdapter implements StoragePort {
   }
 
   async put(input: PutEvidenceInput): Promise<EvidenceReceipt> {
+    const assetId = crypto.randomUUID();
     const { data, error } = await this.client
       .from("persona_clip_assets")
       .insert({
+        id: assetId,
         applicant_id: input.ownerId,
         application_id: input.applicationId ?? null,
         storage_provider: "supabase",
-        storage_path: buildObjectPath(input),
+        storage_path: buildObjectPath(input.ownerId, assetId),
         content_hash: input.contentHash,
         mime_type: input.mimeType,
         size_bytes: 0,
@@ -210,6 +233,69 @@ export class SupabaseStorageAdapter implements StoragePort {
 
     throwIfSupabaseError(error);
     return Boolean((data as { id?: string } | null)?.id);
+  }
+
+  async reapDeletablePersonaClips(
+    input: ReapDeletablePersonaClipsInput = {},
+  ): Promise<ReapDeletablePersonaClipsResult> {
+    const { data, error } = await this.client.rpc(
+      "list_deletable_persona_clips",
+      {
+        p_limit: input.limit ?? 100,
+        p_asset_id: null,
+      },
+    );
+
+    throwIfSupabaseError(error);
+
+    const clips = (data ?? []) as DeletablePersonaClipRow[];
+    const deletedAssetIds: string[] = [];
+    let failed = 0;
+
+    for (const clip of clips) {
+      try {
+        const { data: currentData, error: currentError } =
+          await this.client.rpc("list_deletable_persona_clips", {
+            p_limit: 1,
+            p_asset_id: clip.id,
+          });
+
+        throwIfSupabaseError(currentError);
+
+        const [current] = (currentData ?? []) as DeletablePersonaClipRow[];
+        if (!current) {
+          continue;
+        }
+
+        const { error: removeError } = await this.client.storage
+          .from(personaClipBucket)
+          .remove([current.storage_path]);
+
+        if (removeError) {
+          failed += 1;
+          continue;
+        }
+
+        const { data: updatedAssetId, error: updateError } =
+          await this.client.rpc("mark_persona_clip_deleted", {
+            p_asset_id: current.id,
+          });
+
+        throwIfSupabaseError(updateError);
+        if (updatedAssetId === current.id) {
+          deletedAssetIds.push(current.id);
+        }
+      } catch {
+        failed += 1;
+      }
+    }
+
+    return {
+      scanned: clips.length,
+      deleted: deletedAssetIds.length,
+      failed,
+      deletedAssetIds,
+    };
   }
 }
 

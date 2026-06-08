@@ -48,6 +48,8 @@ export type {
   MarkOwnDraftForDeletionInput,
   PersonaClipUploadContract,
   PersonaClipUploadUrl,
+  ReapDeletablePersonaClipsInput,
+  ReapDeletablePersonaClipsResult,
 } from "./supabase/supabase-storage-adapter";
 
 export {

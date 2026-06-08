@@ -60,6 +60,9 @@ importers:
       typescript:
         specifier: 5.6.3
         version: 5.6.3
+      vite-node:
+        specifier: 2.1.8
+        version: 2.1.8(@types/node@24.12.4)
       vitest:
         specifier: 2.1.8
         version: 2.1.8(@types/node@24.12.4)(jsdom@29.1.1)
