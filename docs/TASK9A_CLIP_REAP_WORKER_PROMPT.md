@@ -18,9 +18,11 @@
 >    `deletion_reason IS NULL` must **NEVER** be deleted (safeguard against a no-reason stale clip — e.g. the 7a
 >    non-atomic submit+clear residual). Approved/rejected clips ARE deleted (the RPC set their `deletion_reason`) —
 >    **do not preserve approved-applicant media bytes.**
-> 2. **INV-PC-06 / no raw.** The CLI output, logs, and any DB/audit row carry only `assetId` / `contentHash` /
->    `status` / `deleted_at` / `deletion_reason` / counts — **never** `storage_path`, a signed URL, a token, raw
->    bytes, transcript, or summary.
+> 2. **INV-PC-06 / no raw.** The CLI output, logs, `audit_logs`, and `outbox_events` carry only `assetId` /
+>    `contentHash` / `status` / `deleted_at` / `deletion_reason` / counts — **never** `storage_path`, a signed URL, a
+>    token, raw bytes, transcript, or summary. (`storage_path` legitimately lives in the `persona_clip_assets` row —
+>    it is `NOT NULL` and frozen INV-PC-06 ALLOWS it there; the reaper reads it only to call `storage.remove` and does
+>    NOT null it. The prohibition is CLI / log / audit / outbox / return-value — NOT the table.)
 > 3. **Server-only, no new web surface.** No API route, no `CRON_SECRET`, nothing `NEXT_PUBLIC_`. The reaper runs in
 >    `@soulbound/adapters` with the service-role client, reachable only from a server shell / CI.
 > 4. **core `StoragePort` stays frozen** — the reaper is a concrete `SupabaseStorageAdapter` extension (the 7a pattern).
@@ -105,8 +107,12 @@ A) packages/adapters/src/supabase/supabase-storage-adapter.ts — add a concrete
        AND ( deletion_reason IS NOT NULL OR status = 'draft' )
      ORDER BY delete_after LIMIT (limit ?? 100).   // EXACT predicate — do not broaden or narrow
    - For each row (per-row try/catch; one failure must NOT abort the batch):
+       0. TOCTOU guard — immediately RE-READ the row by id and confirm it STILL matches the exact predicate
+          (status<>'deleted' AND delete_after IS NOT NULL AND delete_after<=now() AND (deletion_reason IS NOT NULL OR
+          status='draft')). If it no longer matches (e.g. an expired draft was just submitted -> attached), SKIP it
+          (do NOT remove bytes, do NOT update). This re-verification just before deletion is REQUIRED.
        1. client.storage.from("persona-clips").remove([storage_path]).
-       2. Treat "object not found / already gone" as success (idempotent).
+       2. Treat "object not found / already gone" as success (idempotent — see the absent-object test).
        3. On success/absent: UPDATE persona_clip_assets SET status='deleted', deleted_at=now(),
           deletion_reason = COALESCE(deletion_reason, 'draft_abandoned') WHERE id = ... AND status <> 'deleted'.
        4. On a transient Storage error: do NOT update the row; count it as failed (retry next run).
@@ -126,7 +132,8 @@ B) CLI script (server-only) + a package script:
 FORBIDDEN (violation = redo):
  - deleting (or marking deleted) any row outside the EXACT predicate — especially status='attached' AND
    deletion_reason IS NULL (the safeguard);
- - storage_path / signed URL / token / raw / transcript / summary in the CLI output, logs, or any DB/audit row;
+ - storage_path / signed URL / token / raw / transcript / summary in the CLI output, logs, audit_logs, outbox, or the
+   method's return value (storage_path STAYS in the persona_clip_assets row — that is allowed/required, NOT nulled);
  - any API route / CRON_SECRET / cron / Edge Function / pg_cron-only / admin-UI button / outbox/ledger processing;
  - NEXT_PUBLIC_-ing any secret or touching client code;
  - editing packages/core (StoragePort frozen) / admission RPCs / services / 8a/8b UI;
@@ -144,8 +151,15 @@ GATE (security/storage — full loop + HOST DETERMINISM; a single green run is N
      * SAFEGUARD: stale attached (status='attached', deletion_reason IS NULL, delete_after<=now()) -> object PRESENT,
        row UNCHANGED (the make-or-break assertion);
      * already 'deleted' -> untouched (counted 0);
+     * absent object: a DUE row (e.g. approved-marked) whose Storage object is ALREADY gone -> the row still
+       transitions to status='deleted' (object-absent is treated as success);
      * idempotent: a second reap run deletes nothing new.
    Clean up the test's own storage objects/rows.
+ - Unit tests (mocked supabase client — no live stack required):
+     * transient remove error: mock storage.remove to throw -> reapDeletablePersonaClips returns failed>=1 AND
+       performs ZERO row UPDATEs for that asset (the row stays non-deleted, retried next run);
+     * no-leak: the method's RETURN value AND the CLI's captured stdout contain NO storage_path / signed URL / token
+       (only assetId / contentHash / status / counts).
  - pnpm -F @soulbound/adapters test:integration green WITH this added; pnpm -r typecheck / build clean;
    bash scripts/audit.sh PASS; web unit / web integration / core / pgTAP (56) unchanged.
  - HOST DETERMINISM (required): on the host, clean `supabase db reset`, then run
@@ -195,3 +209,17 @@ STOP and report. Do not self-approve - Opus audit session finals, JT commits.
   integration assertion is the hardest-verified item; wrong = privacy-violating (under-delete) or data-loss
   (over-delete).
 - **Determinism required** (live Storage+DB integration, flaky-prone) — host 5x + reset, per §6.
+- **Concurrency (architect decision — closes the first-pass FLAG).** Terminal clips (approved/rejected —
+  `deletion_reason` set) are in a FINAL state and cannot transition back, so the privacy-critical rows have NO TOCTOU;
+  remove-first is safe + privacy-correct for them (bytes gone before the row is marked; a failed mark is retried). The
+  only raceable rows are expired drafts (`status='draft'`); the REQUIRED per-row predicate re-check immediately before
+  `storage.remove` (step 0) narrows the window to sub-millisecond. Accepted, documented residual: an expired draft
+  submitted in that tiny window could lose its bytes -> a missing clip on that application, which PC-01 explicitly
+  tolerates (absence never blocks) and is NOT a privacy leak. A fully race-proof design (a `deleting` claim state or a
+  SECURITY DEFINER claim-RPC) needs a schema/contract change and is deferred unless P0 requires it. Remove-first is
+  chosen over claim-first because the reaper's purpose is privacy: claim-first risks "row marked deleted but bytes
+  remain" (an undetected leak), which is worse than the bounded draft residual.
+- **Prompt corrected after Codex first-pass prompt-audit** (3 valid FAILs + 1 valid FLAG against the architect's
+  draft): the `storage_path` contract wording (table-allowed vs CLI/log/audit/outbox-forbidden), the absent-object +
+  transient-failure + stdout-no-leak tests, and this concurrency decision. The corrected prompt goes to a FRESH Codex
+  builder session (not the prompt-audit session); Opus finals (builder ≠ approver).
