@@ -111,11 +111,15 @@ A) packages/adapters/src/supabase/supabase-storage-adapter.ts — add a concrete
           (status<>'deleted' AND delete_after IS NOT NULL AND delete_after<=now() AND (deletion_reason IS NOT NULL OR
           status='draft')). If it no longer matches (e.g. an expired draft was just submitted -> attached), SKIP it
           (do NOT remove bytes, do NOT update). This re-verification just before deletion is REQUIRED.
-       1. client.storage.from("persona-clips").remove([storage_path]).
-       2. Treat "object not found / already gone" as success (idempotent — see the absent-object test).
-       3. On success/absent: UPDATE persona_clip_assets SET status='deleted', deleted_at=now(),
+       1. const { error } = await client.storage.from("persona-clips").remove([storage_path]); ALSO wrap the call in
+          try/catch for a thrown transport error. You MUST inspect the RETURNED error (Supabase remove() usually
+          reports failure as { data: null, error }, NOT by throwing) — do not rely on try/catch alone.
+       2. SUCCESS = no returned error AND nothing thrown (this includes the object-already-absent case, which
+          Supabase reports as success).
+       3. On SUCCESS: UPDATE persona_clip_assets SET status='deleted', deleted_at=now(),
           deletion_reason = COALESCE(deletion_reason, 'draft_abandoned') WHERE id = ... AND status <> 'deleted'.
-       4. On a transient Storage error: do NOT update the row; count it as failed (retry next run).
+       4. On a RETURNED { error } OR a THROWN error: do NOT update the row; count it as failed (retry next run).
+          NEVER mark a row deleted when remove() returned (or threw) an error.
    - Return counts + deletedAssetIds ONLY. NEVER return/log storage_path / signed URL / token / raw bytes
      (INV-PC-06). Idempotent (status<>'deleted' guard) + failure-tolerant (per-row).
 
@@ -156,8 +160,10 @@ GATE (security/storage — full loop + HOST DETERMINISM; a single green run is N
      * idempotent: a second reap run deletes nothing new.
    Clean up the test's own storage objects/rows.
  - Unit tests (mocked supabase client — no live stack required):
-     * transient remove error: mock storage.remove to throw -> reapDeletablePersonaClips returns failed>=1 AND
-       performs ZERO row UPDATEs for that asset (the row stays non-deleted, retried next run);
+     * transient remove failure — cover BOTH shapes: (a) remove() RETURNS { data: null, error } (the usual Supabase
+       shape) and (b) remove() THROWS a transport error. In EACH case reapDeletablePersonaClips returns failed>=1 AND
+       performs ZERO row UPDATEs for that asset (row stays non-deleted, retried next run). [Without the returned-error
+       case, a buggy impl that ignores { error } and marks the row deleted would slip through.]
      * no-leak: the method's RETURN value AND the CLI's captured stdout contain NO storage_path / signed URL / token
        (only assetId / contentHash / status / counts).
  - pnpm -F @soulbound/adapters test:integration green WITH this added; pnpm -r typecheck / build clean;
@@ -169,8 +175,10 @@ GATE (security/storage — full loop + HOST DETERMINISM; a single green run is N
 ACCEPTANCE (report each verbatim):
  - all gate results incl. the 5x host-determinism runs and the post-reset run, and the clip:reap CLI summary;
  - git status --short shows ONLY: packages/adapters/src/supabase/supabase-storage-adapter.ts (+ index.ts),
-   packages/adapters/src/scripts/reap-persona-clips.ts, packages/adapters/package.json, pnpm-lock.yaml (if tsx added),
-   the new adapters integration test file, and a manual-QA/runbook note;
+   packages/adapters/src/supabase/supabase-storage-adapter.test.ts (the transient-failure + no-leak UNIT tests),
+   packages/adapters/src/scripts/reap-persona-clips.ts (+ its unit test, if separate),
+   the new adapters reap INTEGRATION test file (e.g. packages/adapters/src/persona-clip-reap.integration.test.ts),
+   packages/adapters/package.json, pnpm-lock.yaml (if tsx added), and a manual-QA/runbook note;
  - git diff --stat packages/core/src supabase apps/web => EMPTY (no core/RPC/UI/web change; StoragePort frozen).
 STOP and report. Do not self-approve - Opus audit session finals, JT commits.
 ```
@@ -181,9 +189,11 @@ STOP and report. Do not self-approve - Opus audit session finals, JT commits.
 1. Commit this prompt doc: `docs: add Task 9a clip-reap CLI worker builder prompt`.
 2. Paste §2 into the **Codex** builder. Codex builds A–B + the gate incl. 5x host determinism, STOPS.
 3. **Opus audit session audits/finals** (builder ≠ approver): re-derive from git; the EXACT predicate (safeguard
-   test proves stale-attached-null untouched); approved+rejected ARE deleted; INV-PC-06 (no storage_path/url/token in
-   CLI output/logs/DB); server-only (no API route / no CRON_SECRET / nothing NEXT_PUBLIC / no client touch); core
-   StoragePort frozen (concrete adapter only); idempotency + failure-tolerance; scope; audit.sh; **host determinism
+   test proves stale-attached-null untouched); approved+rejected ARE deleted; server-only (no API route / no
+   CRON_SECRET / nothing NEXT_PUBLIC / no client touch); core StoragePort frozen (concrete adapter only); INV-PC-06
+   (no storage_path/url/token in CLI output, logs, audit_logs,
+   outbox, or return values — `persona_clip_assets.storage_path` remains intact); idempotency + failure-tolerance
+   (both the returned-`{error}` and thrown-error cases leave the row unmarked); scope; audit.sh; **host determinism
    reproduced (5x + reset)** before PASS.
 4. On PASS, JT commits: `feat(adapters): persona-clip byte-delete reaper (CLI)` + `test(adapters): clip-reap
    retention integration` + `docs: record Task 9a audit pass`.
