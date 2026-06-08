@@ -1,0 +1,80 @@
+.memberShell {
+  display: grid;
+  gap: 24px;
+}
+
+.membershipBand {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: center;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--green);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.membershipBand h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.membershipBand p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.membershipMeta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--line);
+}
+
+.membershipMeta div {
+  min-width: 0;
+  padding: 20px;
+  background: var(--surface);
+}
+
+.membershipMeta dt {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.membershipMeta dd {
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
+  font-weight: 750;
+}
+
+.notMember {
+  padding: 32px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.notMember h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.notMember p {
+  margin: 10px 0 22px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+@media (max-width: 700px) {
+  .membershipBand,
+  .membershipMeta {
+    grid-template-columns: 1fr;
+  }
+}

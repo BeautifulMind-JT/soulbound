@@ -1,0 +1,277 @@
+.toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+  padding: 18px 20px;
+  border-block: 1px solid var(--line);
+}
+
+.filterField {
+  display: grid;
+  gap: 7px;
+  min-width: 220px;
+}
+
+.filterField label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.filterField select,
+.decisionForm select,
+.decisionForm textarea {
+  width: 100%;
+  border: 1px solid #aeb8b2;
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.filterField select,
+.decisionForm select {
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.queueCount {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.queueTable {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+.queueTable th,
+.queueTable td {
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.queueTable th {
+  background: #e8ece8;
+  color: #48544e;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.queueTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.queueTable tbody tr:hover {
+  background: #f7f9f6;
+}
+
+.queueTable :global(.status-badge) {
+  white-space: nowrap;
+}
+
+.idCell {
+  max-width: 260px;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+}
+
+.clipMarker {
+  color: var(--wine);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.rowLink {
+  color: var(--green);
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.emptyState,
+.permissionState {
+  padding: 30px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.permissionState {
+  border-left: 5px solid var(--danger);
+}
+
+.detailHeader {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.backLink {
+  color: var(--green);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  gap: 20px;
+}
+
+.detailSection {
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.detailSection h2,
+.actionSection h2 {
+  margin: 0 0 20px;
+  font-size: 21px;
+}
+
+.detailList {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.detailList div {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.28fr) minmax(0, 1fr);
+  gap: 18px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.detailList div:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.detailList dt {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.detailList dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  line-height: 1.55;
+}
+
+.internalNote {
+  padding: 14px;
+  border-left: 4px solid var(--wine);
+  background: #f7eef0;
+}
+
+.clipBlock {
+  display: grid;
+  gap: 14px;
+}
+
+.clipVideo {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  background: #101418;
+}
+
+.actionSection {
+  grid-column: 1 / -1;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #e8ece8;
+}
+
+.decisionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.decisionForm {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #bcc5bf;
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.decisionForm h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.decisionForm label {
+  display: grid;
+  gap: 7px;
+  color: #48544e;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.decisionForm textarea {
+  min-height: 92px;
+  resize: vertical;
+  padding: 10px 12px;
+  line-height: 1.5;
+}
+
+.actionMessage {
+  margin: 0 0 16px;
+  color: var(--wine);
+  font-weight: 700;
+}
+
+@media (max-width: 860px) {
+  .detailGrid,
+  .decisionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .actionSection {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 620px) {
+  .toolbar,
+  .detailHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .filterField {
+    min-width: 0;
+  }
+
+  .detailList div {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
