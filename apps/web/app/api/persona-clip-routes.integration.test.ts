@@ -322,6 +322,60 @@ function expectNoPersonaClipSecretLeak(
 }
 
 describe("persona clip route handlers", () => {
+  const fixtureApplicantIds: string[] = [];
+
+  afterEach(async () => {
+    if (fixtureApplicantIds.length === 0) {
+      return;
+    }
+
+    try {
+      const config = readConfig();
+      const serviceRoleClient = createServiceRoleSupabaseClient({
+        url: config.url,
+        serviceRoleKey: config.serviceRoleKey,
+      });
+      const { data: clips, error: clipsError } = await serviceRoleClient
+        .from("persona_clip_assets")
+        .select("id,storage_path")
+        .in("applicant_id", fixtureApplicantIds);
+      if (clipsError) {
+        throw clipsError;
+      }
+
+      const clipIds = (clips ?? []).map(({ id }) => id);
+      const storagePaths = (clips ?? []).map(({ storage_path }) => storage_path);
+      if (storagePaths.length > 0) {
+        const { error: removeError } = await serviceRoleClient.storage
+          .from("persona-clips")
+          .remove(storagePaths);
+        if (removeError) {
+          throw removeError;
+        }
+      }
+
+      if (clipIds.length > 0) {
+        const { error: detachError } = await serviceRoleClient
+          .from("admission_applications")
+          .update({ persona_clip_asset_id: null })
+          .in("persona_clip_asset_id", clipIds);
+        if (detachError) {
+          throw detachError;
+        }
+
+        const { error: deleteError } = await serviceRoleClient
+          .from("persona_clip_assets")
+          .delete()
+          .in("id", clipIds);
+        if (deleteError) {
+          throw deleteError;
+        }
+      }
+    } finally {
+      fixtureApplicantIds.length = 0;
+    }
+  });
+
   it("creates upload URLs, protects reviewer read URLs, and preserves retention invariants", async () => {
     const config = readConfig();
     const serviceRoleClient = createServiceRoleSupabaseClient({
@@ -334,6 +388,7 @@ describe("persona clip route handlers", () => {
       "password123",
     );
     const applicant = await createApplicant(config, "clip-owner");
+    fixtureApplicantIds.push(applicant.id);
     const otherApplicant = await createApplicant(config, "clip-other");
     const noClipApplicant = await createApplicant(config, "no-clip");
 
@@ -389,7 +444,7 @@ describe("persona clip route handlers", () => {
     expect(draftClipError).toBeNull();
     expect(draftClip).toMatchObject({
       applicant_id: applicant.id,
-      storage_path: `${applicant.id}/${contentHash}`,
+      storage_path: `${applicant.id}/${clip.assetId}`,
       status: "draft",
       deletion_reason: null,
     });
@@ -534,7 +589,7 @@ describe("persona clip route handlers", () => {
         ...((clipNonPathRows ?? []) as Record<string, unknown>[]),
       ],
       [
-        `${applicant.id}/${contentHash}`,
+        `${applicant.id}/${clip.assetId}`,
         clip.upload.url,
         readUrlBody.url,
         "object/upload/sign",
