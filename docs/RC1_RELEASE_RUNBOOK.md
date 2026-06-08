@@ -10,7 +10,23 @@
 > artifacts (listed in §16) are small builder tasks dispatched to Codex **only after JT approves this plan** —
 > per JT's instruction, **nothing is implemented yet**.
 >
-> **Branch/tag:** cut RC-1 from `phase1-p0-mvp` @ `f9f1bad`; tag `rc1` after the local gate (§4) is recorded.
+> **SHAs + tag:** `baseline_sha` = `f9f1bad` (the code-complete commit RC-1 starts from). `candidate_sha` = the
+> actual SHA built / deployed / verified for this candidate — it MAY differ from baseline if RC-1 lands a
+> fix-forward (e.g. a Vercel `transpilePackages` commit). Tag **`v0.1.0-rc.1`** on the `candidate_sha` ONLY after the
+> full verification (local gate §4 + staging deploy + staging smoke §13) is recorded green.
+
+---
+
+## 0. RC-1 decisions (locked by JT, 2026-06-08)
+| Decision | Value |
+|---|---|
+| Email confirmation | **ON** — real SMTP, verify-by-email |
+| Alpha signup | **open — no allow-list** (JT). Anyone with the staging URL can register (gated only by email confirmation + the reviewer-approval boundary). Supersedes the earlier allow-list value. |
+| Persona Clip deletion | **manual CLI reaper** — operator runs `pnpm -F @soulbound/adapters clip:reap` per a written procedure |
+| Reaper automation | **deferred** — no 9a-2 cron route, no `CRON_SECRET` route, no Vercel Cron, no admin-UI button; re-evaluated as a separate release-blocker/ops decision **before public (non-alpha) launch** |
+
+> One line: **in alpha/RC, clip deletion is NOT automated — an operator sweeps manually with the CLI.** ("청소부는
+> 있고, 자동청소 로봇은 안 둠 — 사람이 빗자루 들고 청소.")
 
 ---
 
@@ -24,7 +40,7 @@
 ## 2. Completed Task 1–9 summary (what RC-1 is shipping)
 | Task | What | Audit evidence |
 |---|---|---|
-| 1–2 | monorepo + `packages/core` domain/services; 19 frozen contract tests GREEN | (Task 2 audit) |
+| 1–2 | monorepo + `packages/core` domain/services; core tests GREEN — **20** (19 frozen contract + the 9b INV-16 lock) | (Task 2 audit) |
 | 3 | DB schema + RLS + RPCs (`supabase/migrations/0001–0004`) | TASK3_AUDIT_FINDINGS |
 | 4 | Supabase + Noop adapters (3-client boundary) | TASK4_AUDIT_FINDINGS |
 | 4.5 | trusted role source (`current_user_role()`, migration 0006) | TASK4_5_AUDIT_FINDINGS |
@@ -41,18 +57,22 @@ approve/reject → member**, with RLS/RPC security, the 3-client boundary, perso
 audit/outbox hardening.
 
 ## 3. Deferred (explicitly NOT in RC-1)
-- **Task 9a-2** — an internal cron route wrapping `clip:reap`. RC-1 runs the reaper as a CLI/scheduled job (§14).
+- **Task 9a-2** — an internal cron route wrapping `clip:reap`. RC-1 runs the reaper as a **manual CLI** (§14).
 - **Task 10** — external-ledger PoC + outbox-drain processor (separate branch; `externalLedgerEnabled=false` on
   main, so the outbox never fires in RC-1).
+- **CAPTCHA on auth** — deferred fix-forward. `signUp`/`signIn` do not send `options.captchaToken` (verified), so the
+  Supabase dashboard CAPTCHA stays **OFF** in RC-1 (enabling it would break signup/sign-in). Implement the token pass
+  first, then enable. RC-1 configures the available Auth limits as partial safeguards; they do **not** replace
+  CAPTCHA or provide general password-login/account-creation abuse control (§15).
 - **Accepted residuals** (documented, not blocking): the expired-draft TOCTOU window (PC-01-tolerated, no privacy
   leak — TASK9A_AUDIT_FINDINGS); the dormant `reasonCode` display branch on the applicant status page
   (TASK8A_AUDIT_FINDINGS #2). Re-confirm these are acceptable for the alpha; do not "fix" them in RC-1 without a
   decision.
 
-## 4. Final LOCAL gate checklist (run at `f9f1bad`, record results)
+## 4. Final LOCAL gate checklist (run at the candidate_sha — initially = baseline `f9f1bad`; re-run after any fix-forward)
 Run from a clean checkout at the exact SHA, local Supabase up:
 ```sh
-git rev-parse HEAD            # must be f9f1bad...
+git rev-parse HEAD            # = candidate_sha (baseline f9f1bad, or the fix-forward SHA)
 pnpm install --frozen-lockfile
 pnpm -r typecheck             # CLEAN
 pnpm -r build                 # all packages incl. `next build` for web — emit OK
@@ -73,7 +93,8 @@ runs; see §9.) **Record every result** per §5. Local gate must be fully green 
 Keep an auditable record (e.g. `docs/RC1_VERIFICATION.md` or the release notes) with this exact shape:
 ```
 RC-1 verification
-  commit:        f9f1bad  (git rev-parse HEAD)
+  baseline_sha:  f9f1bad   (code-complete; RC-1 starts here)
+  candidate_sha: <sha>     (actually built/deployed/tagged; = baseline unless a fix-forward landed)
   date / by:     <date> / <name>
   host:          <os, node 24.x, pnpm 11.1.3>
   local gate:    typecheck PASS | build PASS | audit PASS | core 20 | adapters 22 | web 42 |
@@ -83,7 +104,8 @@ RC-1 verification
   staging smoke: signup PASS | roles PASS | clip lifecycle+reap PASS | no service-role leak verified
   verdict:       RC-1 PASS / HOLD  (Cowork final-audit of the smoke evidence)
 ```
-Tie every claim to the SHA. A staging deploy or smoke run from a different SHA invalidates the record.
+Tie every claim to the **candidate_sha** (the SHA actually deployed + smoke-tested). A deploy/smoke from a different
+SHA invalidates the record. Tag **`v0.1.0-rc.1`** on candidate_sha only after the whole record is green.
 
 ## 6. Supabase **staging** deployment runbook
 1. **Create a dedicated staging project** (separate from any prod; never reuse local). Note its `project-ref`,
@@ -104,22 +126,26 @@ Tie every claim to the SHA. A staging deploy or smoke run from a different SHA i
 - **Redirect URLs (allow list)** = the staging origin (+ any preview domains you'll use). The app uses
   password auth (`signInWithPassword`) + `signUp`; if email confirmation is ON, confirmation/recovery links must
   redirect to an allowed URL.
-- **Email confirmation:** decide explicitly.
-  - 8a `signUp` already handles both: it returns `requiresEmailConfirmation` when no session comes back. For a
-    **controlled alpha**, either (a) **confirmation ON** with a real SMTP/email provider configured in Supabase
-    (users verify via email — closest to prod), or (b) **confirmation OFF** for a tight invite list (immediate
-    sign-in; simpler, but anyone with the URL can self-register — pair with signups-disabled-by-default or an allow
-    list). **Recommend (a) for realism;** record the choice. Verify the signup page's confirmation branch matches
-    the chosen setting.
+- **Email confirmation: ON (JT decision).** Configure a real SMTP/email provider in Supabase so users verify via
+  email (closest to prod). 8a `signUp` returns `requiresEmailConfirmation` when no session is returned — verify the
+  signup page shows the "check your email" branch and that confirmation/recovery links redirect to an allowed URL
+  (site_url + redirect list above). Note: with **open signup** (§15) + confirmation ON, anyone with a real email +
+  the staging URL can register as an **applicant** — membership stays gated by reviewer approval (§15 tradeoff).
 - Confirm **no role/privilege is ever set from auth metadata** (the trigger hardcodes `applicant`; role changes are
   the §6 manual promotion only).
 
 ## 8. Vercel **staging** deployment runbook (monorepo)
-- **Framework:** Next.js (16). **Root Directory:** the **repo root** (so Vercel sees `pnpm-workspace.yaml` +
-  `packageManager: pnpm@11.1.3`), NOT `apps/web` — the app depends on the `@soulbound/*` workspace packages.
-- **Install command:** default pnpm install (Vercel honors `packageManager`; ensure pnpm 11 + **Node 24** — `.nvmrc`
-  = 24; set the Vercel Project Node version to 24).
-- **Build command:** `pnpm -F web build` (or `pnpm --filter web... build`). **Output:** `apps/web/.next`.
+- **Framework:** Next.js (16). **Root Directory: try `apps/web` FIRST**, with Vercel's **"Include source files
+  outside of the Root Directory in the Build Step"** ENABLED so the `@soulbound/*` workspace packages +
+  `pnpm-workspace.yaml` + lockfile are available to the build. **Verify on a preview deploy** that the workspace deps
+  resolve; if they do NOT, fall back to **repo-root** as the Root Directory. (Confirm before promoting staging.)
+- **Toolchain pin — Corepack:** enable Corepack on Vercel by setting the project **env `ENABLE_EXPERIMENTAL_COREPACK=1`**
+  (do **NOT** override the Install Command). This makes the build use **pnpm 11.1.3** from the root `packageManager`.
+  **Verify in the build log** that `pnpm --version` prints `11.1.3`. **Node 24** (`.nvmrc` = 24; set the Vercel
+  Project Node version to 24). (ref: Vercel docs → Configure a Build → Corepack.)
+- **Build command (Root = `apps/web`):** `cd ../.. && pnpm -F web build` (step up to the workspace root so the
+  `pnpm -F` filter resolves). **Output Directory:** do **NOT** override — Vercel auto-detects `.next` under the
+  `apps/web` root. (Repo-root fallback: Root = repo root, build `pnpm -F web build`, output auto-detected.)
 - **⚠️ #1 build risk — workspace TS source.** `@soulbound/core` / `@soulbound/adapters` export `./src/index.ts`
   (TypeScript **source**, not built JS), and `apps/web/next.config.ts` is currently empty (no `transpilePackages`).
   It builds locally (Next 16 transpiles the workspace source), but **verify the Vercel build succeeds**. If Vercel's
@@ -137,7 +163,7 @@ Tie every claim to the SHA. A staging deploy or smoke run from a different SHA i
 | `NEXT_PUBLIC_SUPABASE_URL` | **Web** (Vercel) | public, build-inlined | staging project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | **Web** (Vercel) | public, build-inlined | staging anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Web** (Vercel) | **secret, server runtime only** | NEVER `NEXT_PUBLIC_`; never in client bundle |
-| `SUPABASE_URL` | **CLI / reaper** (ops host or CI) | secret env | staging URL for `clip:reap` |
+| `SUPABASE_URL` | **CLI / reaper** (ops host, operator-run) | secret env | staging URL for `clip:reap` |
 | `SUPABASE_SERVICE_ROLE_KEY` | **CLI / reaper** | secret env | same key, server-only |
 - (Local integration tests additionally need `SUPABASE_ANON_KEY` — test-only, not a deploy var.)
 - Rotate the staging service-role key if it was ever pasted into a shared transcript.
@@ -145,6 +171,12 @@ Tie every claim to the SHA. A staging deploy or smoke run from a different SHA i
 ## 10. Migration backup + rollback / forward-fix
 - **Before applying migrations to a non-empty DB:** take a backup (Supabase dashboard backup / `pg_dump`). Record
   the backup id + timestamp in the verification record.
+- **DB backup ≠ Storage backup (critical).** A DB backup / `pg_dump` captures Postgres ONLY — **not** the
+  `persona-clips` Storage objects. A DB rollback does **not** restore clip bytes and can **desync** DB ↔ Storage
+  (restored `persona_clip_assets` rows pointing at objects the reaper already deleted → 404; or Storage objects whose
+  rows were rolled back). Storage recovery is a **separate procedure** (Storage's own backup/versioning — confirm what
+  the staging plan offers). For RC-1, treat clip bytes as **not recoverable via the DB backup** (the reaper deletes
+  them by design — intended, not a loss to "restore").
 - **This project's migrations are forward-only** (no down-migrations). So:
   - **Rollback** = restore from the pre-migration backup (full-DB restore). Use only if a migration corrupts staging.
   - **Forward-fix** = a NEW migration `0009+` that corrects the issue. **Never edit a shipped migration** (`0001–0008`
@@ -189,27 +221,46 @@ Run these on the live staging URL with real accounts (record pass/fail + screens
    + network; all data calls carry a user bearer; the browser Supabase client is used for auth + `current_user_role`
    only (no `.from`/`.storage`).
 
-## 14. Reaper operations (who runs it / cadence / failure)
-- **Execution subject:** an ops host or CI job holding the **staging** `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`
-  (server-only). NOT the browser, NOT an end user. Command: `pnpm -F @soulbound/adapters clip:reap`
-  (see `docs/TASK9A_CLIP_REAP_RUNBOOK.md`).
-- **Cadence (RC-1, manual/scheduled):** since the cron route (9a-2) is deferred, run it on a schedule — e.g. a
-  **scheduled GitHub Action / cron every 1h** (terminal clips are marked `delete_after=now()` at approve/reject, so
-  prompt reaping minimizes how long decided-applicant media lives; abandoned drafts have a 24h TTL). For a small
-  alpha, even a manual daily run is acceptable **if** documented; privacy expectation should match the cadence.
+## 14. Reaper operations — MANUAL CLI (JT decision; NO automation in alpha/RC)
+- **Model: manual CLI reaper.** Persona Clip deletion is **NOT automated** in alpha/RC. There is **no cron route
+  (9a-2 deferred), no `CRON_SECRET` route, no Vercel Cron, no admin-UI button.** An **operator** runs the CLI by hand
+  per a written procedure.
+- **Execution subject:** an operator on an ops host holding the **staging** `SUPABASE_URL` +
+  `SUPABASE_SERVICE_ROLE_KEY` (server-only) — NOT the browser, NOT an end user. Command:
+  `pnpm -F @soulbound/adapters clip:reap` (see `docs/TASK9A_CLIP_REAP_RUNBOOK.md`).
+- **Cadence (documented manual procedure):** the operator runs it on a defined manual schedule — at least **once
+  daily during the alpha**, and **promptly after any batch of approve/reject decisions** (terminal clips are marked
+  `delete_after=now()` immediately; abandoned drafts have a 24h TTL). The privacy expectation communicated to alpha
+  users must match this manual cadence: a decided applicant's clip bytes are deleted on the operator's **next run**,
+  not instantly.
 - **Failure handling:** the reaper is **idempotent + failure-tolerant** — a transient Storage error leaves the row
-  unmarked (`failed += 1`) and the **next run retries**. Monitor the CLI summary; if `failed > 0` persists across
-  runs, investigate (Storage outage / a stale path). The summary prints **counts + assetIds only** (no path/URL) —
-  safe to log.
+  unmarked (`failed += 1`) and the **next manual run retries**. The operator reads the CLI summary (**counts +
+  assetIds only**, no path/URL — safe to log); if `failed > 0` persists across runs, investigate (Storage outage /
+  stale path) before declaring a clean sweep.
+- **Automation is a separate, later decision.** Whether to add automated deletion (the 9a-2 cron route or
+  equivalent) is **re-evaluated as its own release-blocker / ops decision before public (non-alpha) launch** — it is
+  NOT built in RC-1.
 
 ## 15. Internal alpha (5–20 people) checklist
 - [ ] Staging fully deployed + §13 smoke all green + recorded at the SHA.
 - [ ] A real **admin/reviewer** provisioned (§6); reviewer trained on the queue/decision UI.
-- [ ] Invite list (5–20) prepared; signups limited to the invite list (allow-list or invite-only; otherwise the
-      staging URL is open registration — decide + lock down).
+- [ ] **Open signup — no allow-list** (JT decision: do not gate registration; proceed open). This is **NOT a
+      privilege-escalation vulnerability** — applicants cannot escalate (the 0007 trigger hardcodes `applicant`;
+      `profiles.role` is escalation-proof; reviewer/admin only via the §6 manual promotion; membership only via
+      reviewer approval) — **but we accept the spam / abuse / availability risk**: anyone with the staging URL can
+      self-register (→ applicant) + submit, flooding the reviewer queue and Storage (via clip uploads).
+      **Mitigations (RC-1):** configure the available **Supabase Auth limits** for signup confirmation, email sends,
+      and verification; keep the staging URL low-profile/unshared; monitor + reject queue noise; email-confirmation
+      ON slows bulk abuse; keep the kill switch (§ below) ready. These limits are partial safeguards — they do
+      **not** replace CAPTCHA or provide general password-login/account-creation abuse control. **CAPTCHA is NOT
+      enabled in RC-1** — the current `signUp`/`signIn` do not send an `options.captchaToken`, so turning CAPTCHA on
+      in the Supabase dashboard would **break signup/sign-in**. CAPTCHA is a **separate fix-forward** (§3): implement
+      passing `options.captchaToken` in the auth-provider first, then enable the dashboard CAPTCHA
+      (Turnstile/hCaptcha).
 - [ ] Each alpha user runs the happy path: signup → apply (try a clip + try skipping) → see status; a few get
       approved → see `/member`; a few rejected → see the applicant notice (NOT the internal reasonCode/reviewSummary).
-- [ ] Reaper runs on its cadence during the alpha; spot-check that an approved/rejected clip's bytes are gone.
+- [ ] **Operator runs the manual `clip:reap` (§14)** during the alpha (daily + after decision batches); spot-check
+      that an approved/rejected clip's bytes are gone after a run.
 - [ ] Watch for: client errors, broken redirects, email-confirmation friction, any service-role/secret exposure in
       network/devtools, clip upload failures on real devices/cameras (the 7b manual-QA — real camera/permission/skip).
 - [ ] Feedback capture channel + a **kill switch** (how to disable new signups / take staging down fast).
@@ -218,14 +269,15 @@ Run these on the live staging URL with real accounts (record pass/fail + screens
 ## 16. RC-1 code/config artifacts to create (ONLY after JT approves this plan)
 Small builder tasks (Codex), each audited:
 - (a) `apps/web/next.config.ts` `transpilePackages` — **only if** the Vercel build needs it (§8); otherwise skip.
-- (b) A scheduled-reaper config (e.g. a GitHub Action running `clip:reap` against staging) — RC-1's stand-in for 9a-2.
+- (b) A short **manual-reaper operating procedure** (extend `docs/TASK9A_CLIP_REAP_RUNBOOK.md` with the staging
+  cadence + who runs it + the summary check). **No automation** — no GH Action / cron / route (deferred per §0/§14).
 - (c) A `docs/RC1_VERIFICATION.md` template (§5) — or keep the record in release notes.
 - (d) (Optional) a one-off SQL snippet doc for the §6 reviewer/admin promotion.
 None of these are feature code; they are release wiring. **Do not create them in this draft.**
 
 ## 17. Release-readiness decision (the point of RC-1)
 RC-1 → **release-ready** only when ALL hold, recorded at the SHA:
-1. Local gate green (§4) at `f9f1bad`.
+1. Local gate green (§4) at the **candidate_sha** (= baseline `f9f1bad` unless a fix-forward landed).
 2. Staging deployed: Supabase migrations 0001–0008 (no seed) + Vercel build green (§6/§8).
 3. Staging smoke (§13) all green — esp. real signup→profiles trigger, the role boundaries, and the clip
    lifecycle→reap→object-absence.
@@ -237,5 +289,6 @@ RC-1 → **release-ready** only when ALL hold, recorded at the SHA:
 
 ### Notes (Cowork)
 - This is a **draft for review** — no implementation started (per JT). On approval, §16 artifacts get dispatched and
-  the staging bring-up (§6–§8) is executed by JT, with Cowork final-auditing the §13 evidence against `f9f1bad`.
+  the staging bring-up (§6–§8) is executed by JT, with Cowork final-auditing the §13 evidence against the
+  **candidate_sha** (the deployed SHA).
 - The single most likely surprise is §8's workspace-TS Vercel build — validate it on a preview deploy first.
