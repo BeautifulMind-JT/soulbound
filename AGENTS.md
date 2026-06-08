@@ -51,6 +51,9 @@
 
 - `rg "\.skip\(|\.todo\(|\.only\(" packages/core/src` → 0 기대
 - 모든 `*.test.ts` 를 freeze 와 byte 비교: `git diff 991dc5d -- 'packages/core/src/**/*.test.ts'` → **비어 있어야** 한다.
+  **(인가된 예외 1건: Task 9b의 INV-16 outbox-payload lock = `admission-service.test.ts`에 추가된 단일 `it()`,
+  Cowork 계약확장 인가 2026-06-08, 순수 additive·기존 19 무손상·skip 0 → core contract 19→20. 이 1개 외의
+  추가/수정/삭제/skip 은 여전히 FLAG. 증적 `docs/TASK9B_AUDIT_FINDINGS.md`.)**
 - 서비스 바디에서 `NOT_IMPLEMENTED` 가 사라졌는지 확인(stub throw 제거됨).
 
 ### D. SEMANTIC INVARIANTS (코드를 읽고 보고 — 고치지 않는다)
