@@ -7,6 +7,7 @@ engineStrict: true
 minimumReleaseAge: 1440
 blockExoticSubdeps: true
 
-# esbuild(vitest 의존성)의 설치 빌드 스크립트만 허용 — Task 2의 pnpm test에 필요
-onlyBuiltDependencies:
-  - esbuild
+# pnpm 11 build-script allowlist. esbuild is required by Vitest; sharp by Next.js.
+allowBuilds:
+  esbuild: true
+  sharp: true
