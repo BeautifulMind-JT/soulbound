@@ -1,6 +1,6 @@
 # RC-1 Verification
 
-Status: LOCAL GATE PASS (at candidate) / STAGING DEPLOYED / STAGING SMOKE PENDING
+Status: LOCAL GATE PASS (at candidate) / STAGING DEPLOYED / STAGING SMOKE IN PROGRESS
 
 ## SHA
 
@@ -70,18 +70,45 @@ scanned=0 deleted=0 failed=0 deletedAssetIds=[]
 - Preview deployment: READY, **git SHA metadata = `fafba30`** (matches candidate).
 - Supabase staging: migrations **0001–0008 applied, NO seed** (runbook §6/§11).
 - First HTTP smoke (shallow): `/` 200, `/signup` 200, unauthenticated API 401. (NOT the §13 smoke.)
-- Vercel SSO protection: still ON (must be lifted before the §13 real-signup smoke).
+- Vercel SSO / Deployment Protection: **OFF since 2026-06-10 16:08:30 KST** (lifted for the §13 smoke; staging is publicly
+  reachable — open-signup decision applies). External reachability verified from a real mobile device (carrier
+  network), no Vercel login prompt.
+- Post-candidate docs-only commits (`dbcd8ec`→`72b8d54` 등): runtime diff from `fafba30` = 0; candidate unchanged.
 
-## Staging Smoke (§13)
+## Staging Smoke (§13) — IN PROGRESS
 
-PENDING — blocked on Supabase Auth staging config (SMTP for email-confirmation ON, site_url/redirect URLs),
-then: real new signup → profiles trigger; applicant/reviewer/member role boundaries; Persona Clip
-upload → approve/reject → manual `clip:reap` → object absence; INV-17 no service-role in client bundle/network.
+**PASS so far (2026-06-10, real device on carrier network):**
+- Real new signup (redacted staging test account) → **email-confirmation ON works**: confirmation mail received, link →
+  staging origin, then sign-in → `/gate` reached (no-application state + procedure list rendered).
+- **profiles provisioning trigger verified ON STAGING**: direct DB query → exactly 1 `public.profiles` row,
+  UID matches `auth.users`, `role='applicant'`, `membership_status='none'` (the 0007 trigger, real-signup path).
+
+**🔴 P1 (must fix before alpha): confirmation mail was sent by the DEFAULT Supabase mailer**
+(`noreply@mail.app.supabase…`), not real SMTP. The runbook decision is email-confirm ON **with real SMTP**; the
+default mailer's hourly send limits cannot support the 5–20-person alpha. Configure real SMTP, then re-verify one
+signup end-to-end.
+
+**🟡 FLAG: Supabase Auth rate-limit settings — evidence not yet recorded** (SSO is OFF + signup is open, so the
+rate-limit mitigation from runbook §15 must be confirmed/enabled and recorded here).
+
+**REMAINING (§13):**
+- applicant: apply → submit (once WITH a real-camera clip [doubles as the 7b manual QA], once skipping) → status.
+- reviewer: promote a real signup via §6 (record who/when) → queue → detail → clip playback → approve AND reject.
+- member: approved applicant sees `/member` active.
+- Persona Clip retention: after approve/reject, run manual `clip:reap` (staging env) → Storage object ABSENT,
+  row `status='deleted'` evidence-only.
+- INV-17: devtools — no service-role string in bundle/network; all data calls carry the user bearer.
+
+## Secret hygiene
+
+- `/private/tmp` secret-bearing temp files (staging API keys, vercel env JSONs, API headers, CLI strings dump):
+  **deleted 2026-06-10** (two sweeps). Non-secret artifacts (deployment metadata, SHA snapshots/tars, page HTML)
+  remain; delete at RC close.
 
 ## Verdict
 
 LOCAL RC-1 GATE PASS at candidate `fafba30`.
-STAGING DEPLOYED at `fafba30` (shallow HTTP smoke only).
-RELEASE-READY: **NO**.
-Next gate: Supabase Auth (SMTP/site_url) → lift Vercel SSO → §13 staging smoke → Cowork final audit → §17 go/no-go.
-`v0.1.0-rc.1` tag target: `fafba30` (after the full record is green).
+STAGING DEPLOYED at `fafba30`; §13 smoke IN PROGRESS (signup + profiles-trigger PASS).
+RELEASE-READY: **NO** — blockers: real SMTP (P1), §13 remainder, Auth rate-limit evidence.
+Next: real SMTP → rate-limit record → §13 remainder (roles / clip lifecycle / reap / INV-17) → Cowork final audit →
+§17 go/no-go. `v0.1.0-rc.1` tag target: `fafba30` (after the full record is green).
