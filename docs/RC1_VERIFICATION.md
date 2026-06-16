@@ -86,6 +86,11 @@ scanned=0 deleted=0 failed=0 deletedAssetIds=[]
   `noreply@mail.app.supabase...` sender). This satisfies the RC-1 "email-confirm ON with real SMTP" requirement.
 - **Applicant no-clip / skip path verified on a real mobile device**: Persona Clip unavailable/skip path → submit →
   `/apply/status` shows `제출됨` (PC-01: clip absence does not block submission).
+- **Real-camera Persona Clip path verified on mobile Chrome (2026-06-16)**: camera preview/recording → upload
+  completion (`Persona Clip이 준비되었습니다`) → submit → `/apply/status` shows `제출됨`.
+- **Mobile compatibility observation**: Samsung Internet on the same Android device reported recorder unavailable and
+  fell back to the no-clip path. This is not a data-loss/privacy failure because PC-01 fallback works, but it is a
+  known alpha UX compatibility risk. Candidate fix-forward, if prioritized later: recorder MIME fallback/probing.
 
 **PASS (2026-06-16, staging smoke automation with synthetic staging actors):**
 - Created isolated staging smoke actors for clip-applicant, reject-applicant, and reviewer (service-role setup;
@@ -108,18 +113,34 @@ scanned=0 deleted=0 failed=0 deletedAssetIds=[]
   present, and the Storage object is absent (`storageFetchStatus=400`). The storage path was read only internally for
   verification and was not printed in the CLI output or this record.
 
+**PASS (2026-06-16, real-camera mobile Chrome clip through reviewer decision + reaper):**
+- Latest real-camera Chrome submission identified on staging: application `54f5ad9d-6a6f-4c84-a358-bc3a0624999e`,
+  clip asset `3d3aafa0-a750-4cde-8cf6-4d4c71989954` (safe IDs only; no storage path recorded).
+- Reviewer queue/detail path saw the application and clip asset; reviewer signed playback/download succeeded before
+  decision.
+- Reviewer approved the application; DB verified `status='approved'`, `reviewed_at` present, reviewer present, and
+  active membership issued for that application.
+- Clip retention before reaper: row `status='attached'`, `deletion_reason='application_approved'`, `delete_after`
+  present, `deleted_at` absent.
+- Manual staging `clip:reap`:
+  ```text
+  persona-clip reap scanned=1 deleted=1 failed=0 deletedAssetIds=["3d3aafa0-a750-4cde-8cf6-4d4c71989954"]
+  ```
+- Post-reaper evidence: row `status='deleted'`, `deletion_reason='application_approved'`, `deleted_at` present,
+  Storage object absent (`storageFetchStatus=400`), and audit/outbox no-path/no-URL check returned true.
+
 **✅ Supabase Auth rate-limits — recorded (2026-06-10, staging dashboard):**
 sign-ups/sign-ins **30 req/5min/IP** (the §15 open-signup mitigation, active); token refreshes 150/5min/IP;
 token verifications 30/5min/IP; anonymous + Web3 locked (unused). Custom SMTP evidence is now captured above; re-check
 the email-send limit in the dashboard before a larger alpha if the provider-specific cap needs to be recorded.
 
 **Residual evidence notes for final audit:**
-- The clip-included smoke used a synthetic uploaded `video/webm` object through the real signed-upload route and
-  Supabase Storage, not a real camera recording. The real-device mobile evidence covers signup and the no-clip/skip
-  path. If final audit requires literal real-camera QA, capture one additional device recording before alpha.
 - INV-17 evidence is an automated deployed-bundle/API smoke (no service-role key in public HTML/JS; user-data calls
   use bearer tokens in the smoke harness), not a screenshot of browser devtools. Capture a devtools screenshot if the
   final audit wants that exact artifact.
+- Alpha reaper ops decision remains manual: JT runs `pnpm -F @soulbound/adapters clip:reap` against staging at least
+  daily and promptly after approve/reject batches; persistent `failed>0` pauses/investigates alpha decisions. Public
+  non-alpha launch must re-evaluate 9a-2 automation as a release-blocker/ops decision.
 
 ## Secret hygiene
 
@@ -131,7 +152,9 @@ the email-send limit in the dashboard before a larger alpha if the provider-spec
 
 LOCAL RC-1 GATE PASS at candidate `fafba30`.
 STAGING DEPLOYED at `fafba30`; §13 evidence captured: signup/profiles, custom SMTP, applicant no-clip submit,
-reviewer role boundary, approve/reject, member active, clip playback, no-leak checks, manual reap, and object absence.
+real-camera Chrome clip submit, reviewer role boundary, approve/reject, member active, clip playback, no-leak checks,
+manual reap, and object absence.
 RELEASE-READY: **PENDING FINAL AUDIT / JT GO-NO-GO** — no current blocking product failure recorded. Final audit should
-decide whether the two residual evidence notes (literal real-camera clip; browser devtools screenshot) are required
-before alpha. `v0.1.0-rc.1` tag target: `fafba30` if final audit accepts this evidence package.
+decide whether the remaining runtime devtools screenshot artifact is required before alpha. Samsung Internet recorder
+unavailable is recorded as a known alpha UX compatibility risk with PC-01 fallback intact, not a release-blocking
+privacy/data-retention failure. `v0.1.0-rc.1` tag target: `fafba30` if final audit accepts this evidence package.
