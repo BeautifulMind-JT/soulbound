@@ -1,6 +1,6 @@
 # RC-1 Verification
 
-Status: LOCAL GATE PASS (at candidate) / STAGING DEPLOYED / STAGING SMOKE IN PROGRESS
+Status: LOCAL GATE PASS (at candidate) / STAGING DEPLOYED / STAGING SMOKE EVIDENCE CAPTURED / FINAL AUDIT PENDING
 
 ## SHA
 
@@ -21,8 +21,8 @@ Per the runbook §4 ("re-run after any fix-forward"), the FULL local gate was re
 
 ## Date / Runner
 
-date: 2026-06-10 KST (re-gate at candidate)
-runner: JT (toolchain gates) + Opus audit session (live determinism loop + reap, on the same host)
+date: 2026-06-10 KST (re-gate at candidate); staging smoke updated 2026-06-16 KST
+runner: JT (toolchain gates + real-device smoke) + Codex (staging role/decision/clip/reap smoke automation)
 host: local Mac
 pnpm: 11.1.3
 node: 24.13.1
@@ -73,31 +73,53 @@ scanned=0 deleted=0 failed=0 deletedAssetIds=[]
 - Vercel SSO / Deployment Protection: **OFF since 2026-06-10 16:08:30 KST** (lifted for the §13 smoke; staging is publicly
   reachable — open-signup decision applies). External reachability verified from a real mobile device (carrier
   network), no Vercel login prompt.
-- Post-candidate docs-only commits (`dbcd8ec`→`72b8d54` 등): runtime diff from `fafba30` = 0; candidate unchanged.
+- Post-candidate documentation-only commits after `fafba30`: runtime diff from `fafba30` = 0; candidate unchanged.
 
-## Staging Smoke (§13) — IN PROGRESS
+## Staging Smoke (§13) — EVIDENCE CAPTURED, FINAL AUDIT PENDING
 
 **PASS so far (2026-06-10, real device on carrier network):**
 - Real new signup (redacted staging test account) → **email-confirmation ON works**: confirmation mail received, link →
   staging origin, then sign-in → `/gate` reached (no-application state + procedure list rendered).
 - **profiles provisioning trigger verified ON STAGING**: direct DB query → exactly 1 `public.profiles` row,
   UID matches `auth.users`, `role='applicant'`, `membership_status='none'` (the 0007 trigger, real-signup path).
+- **Custom SMTP proof captured**: confirmation mail sender shown as `noreply@soulbound.co.kr` (no longer the default
+  `noreply@mail.app.supabase...` sender). This satisfies the RC-1 "email-confirm ON with real SMTP" requirement.
+- **Applicant no-clip / skip path verified on a real mobile device**: Persona Clip unavailable/skip path → submit →
+  `/apply/status` shows `제출됨` (PC-01: clip absence does not block submission).
 
-**🔴 P1 (must fix before alpha): confirmation mail was sent by the DEFAULT Supabase mailer**
-(`noreply@mail.app.supabase…`), not real SMTP. The runbook decision is email-confirm ON **with real SMTP**; the
-default mailer's hourly send limits cannot support the 5–20-person alpha. Configure real SMTP, then re-verify one
-signup end-to-end.
+**PASS (2026-06-16, staging smoke automation with synthetic staging actors):**
+- Created isolated staging smoke actors for clip-applicant, reject-applicant, and reviewer (service-role setup;
+  real signup/email/profiles path is covered separately above).
+- Clip application path: created signed Persona Clip upload, uploaded bytes, submitted application with clip asset.
+- No-clip rejection path: submitted a second application without a clip.
+- Role boundary: reviewer queue contains both applications; applicant access to admin queue returns **403**.
+- Reviewer detail: clip asset present; signed clip playback/download succeeds and bytes match the uploaded clip.
+- Decisions: reviewer approves the clip application and rejects the no-clip application; approved applicant sees
+  `/api/membership/me` with `status='active'`; applicant response does not expose `reviewSummary`.
+- No-leak checks: `audit_logs` + `outbox_events` for the smoke applications contain no `storage_path` or signed URL;
+  public HTML/JS bundle scan contains neither the service-role key value nor the literal `SUPABASE_SERVICE_ROLE_KEY`.
+- Persona Clip retention before reaper: approved clip row has `status='attached'`, `deletion_reason='application_approved'`,
+  `delete_after` present, and `deleted_at` absent.
+- Manual staging `clip:reap`:
+  ```text
+  persona-clip reap scanned=1 deleted=1 failed=0 deletedAssetIds=["23768a28-bcbc-4df8-997d-222a50f564ad"]
+  ```
+- Post-reaper evidence: target row is `status='deleted'`, `deletion_reason='application_approved'`, `deleted_at`
+  present, and the Storage object is absent (`storageFetchStatus=400`). The storage path was read only internally for
+  verification and was not printed in the CLI output or this record.
 
-**🟡 FLAG: Supabase Auth rate-limit settings — evidence not yet recorded** (SSO is OFF + signup is open, so the
-rate-limit mitigation from runbook §15 must be confirmed/enabled and recorded here).
+**✅ Supabase Auth rate-limits — recorded (2026-06-10, staging dashboard):**
+sign-ups/sign-ins **30 req/5min/IP** (the §15 open-signup mitigation, active); token refreshes 150/5min/IP;
+token verifications 30/5min/IP; anonymous + Web3 locked (unused). Custom SMTP evidence is now captured above; re-check
+the email-send limit in the dashboard before a larger alpha if the provider-specific cap needs to be recorded.
 
-**REMAINING (§13):**
-- applicant: apply → submit (once WITH a real-camera clip [doubles as the 7b manual QA], once skipping) → status.
-- reviewer: promote a real signup via §6 (record who/when) → queue → detail → clip playback → approve AND reject.
-- member: approved applicant sees `/member` active.
-- Persona Clip retention: after approve/reject, run manual `clip:reap` (staging env) → Storage object ABSENT,
-  row `status='deleted'` evidence-only.
-- INV-17: devtools — no service-role string in bundle/network; all data calls carry the user bearer.
+**Residual evidence notes for final audit:**
+- The clip-included smoke used a synthetic uploaded `video/webm` object through the real signed-upload route and
+  Supabase Storage, not a real camera recording. The real-device mobile evidence covers signup and the no-clip/skip
+  path. If final audit requires literal real-camera QA, capture one additional device recording before alpha.
+- INV-17 evidence is an automated deployed-bundle/API smoke (no service-role key in public HTML/JS; user-data calls
+  use bearer tokens in the smoke harness), not a screenshot of browser devtools. Capture a devtools screenshot if the
+  final audit wants that exact artifact.
 
 ## Secret hygiene
 
@@ -108,7 +130,8 @@ rate-limit mitigation from runbook §15 must be confirmed/enabled and recorded h
 ## Verdict
 
 LOCAL RC-1 GATE PASS at candidate `fafba30`.
-STAGING DEPLOYED at `fafba30`; §13 smoke IN PROGRESS (signup + profiles-trigger PASS).
-RELEASE-READY: **NO** — blockers: real SMTP (P1), §13 remainder, Auth rate-limit evidence.
-Next: real SMTP → rate-limit record → §13 remainder (roles / clip lifecycle / reap / INV-17) → Cowork final audit →
-§17 go/no-go. `v0.1.0-rc.1` tag target: `fafba30` (after the full record is green).
+STAGING DEPLOYED at `fafba30`; §13 evidence captured: signup/profiles, custom SMTP, applicant no-clip submit,
+reviewer role boundary, approve/reject, member active, clip playback, no-leak checks, manual reap, and object absence.
+RELEASE-READY: **PENDING FINAL AUDIT / JT GO-NO-GO** — no current blocking product failure recorded. Final audit should
+decide whether the two residual evidence notes (literal real-camera clip; browser devtools screenshot) are required
+before alpha. `v0.1.0-rc.1` tag target: `fafba30` if final audit accepts this evidence package.
