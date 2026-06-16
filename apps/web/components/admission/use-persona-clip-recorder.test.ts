@@ -16,7 +16,10 @@ const recordedChunk = new Blob(["persona-clip-bytes"], {
 });
 
 class MockMediaRecorder {
-  static isTypeSupported = vi.fn(() => true);
+  static isTypeSupported = vi.fn((mimeType: string) => {
+    void mimeType;
+    return true;
+  });
   static instances: MockMediaRecorder[] = [];
 
   state: RecordingState = "inactive";
@@ -86,7 +89,8 @@ describe("usePersonaClipRecorder", () => {
       },
     });
     MockMediaRecorder.instances = [];
-    MockMediaRecorder.isTypeSupported.mockClear();
+    MockMediaRecorder.isTypeSupported.mockReset();
+    MockMediaRecorder.isTypeSupported.mockReturnValue(true);
     getUserMedia.mockClear();
     trackStop.mockClear();
   });
@@ -179,6 +183,7 @@ describe("usePersonaClipRecorder", () => {
     expect(uploadInit.method).toBe("PUT");
     expect(uploadInit.headers).toEqual({ "x-upsert": "false" });
     expect(uploadInit.body).toBeInstanceOf(Blob);
+    expect((uploadInit.body as Blob).type).toBe("video/webm");
 
     await act(async () => {
       upload.resolve(new Response(null, { status: 200 }));
@@ -192,6 +197,57 @@ describe("usePersonaClipRecorder", () => {
     });
     expect(events).toEqual(["create", "upload", "complete"]);
     expect(trackStop).toHaveBeenCalled();
+  });
+
+  it("falls back to MP4 recording when WebM is unsupported", async () => {
+    MockMediaRecorder.isTypeSupported.mockImplementation((mimeType) =>
+      mimeType === "video/mp4"
+    );
+    const onComplete = vi.fn();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        assetId: "asset-mp4",
+        upload: {
+          url: "https://storage.test/mp4-upload",
+          method: "PUT",
+          headers: { "content-type": "video/mp4" },
+        },
+      }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }))
+      .mockResolvedValueOnce(new Response(null, { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() =>
+      usePersonaClipRecorder({ onComplete, onSkip: vi.fn() })
+    );
+
+    await act(async () => {
+      await result.current.start();
+    });
+    expect(result.current.status).toBe("recording");
+    expect(MockMediaRecorder.instances[0]?.mimeType).toBe("video/mp4");
+
+    act(() => {
+      result.current.stop();
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("done"));
+
+    const [, routeInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const routeBody = JSON.parse(String(routeInit.body)) as {
+      mimeType: string;
+    };
+    expect(routeBody.mimeType).toBe("video/mp4");
+
+    const [, uploadInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(uploadInit.body).toBeInstanceOf(Blob);
+    expect((uploadInit.body as Blob).type).toBe("video/mp4");
+    expect(onComplete).toHaveBeenCalledWith({
+      assetId: "asset-mp4",
+      contentHash: "abcd",
+    });
   });
 
   it("uses injected bearer fetch for route creation and plain fetch for upload", async () => {
@@ -348,6 +404,20 @@ describe("usePersonaClipRecorder", () => {
 
   it("marks a missing MediaRecorder as unavailable", async () => {
     vi.stubGlobal("MediaRecorder", undefined);
+    const { result } = renderHook(() =>
+      usePersonaClipRecorder({ onComplete: vi.fn(), onSkip: vi.fn() })
+    );
+
+    await act(async () => {
+      await result.current.start();
+    });
+
+    expect(result.current.status).toBe("unavailable");
+    expect(getUserMedia).not.toHaveBeenCalled();
+  });
+
+  it("marks unsupported recording mime types as unavailable before requesting camera", async () => {
+    MockMediaRecorder.isTypeSupported.mockReturnValue(false);
     const { result } = renderHook(() =>
       usePersonaClipRecorder({ onComplete: vi.fn(), onSkip: vi.fn() })
     );

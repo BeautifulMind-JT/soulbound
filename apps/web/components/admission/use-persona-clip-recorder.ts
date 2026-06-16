@@ -2,7 +2,23 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const RECORDER_MIME_TYPE = "video/webm";
+type RecorderMimeCandidate = {
+  readonly recordingMimeType: string;
+  readonly uploadMimeType: "video/webm" | "video/mp4";
+};
+
+const RECORDER_MIME_CANDIDATES: readonly RecorderMimeCandidate[] = [
+  { recordingMimeType: "video/webm", uploadMimeType: "video/webm" },
+  {
+    recordingMimeType: "video/webm;codecs=vp8,opus",
+    uploadMimeType: "video/webm",
+  },
+  { recordingMimeType: "video/mp4", uploadMimeType: "video/mp4" },
+  {
+    recordingMimeType: "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+    uploadMimeType: "video/mp4",
+  },
+];
 const MAX_DURATION_SECONDS = 600;
 
 export type PersonaClipResult = {
@@ -71,6 +87,24 @@ function stopStream(stream: MediaStream | null): void {
   stream?.getTracks().forEach((track) => track.stop());
 }
 
+function selectRecorderMimeType(): RecorderMimeCandidate | null {
+  if (typeof MediaRecorder === "undefined") {
+    return null;
+  }
+
+  if (typeof MediaRecorder.isTypeSupported !== "function") {
+    return RECORDER_MIME_CANDIDATES[0] ?? null;
+  }
+
+  return RECORDER_MIME_CANDIDATES.find((candidate) => {
+    try {
+      return MediaRecorder.isTypeSupported(candidate.recordingMimeType);
+    } catch {
+      return false;
+    }
+  }) ?? null;
+}
+
 export function usePersonaClipRecorder({
   onComplete,
   onSkip,
@@ -128,6 +162,7 @@ export function usePersonaClipRecorder({
   const uploadRecording = useCallback(async (
     operation: number,
     blob: Blob,
+    uploadMimeType: RecorderMimeCandidate["uploadMimeType"],
   ) => {
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -149,7 +184,7 @@ export function usePersonaClipRecorder({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           contentHash,
-          mimeType: RECORDER_MIME_TYPE,
+          mimeType: uploadMimeType,
           durationSeconds: durationSecondsRef.current,
         }),
         signal: controller.signal,
@@ -212,14 +247,12 @@ export function usePersonaClipRecorder({
     setErrorMessage(null);
     setStatus("requesting");
 
+    const recorderMimeType = selectRecorderMimeType();
+
     if (
       typeof navigator === "undefined"
       || !navigator.mediaDevices?.getUserMedia
-      || typeof MediaRecorder === "undefined"
-      || (
-        typeof MediaRecorder.isTypeSupported === "function"
-        && !MediaRecorder.isTypeSupported(RECORDER_MIME_TYPE)
-      )
+      || !recorderMimeType
     ) {
       if (isActiveOperation(operation)) {
         busyRef.current = false;
@@ -240,7 +273,7 @@ export function usePersonaClipRecorder({
       }
 
       const recorder = new MediaRecorder(capture, {
-        mimeType: RECORDER_MIME_TYPE,
+        mimeType: recorderMimeType.recordingMimeType,
       });
       chunksRef.current = [];
       startedAtRef.current = Date.now();
@@ -264,9 +297,9 @@ export function usePersonaClipRecorder({
       recorder.onstop = () => {
         recorderRef.current = null;
         const blob = new Blob(chunksRef.current, {
-          type: RECORDER_MIME_TYPE,
+          type: recorderMimeType.uploadMimeType,
         });
-        void uploadRecording(operation, blob);
+        void uploadRecording(operation, blob, recorderMimeType.uploadMimeType);
       };
 
       recorder.start();
