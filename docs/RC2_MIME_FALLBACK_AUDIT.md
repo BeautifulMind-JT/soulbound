@@ -3,7 +3,7 @@
 > Builder: **Codex** (same-session build+push — a process deviation JT flagged + corrected; `e517ec3` was treated as
 > un-approved builder output until this audit). Independent audit: **Opus/Cowork final** + a 3-lens adversarial
 > workflow (`wf_cfacdfc9-6d0`) run independently of both the builder session and the auditor. **Verdict: CODE PASS +
-> Samsung Internet device smoke PASS ⇒ eligible for `v0.1.0-rc.2`** (JT tags on explicit GO). Safari = follow-up
+> Samsung Internet device smoke PASS ⇒ `v0.1.0-rc.2` tagged @ `e517ec3`**. Safari = follow-up
 > compatibility smoke, NOT a blocker (graceful PC-01 degradation — see below). builder ≠ approver preserved
 > (Codex built → Opus + independent agents finalize).
 
@@ -60,14 +60,23 @@ Safari (iOS/macOS) is **not required for the `v0.1.0-rc.2` tag**. Rationale:
   or before broad/public launch), scope: does Safari record via the mp4 path, and does the reviewer's `<video>` play
   the resulting clip. JT confirms this scoping.
 
-## Tag decision
-- **CODE PASS** (this audit) + **Samsung device smoke PASS** ⇒ `e517ec3` is eligible for `v0.1.0-rc.2`.
-- Tag is **JT's action on explicit GO** (governance): `git tag -a v0.1.0-rc.2 e517ec3 -m "RC-2: Persona Clip
-  recorder MIME fallback (Samsung Internet device-verified; Safari = follow-up smoke)"` → `git push origin
-  v0.1.0-rc.2`.
-- `v0.1.0-rc.1 @ fafba30` untouched. The broader RC-1 release-readiness (full §13 staging smoke: roles, clip
-  lifecycle → reap → object absence, INV-17, real SMTP) is still separately PENDING — see `docs/RC1_VERIFICATION.md`.
-  rc.2 tags the MIME-fallback fix; it does NOT by itself make the product release-ready.
+## Tag decision — DONE
+- **CODE PASS** (this audit) + **Samsung device smoke PASS** ⇒ `v0.1.0-rc.2` **tagged @ `e517ec3`** (HEAD `b66f090`).
+  `v0.1.0-rc.1 @ fafba30` untouched.
+
+## Delta-smoke scope (carry-forward principle)
+- **Full §13 rerun is NOT required for RC-2** because the fix only touches the Persona Clip recorder MIME-selection
+  surface.
+- **RC-1 §13 staging-smoke evidence carries forward** to `e517ec3` for every surface RC-2 did not touch — auth,
+  role boundary, reviewer decision, membership, reaper, storage deletion, audit/outbox no-leak, and INV-17 — because
+  `e517ec3` is code-identical to `fafba30` on those surfaces. That evidence is FINAL-AUDIT PASS in
+  `docs/RC1_VERIFICATION.md`.
+- **RC-2 delta smoke passed** (Samsung Internet, real device): recording, upload-ready, submit, reviewer playback,
+  approve, manual `clip:reap` (`deleted=1 failed=0`), and storage object absence — plus a real-camera mobile-Chrome
+  run through the same lifecycle. So the changed surface is independently verified end-to-end.
+- Net: the staging RC is validated on `e517ec3`; the only remaining release-readiness items are the internal-alpha
+  run and the pre-public reaper-automation (9a-2) decision (see `docs/RC1_VERIFICATION.md` Verdict). rc.2 itself is
+  correctly tagged.
 
 ## Process note (governance)
 `e517ec3` was built, tested, committed, pushed, and preview-deployed within a single Codex session — builder and

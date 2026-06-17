@@ -1,6 +1,6 @@
 # RC-1 Verification
 
-Status: LOCAL GATE PASS (at candidate) / STAGING DEPLOYED / STAGING SMOKE EVIDENCE CAPTURED / FINAL AUDIT PENDING
+Status: LOCAL GATE PASS / STAGING DEPLOYED / §13 FINAL AUDIT PASS / STAGING RC VALIDATED (`v0.1.0-rc.2`)
 
 ## SHA
 
@@ -75,7 +75,7 @@ scanned=0 deleted=0 failed=0 deletedAssetIds=[]
   network), no Vercel login prompt.
 - Post-candidate documentation-only commits after `fafba30`: runtime diff from `fafba30` = 0; candidate unchanged.
 
-## Staging Smoke (§13) — EVIDENCE CAPTURED, FINAL AUDIT PENDING
+## Staging Smoke (§13) — FINAL AUDIT PASS (Cowork/Opus; candidate `e517ec3` / `v0.1.0-rc.2`)
 
 **PASS so far (2026-06-10, real device on carrier network):**
 - Real new signup (redacted staging test account) → **email-confirmation ON works**: confirmation mail received, link →
@@ -137,7 +137,9 @@ the email-send limit in the dashboard before a larger alpha if the provider-spec
 **Residual evidence notes for final audit:**
 - INV-17 evidence is an automated deployed-bundle/API smoke (no service-role key in public HTML/JS; user-data calls
   use bearer tokens in the smoke harness), not a screenshot of browser devtools. Capture a devtools screenshot if the
-  final audit wants that exact artifact.
+  final audit wants that exact artifact. **→ Final audit ACCEPTS the automated bundle+API scan as sufficient** — a
+  whole-deployed-bundle scan for the service-role key/literal plus a bearer-on-data-calls assertion is stronger and
+  reproducible vs a single devtools screenshot; no screenshot required.
 - Alpha reaper ops decision remains manual: JT runs `pnpm -F @soulbound/adapters clip:reap` against staging at least
   daily and promptly after approve/reject batches; persistent `failed>0` pauses/investigates alpha decisions. Public
   non-alpha launch must re-evaluate 9a-2 automation as a release-blocker/ops decision.
@@ -148,13 +150,23 @@ the email-send limit in the dashboard before a larger alpha if the provider-spec
   **deleted 2026-06-10** (two sweeps). Non-secret artifacts (deployment metadata, SHA snapshots/tars, page HTML)
   remain; delete at RC close.
 
-## Verdict
+## Verdict — §13 FINAL AUDIT: PASS (Cowork/Opus)
 
-LOCAL RC-1 GATE PASS at candidate `fafba30`.
-STAGING DEPLOYED at `fafba30`; §13 evidence captured: signup/profiles, custom SMTP, applicant no-clip submit,
-real-camera Chrome clip submit, reviewer role boundary, approve/reject, member active, clip playback, no-leak checks,
-manual reap, and object absence.
-RELEASE-READY: **PENDING FINAL AUDIT / JT GO-NO-GO** — no current blocking product failure recorded. Final audit should
-decide whether the remaining runtime devtools screenshot artifact is required before alpha. Samsung Internet recorder
-unavailable is recorded as a known alpha UX compatibility risk with PC-01 fallback intact, not a release-blocking
-privacy/data-retention failure. `v0.1.0-rc.1` tag target: `fafba30` if final audit accepts this evidence package.
+Local gate green (re-gated at `fafba30`, forward-verified at the RC-2 candidate `e517ec3`). Staging deployed.
+**§13 staging smoke = FINAL AUDIT PASS** — evidence complete + accepted: signup → profiles-provisioning trigger;
+custom SMTP (`noreply@soulbound.co.kr`); applicant clip + no-clip submit (PC-01); reviewer role boundary
+(applicant→admin **403**); reviewer clip playback; approve **and** reject; member active; `reviewSummary` not
+exposed; audit/outbox no-leak + INV-17 bundle scan (no service-role key/literal in the deployed bundle); full clip
+lifecycle → manual `clip:reap` (`deleted=1 failed=0`) → **Storage object absent (400)** — verified twice, including
+a real-camera mobile-Chrome run.
+
+**Candidate = `e517ec3` (`v0.1.0-rc.2`).** The one §13-era residual — Samsung Internet recorder unavailable — is
+**CLOSED by RC-2 `e517ec3`** (device-verified; `docs/RC2_MIME_FALLBACK_AUDIT.md`). RC-1 §13 evidence **carries
+forward** to `e517ec3` for every surface RC-2 did not touch (RC-2 = Persona Clip recorder MIME selection only);
+the recorder delta was separately smoked (Samsung record + real-camera Chrome lifecycle → reap). No full §13 rerun
+required.
+
+**From an audit standpoint the staging RC is VALIDATED → GO for the internal alpha** (the decision to open the alpha
+is JT's). Public/GA readiness remains separately gated on: (1) the internal-alpha run itself, and (2) the
+reaper-automation (Task 9a-2) re-evaluation before any public (non-alpha) launch. `v0.1.0-rc.1 @ fafba30` and
+`v0.1.0-rc.2 @ e517ec3` are both tagged; `e517ec3` is the current validated candidate.
