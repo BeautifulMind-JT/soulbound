@@ -2,9 +2,10 @@
 
 > Builder: **Codex** (same-session build+push — a process deviation JT flagged + corrected; `e517ec3` was treated as
 > un-approved builder output until this audit). Independent audit: **Opus/Cowork final** + a 3-lens adversarial
-> workflow (`wf_cfacdfc9-6d0`) run independently of both the builder session and the auditor. **Verdict: CODE PASS.**
-> NOT yet tagged — `v0.1.0-rc.2` is gated on the real-device Samsung/Safari smoke (below). builder ≠ approver
-> preserved (Codex built → Opus + independent agents finalize).
+> workflow (`wf_cfacdfc9-6d0`) run independently of both the builder session and the auditor. **Verdict: CODE PASS +
+> Samsung Internet device smoke PASS ⇒ eligible for `v0.1.0-rc.2`** (JT tags on explicit GO). Safari = follow-up
+> compatibility smoke, NOT a blocker (graceful PC-01 degradation — see below). builder ≠ approver preserved
+> (Codex built → Opus + independent agents finalize).
 
 ## Change
 `fix(web): add persona clip recorder MIME fallback` — so Samsung Internet / Safari (no WebM MediaRecorder) can record
@@ -39,14 +40,34 @@ uses `parsed.data.mimeType`, post-validation).
 `pnpm -r build` PASS, core 20, adapters 22.) Working tree clean post-workflow; HEAD = `e517ec3`; the 2 files match
 the commit (no leftover mutation).
 
-## CODE PASS ≠ release. Remaining gate before `v0.1.0-rc.2`
-This audit confirms the fix is **correct, safe, and scoped**. It does NOT prove the real-browser behavior. The fix's
-entire purpose is the non-Chrome recording path, so it must be confirmed on **real devices**:
-- **Samsung Internet** (new preview URL): `/apply` → the Persona Clip area shows a **live camera preview + record
-  button** (NOT "녹화를 사용할 수 없습니다") → record → submit → status. Then the full §13 clip lifecycle
-  (reviewer plays it → approve/reject → manual `clip:reap` → object absent).
-- **Safari** (iOS/macOS): same.
-Only after that real-device smoke passes does `v0.1.0-rc.2` get tagged on `e517ec3` (JT).
+## RC-2 device smoke — Samsung Internet: **PASS** (real Android device)
+The fix's entire purpose is the non-Chrome recording path; confirmed on a real device:
+- Samsung Internet `/apply` → Persona Clip area shows a **live camera preview + recording control** (`녹화 중지`),
+  NOT "녹화를 사용할 수 없습니다" → recording completed ("Persona Clip이 준비되었습니다") → application submitted →
+  `/apply/status` showed `제출됨`.
+- Evidence: live camera preview visible; recording control visible; upload/attach-ready state; application submitted;
+  status `제출됨`.
+- This closes the Samsung Internet recorder-unavailable bug that RC-2 targeted, on a real device.
+
+## Safari — follow-up compatibility smoke (Cowork decision: NOT an rc.2 blocker)
+Safari (iOS/macOS) is **not required for the `v0.1.0-rc.2` tag**. Rationale:
+- RC-2's stated goal (Samsung recorder-unavailable) is device-proven.
+- The code audit established **graceful degradation on any unsupported browser**: if Safari supports none of the MIME
+  candidates, `selectRecorderMimeType()` → null → `unavailable` → submit-without-clip (PC-01). The worst case on
+  Safari is "no clip" (or, if it records an unplayable MP4, a clip the reviewer can't play) — neither blocks submit
+  nor the admission decision. The residual is bounded and non-blocking.
+- Therefore Safari is a **tracked follow-up compatibility smoke** (run during the alpha if a Safari user is present,
+  or before broad/public launch), scope: does Safari record via the mp4 path, and does the reviewer's `<video>` play
+  the resulting clip. JT confirms this scoping.
+
+## Tag decision
+- **CODE PASS** (this audit) + **Samsung device smoke PASS** ⇒ `e517ec3` is eligible for `v0.1.0-rc.2`.
+- Tag is **JT's action on explicit GO** (governance): `git tag -a v0.1.0-rc.2 e517ec3 -m "RC-2: Persona Clip
+  recorder MIME fallback (Samsung Internet device-verified; Safari = follow-up smoke)"` → `git push origin
+  v0.1.0-rc.2`.
+- `v0.1.0-rc.1 @ fafba30` untouched. The broader RC-1 release-readiness (full §13 staging smoke: roles, clip
+  lifecycle → reap → object absence, INV-17, real SMTP) is still separately PENDING — see `docs/RC1_VERIFICATION.md`.
+  rc.2 tags the MIME-fallback fix; it does NOT by itself make the product release-ready.
 
 ## Process note (governance)
 `e517ec3` was built, tested, committed, pushed, and preview-deployed within a single Codex session — builder and
