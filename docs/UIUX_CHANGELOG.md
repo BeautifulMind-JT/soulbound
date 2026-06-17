@@ -1,11 +1,14 @@
-# SoulBound Phase 1 MVP — UI/UX 개선·변경 추적 (UI/UX Change Tracking)
+# SoulBound — UI/UX 개선·변경 추적 (UI/UX Change Tracking)
 
-> 이 문서는 SoulBound `apps/web`의 **UI/UX 개선·변경 사항**을 추적한다.
-> 작업 진척도 전반은 `docs/PROGRESS.md`, 설계 캐논은
-> `docs/architecture/SoulBound_Phase1_MVP_BuildPlan_v1.3-FROZEN.md`(동결, §4.2 / §7)를 참조.
+> ⚠️ **진실의 원천은 `PROJECT_STATE.md`** 입니다. 이 문서는 `apps/web`의 **UI/UX 표면 변경을 추적하는
+> 파생 뷰**로, Task별 의미·증적은 `PROJECT_STATE.md §2` 및 `docs/TASK8A_AUDIT_FINDINGS.md` /
+> `docs/TASK8B_AUDIT_FINDINGS.md` / `docs/RC2_MIME_FALLBACK_AUDIT.md`가 정본입니다.
+> 작업 진척도 전반: `docs/PROGRESS.md`. 설계 캐논: `docs/architecture/SoulBound_Phase1_MVP_BuildPlan_v1.3-FROZEN.md`.
 
-- **현재 상태**: `apps/web` **미생성**. UI/UX 작업은 전부 **예정(Planned)** 상태다.
+- **현재 상태**: `apps/web` **구축 완료** (Task 8a/8b 완료). P0 happy-path 화면 전체 존재. **RC-2(`v0.1.0-rc.2 @ e517ec3`) validated staging** 기준.
+- **다음 단계**: internal alpha. UI/UX 추가 변경은 본 Changelog(§4)에 누적 기록.
 - **마지막 갱신**: 2026-06-17 (UTC)
+- **브랜치**: `phase1-p0-mvp`
 
 ---
 
@@ -15,82 +18,103 @@ UI는 "완벽히 돌아가더라도" 아래 가드를 깨면 빌드 실패다. �
 
 - **INV-01**: 컴포넌트에서 `supabase.from(...)` / `supabase.storage` 직접 호출 0건. 흐름은
   `component → hook → API route → service → repository → adapter`.
-- **INV-02**: UI 레이어에 체인 클라이언트 `signAndExecuteTransaction(...)` 직접 호출 0건 (지갑 connect UI는 예외).
-- **INV-20 / INV-24**: 채팅 route(/messages, /chat, /inbox, /conversations) 및 메시지 UI(목록·말풍선·작성창) 0건.
-- **Persona Clip (INV-PC-03/06)**: 앱내(in-app) 녹화 only. 업로드/미리보기/재촬영/편집 없음.
-  부재가 submit을 막지 않는다. storage 접근은 StoragePort 경유, `supabase.storage` 직접호출 금지.
-- **검열저항 카피 경계 (§2.3)**: "법적 의무 없음"을 주장하지 않는다. "애초에 평문·키를 보유하지 않도록 설계"를
-  UX 카피·정책 문구로 표현한다.
+- **INV-17**: service-role 키는 **절대 `NEXT_PUBLIC_` / 브라우저 번들** 금지. 브라우저=anon 클라이언트만(auth + `current_user_role`).
+- **INV-PC-05**: components에 `supabase` / `createClient` / service-role 0건 (audit "no direct supabase client in components").
+- **INV-02 / INV-20 / INV-24**: 체인 클라이언트 직접 서명 0건(지갑 connect 예외) · 채팅 route/메시지 UI(목록·말풍선·작성창) 0건.
+- **Persona Clip (INV-PC-03/05/06)**: 앱내(in-app) 녹화 only. 업로드/미리보기/재촬영/편집 없음.
+  **부재가 submit을 막지 않는다(PC-01)**. `upload-before-onComplete`(업로드 2xx 후에만 완료). storage 접근은 StoragePort/route 경유.
+- **권한 = 라우트 403 위임**: UI는 role을 직접 신뢰해 분기하지 않는다(8b의 role-race 버그 교훈). reviewer 전용 데이터(`review_summary`)는 비-reviewer엔 403→데이터 0.
+- **결정 입력 = `reasonCode`(enum)만**. free-text reason 입력 UI 금지(INV-22). 멱등키 매 시도 신규, 409→graceful reload.
+- **검열저항 카피 경계(§2.3)**: "법적 의무 없음"을 주장하지 않는다 — "애초에 평문·키를 보유하지 않도록 설계"를 카피로 표현.
 
 ---
 
 ## 1. 화면(Route) 인벤토리 & 상태
 
-BuildPlan §4.2 기준 P0 화면 목록. 각 화면의 구현/UX 상태를 여기서 추적한다.
+`apps/web/app/**` 기준. 전부 **구축 완료(BUILT)**.
 
 | 화면 | 경로 | 역할 | 상태 |
 | --- | --- | --- | --- |
-| Landing | `app/page.tsx` | 잠긴 문 (입장 전) | ⛔ 미생성 |
-| Login | `app/login/page.tsx` | 로그인 | ⛔ 미생성 |
-| Signup | `app/signup/page.tsx` | 가입 | ⛔ 미생성 |
-| Gate Hub | `app/gate/page.tsx` | 입장 절차 안내 허브 | ⛔ 미생성 |
-| Apply | `app/apply/page.tsx` | 신청서 작성 | ⛔ 미생성 |
-| Apply Status | `app/apply/status/page.tsx` | 내 신청 현황 | ⛔ 미생성 |
-| Member Home | `app/member/page.tsx` | 멤버 홈 (승인 후) | ⛔ 미생성 |
-| Admin Queue | `app/admin/applications/page.tsx` | 검토 큐 | ⛔ 미생성 |
-| Admin Detail | `app/admin/applications/[id]/page.tsx` | 검토 상세 | ⛔ 미생성 |
+| Landing | `app/page.tsx` | 잠긴 문 hero + 입장 3단계 안내 (세션 시 `/gate` CTA) | ✅ BUILT (8a) |
+| Login | `app/login/page.tsx` | 로그인 | ✅ BUILT (8a) |
+| Signup | `app/signup/page.tsx` | 가입 (signup→profiles 자동 provision) | ✅ BUILT (8a) |
+| Gate Hub | `app/gate/page.tsx` | 입장 절차 안내 허브 | ✅ BUILT (8a) |
+| Apply | `app/apply/page.tsx` | 신청서 + persona-clip recorder 섹션 | ✅ BUILT (8a) |
+| Apply Status | `app/apply/status/page.tsx` | 내 신청 현황 (상태 badge + 검토자 안내) | ✅ BUILT (8a) |
+| Member Home | `app/member/page.tsx` | 멤버 홈 (승인 후) | ✅ BUILT (8b) |
+| Admin Queue | `app/admin/applications/page.tsx` | 검토 큐 | ✅ BUILT (8b) |
+| Admin Detail | `app/admin/applications/[id]/page.tsx` | 검토 상세 + 결정 폼 + clip 재생 | ✅ BUILT (8b) |
+
+공통 셸: `app/layout.tsx` + `app/_components/site-header.tsx`(sticky header, 세션 분기 nav, 로그아웃).
 
 ---
 
-## 2. 컴포넌트 인벤토리 & 상태
+## 2. 컴포넌트 & 디자인 시스템 인벤토리
 
-BuildPlan §4.2 기준 컴포넌트 디렉토리. UX 변경은 컴포넌트 단위로 기록한다.
-
-| 컴포넌트 그룹 | 경로 | 비고 | 상태 |
+| 항목 | 경로 | 비고 | 상태 |
 | --- | --- | --- | --- |
-| admission | `components/admission/` | 신청 폼·상태 표시 | ⛔ 미생성 |
-| persona-clip-recorder | `components/admission/persona-clip-recorder.tsx` | **앱내 녹화 only**. supabase.storage 직접호출 금지 | ⛔ 미생성 |
-| membership | `components/membership/` | 멤버십 카드/상태 | ⛔ 미생성 |
-| admin | `components/admin/` | 검토 큐/상세 액션 | ⛔ 미생성 |
-| gate | `components/gate/` | 입장 절차 안내 | ⛔ 미생성 |
-| layout | `components/layout/` | 공통 레이아웃 | ⛔ 미생성 |
-| shared | `components/shared/` | 공용 UI 프리미티브 | ⛔ 미생성 |
+| persona-clip-recorder | `components/admission/persona-clip-recorder.tsx` | 앱내 녹화 only · live viewfinder · no preview/retake/edit · INV-PC-05 준수 | ✅ BUILT (7b) |
+| usePersonaClipRecorder 훅 | `components/admission/use-persona-clip-recorder.ts` | getUserMedia→MediaRecorder→blob→sha256→POST→upload PUT · upload-before-onComplete | ✅ BUILT (7b) |
+| AuthProvider | `lib/auth-provider.tsx` | 브라우저 anon 클라이언트(persistSession) · `authedFetch`(bearer 주입) · 역할=신뢰 RPC | ✅ BUILT (8a) |
+| api-response / application-state | `lib/api-response.ts`, `lib/application-state.ts` | 응답 파싱 · 신청 id 기억 | ✅ BUILT |
+| 글로벌 디자인 토큰/스타일 | `app/globals.css` | "locked door" 테마, CSS 변수(ink/green/wine/amber/danger), 반응형(@760px) | ✅ BUILT |
+| 멤버 스타일 | `app/member/page.module.css` | CSS Module | ✅ BUILT |
+| 관리자 스타일 | `app/admin/applications/admin.module.css` | CSS Module | ✅ BUILT |
+
+**디자인 시스템 요약** (`globals.css`):
+- 컬러 토큰: `--ink #18231f` / `--green #1d654f` / `--wine #7a3542` / `--amber #b3823c` / `--danger #a2342d` / `--canvas #f2f4f0`.
+- 타이포: 본문 Geist/Inter, 헤딩 Georgia serif.
+- 컴포넌트 클래스: `.button` / `.button-secondary` / `.button-danger`, `.auth-panel`/`.form-panel`/`.status-panel`, `.status-badge`, `.gate-grid`, `.recorder-section`.
+- 모티프: hero "잠긴 문(door-visual + keyhole)" + 입장 3단계(`.intro-steps`).
+- 접근성: `aria-live`/`role="alert"`, `:focus` 링, 최소 44px 터치 타깃, 320px min-width, 모바일 브레이크포인트.
 
 ---
 
 ## 3. UX 상태 모델 (참고)
 
-신청 lifecycle은 UI 상태/카피의 근간이다. 화면은 이 상태를 정확히 반영해야 한다.
+신청 lifecycle은 화면 상태/카피의 근간. 라벨은 `apply/status/page.tsx`의 `statusLabel`/`reasonLabel` 참조.
 
 ```
 draft → submitted → under_review → needs_more_info → approved / rejected
                                                     ↘ withdrawn / expired (terminal)
 ```
 
-- applicant 노출: `applicant_notice` 만 노출. `review_summary`(관리자 내부 메모)는 **노출 금지** (§7.4).
-- admin 액션(approve/reject/needs_more_info)에는 `reasonCode`(enum)만 흐른다. 자유서술 reason 입력 UI 금지 (INV-22).
+- applicant 화면 노출: `applicantNotice`("검토자 안내")만. `review_summary`(관리자 내부 메모)는 노출 금지(라우트 403로 차단).
+- 결정 사유는 `reasonCode`(enum) → 한글 라벨 매핑으로만 표시. 자유서술 입력 없음.
+- ⚠️ status 페이지의 `reasonCode` 분기는 현재 **dormant**(applicant 응답에 reasonCode 없음 → 실누수 0). 비노출 확정 시 분기 제거 검토(`PROJECT_STATE.md §4`).
 
 ---
 
 ## 4. UI/UX 변경 로그 (Changelog)
 
-> 새 UI/UX 변경마다 아래 테이블 최상단에 한 줄을 추가한다.
-> `상태`: 🆕 신규 / ✏️ 개선 / 🐛 수정 / ♻️ 리팩터 / 🗑️ 제거.
-> 가드 관련 변경은 `가드 영향` 칼럼에 관련 INV를 명시한다.
+> 새 UI/UX 변경마다 **최상단에 한 줄 추가**. 기준선 = RC-2(pre-alpha). 그 이전 빌드 단계(Task 8a/8b)는 회고 기록으로 1회만 등재.
+> `유형`: 🆕 신규 · ✏️ 개선 · 🐛 수정 · ♻️ 리팩터 · 🗑️ 제거 · 📄 문서.
 
-| 일자 | 화면/컴포넌트 | 변경 유형 | 요약 | 가드 영향 | 커밋/PR |
+| 일자 | 화면/컴포넌트 | 유형 | 요약 | 가드 영향 | 증적 |
 | --- | --- | --- | --- | --- | --- |
-| 2026-06-17 | — | 📄 문서 | UI/UX 추적 문서 신설. `apps/web` 미생성 — 모든 화면/컴포넌트 Planned 등록 | INV-01/02/20/24, INV-PC-* | (이 PR) |
+| 2026-06-17 | (문서) | 📄 문서 | UI/UX 추적 문서를 현재 진실(`apps/web` BUILT, RC-2)로 재작성. 이전 "미생성/planned" 초안 폐기 | — | (이 PR) |
+| ~RC-2 | persona-clip-recorder | 🐛 수정 | **MIME fallback** — Samsung/Safari MP4 경로 추가, Chrome/webm 보존(recorder 2파일·계약 무손상). Samsung Internet 실기기 스모크 PASS | INV-PC-05 무손상 | RC2_MIME_FALLBACK_AUDIT.md |
+| Task 8b | member, admin queue, admin detail | 🆕 신규 | 멤버 홈 + 검토 큐/상세 + 결정 폼(reasonCode enum·멱등·409 graceful)·clip 클릭 재생. 권한=라우트 403 위임 | INV-01/17, reviewSummary 경계 | TASK8B_AUDIT_FINDINGS.md |
+| Task 8a | landing/login/signup/gate/apply/status + layout/header | 🆕 신규 | 공개/신청 UI + auth foundation(anon 클라이언트·authedFetch bearer) + 디자인 시스템(globals.css) | INV-17(번들 service-role 0)·PC-01 | TASK8A_AUDIT_FINDINGS.md |
 
 ---
 
-## 5. 향후 UI/UX 작업 진입 시 체크리스트
+## 5. UI/UX 변경 진입 체크리스트
 
-`apps/web` 생성 단계(BuildPlan 후속 Task)에 진입하면:
+UI/UX를 건드릴 때 매번:
 
-- [ ] 위 §1/§2 인벤토리의 `상태`를 ⛔ → 🚧/✅ 로 갱신한다.
-- [ ] 화면별로 connected 데이터 흐름이 `component → hook → API route → service`를 따르는지 확인 (INV-01).
-- [ ] `scripts/audit.sh`의 SKIP 항목(apps/web 관련)이 OK로 전환되는지 확인.
-- [ ] Persona Clip 녹화 UI는 업로드/미리보기/재촬영/편집 없이 인앱 녹화만 제공하는지 확인.
-- [ ] applicant 화면에 `review_summary`가 새지 않는지, `reasonCode` enum만 쓰는지 확인.
-- [ ] 변경마다 §4 Changelog에 기록한다.
+- [ ] 흐름이 `component → hook → API route → service`를 따르는가 (컴포넌트 직접 supabase 0 — INV-01/PC-05).
+- [ ] service-role 키가 브라우저 번들(`.next` 포함)에 안 새는가 (INV-17 — 소스 + 번들 둘 다 grep).
+- [ ] 권한 분기를 role 직접 신뢰가 아니라 라우트 403 위임으로 하는가 (8b role-race 교훈).
+- [ ] reviewer 전용 데이터(`review_summary`)가 비-reviewer 화면에 안 새는가.
+- [ ] 결정 입력이 `reasonCode` enum뿐인가(free-text 0), 멱등키·409 graceful 처리하는가.
+- [ ] Persona Clip: 인앱 녹화만, 업로드/미리보기/재촬영/편집 없음, 부재가 submit 막지 않음(PC-01), upload-before-onComplete.
+- [ ] `pnpm -F web test` + `bash scripts/audit.sh` 통과(특히 "no direct supabase client in components").
+- [ ] §1/§2 인벤토리와 §4 Changelog를 갱신했는가.
+
+---
+
+## 6. 알려진 UX 후속 (Known Follow-ups)
+
+- ⏳ **Safari persona-clip 호환성 스모크** (non-블로커). 미지원 시 graceful **PC-01 degradation**(클립 없이 제출).
+- 🟡 status 페이지 `reasonCode` dormant 분기 제거 여부 결정 (신청자 비노출 의도 확인 후).

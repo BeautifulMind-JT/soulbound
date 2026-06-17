@@ -1,150 +1,118 @@
-# SoulBound Phase 1 MVP — 작업 진척도 트래커 (Work Progress Tracker)
+# SoulBound — 작업 진척도 트래커 (Work Progress Tracker)
 
-> 이 문서는 SoulBound Phase 1 MVP의 **현재 작업 진척도**를 추적한다.
-> 설계는 `docs/architecture/SoulBound_Phase1_MVP_BuildPlan_v1.3-FROZEN.md`(동결)을 기준으로 한다.
-> UI/UX 변경 추적은 별도 문서 `docs/UIUX_CHANGELOG.md`를 참조.
+> ⚠️ **진실의 원천(source of truth)은 `PROJECT_STATE.md`** 입니다. 이 문서는 그 인수인계 문서를
+> **빠르게 훑기 위한 파생 요약 뷰**일 뿐이며, 충돌 시 항상 `PROJECT_STATE.md` + repo 파일이 우선합니다.
+> 상태가 바뀌면 `PROJECT_STATE.md`를 먼저 갱신하고, 이 요약을 그에 맞춰 갱신하세요.
+> 설계 캐논: `docs/architecture/SoulBound_Phase1_MVP_BuildPlan_v1.3-FROZEN.md`(동결).
+> UI/UX 변경 추적: `docs/UIUX_CHANGELOG.md`. 운영 루프: `docs/WORKFLOW.md`.
 
-- **현재 버전**: v1.3-FROZEN (0A + 0B + 0C 동결 + 0D freeze commit)
-- **마지막 검증 일자**: 2026-06-17 (UTC)
-- **검증 환경**: Node 24.16.0 / pnpm 11.1.3
-- **현재 브랜치**: `main` (freeze commit `991dc5d`)
+- **현재 단계**: **P0 MVP 기능 + 하드닝 완성** (Task 1–9 완료). RC staging 검증 완료. **`v0.1.0-rc.2` 태그됨 @ `e517ec3`**.
+- **다음 단계**: internal alpha 운영. public/non-alpha 전 reaper 자동화(Task 9a-2) 재평가.
+- **현재 브랜치**: `phase1-p0-mvp`
+- **검증 환경**: Node 24 / pnpm 11.1.3
+- **요약 갱신일**: 2026-06-17 (UTC)
 
 ---
 
 ## 1. 한눈에 보는 현황 (Snapshot)
 
+현재 작업 트리(`phase1-p0-mvp` 병합 기준)에서 이 세션이 직접 재실행해 확인한 게이트:
+
 | 게이트 | 결과 | 비고 |
 | --- | --- | --- |
-| `typecheck` (strict) | ✅ CLEAN | strict + exactOptionalPropertyTypes + noUncheckedIndexedAccess + verbatimModuleSyntax |
-| `build` (@soulbound/core) | ✅ EMIT | `dist/` 생성 확인 (index.js, *.d.ts, domain/ports/config/application) |
-| `test` (vitest) | ⏳ 19 RED | 전부 `NOT_IMPLEMENTED` — **freeze의 정상 상태** (Task 2 대기) |
-| `audit` (scripts/audit.sh) | ✅ PASSED | apps/supabase 미존재 검사는 SKIP |
+| `pnpm -r typecheck` | ✅ CLEAN | core / adapters / web 3개 프로젝트 |
+| `pnpm -F @soulbound/core test` | ✅ 20 passed | Task 9b에서 19→20 (INV-16 outbox payload lock) |
+| `pnpm -F @soulbound/adapters test` (unit) | ✅ 22 passed | |
+| `pnpm -F web test` (unit) | ✅ 44 passed | 10 파일 |
+| `bash scripts/audit.sh` | ✅ PASSED | apps/supabase 검사 전부 활성·OK (더 이상 SKIP 아님) |
 
-> 19개 RED 테스트는 "깨진 셋업"이 아니라 **"구현 대기"** 상태다. 계약(types/ports/test)이 먼저 동결되고
-> 서비스 본문 구현(Task 2)이 이 테스트들을 GREEN으로 바꾸는 구조다.
+> Docker 의존 게이트(Supabase 통합/`pgTAP`)는 이 세션에서 실행하지 않았다. `PROJECT_STATE.md` 기준
+> 최종 확정값: **pgTAP 73**, `test:integration` **5/5 ×5 + db reset green**(flake 0), adapters live 통합 포함.
+> 이들은 호스트 전용(JT) 결정성 게이트로, RC-1/RC-2 검증에서 green 확정됨.
 
 ---
 
-## 2. 단계별 진척 (Phase / Task Progress)
+## 2. Task 진척 (BuildPlan 10-Task)
 
-### 동결 단계 (Cowork 소유 — 완료)
+상세 증적과 *이유*는 `PROJECT_STATE.md §2` 및 `docs/TASK*_AUDIT_FINDINGS.md` 참조.
 
-| 단계 | 내용 | 상태 |
-| --- | --- | --- |
-| 0A | core 계약 파일 (types/ports/policy/service 인터페이스) | ✅ 완료 (동결) |
-| 0B | invariant 테스트 19개 (RED) | ✅ 완료 (동결) |
-| 0C | 검증된 toolchain plumbing (package.json, pnpm-workspace, tsconfig, audit.sh, core configs) | ✅ 완료 (동결) |
-| 0D | freeze commit | ✅ 완료 (`991dc5d`) |
-
-### 구현 단계 (Cline 소유)
-
-| Task | 내용 | 통과 기준 | 상태 |
+| Task | 내용 | 상태 | 증적 |
 | --- | --- | --- | --- |
-| **Task 1** | repo 배치 · 스크립트 연결 · typecheck/build/audit 통과 | typecheck/build/audit PASS (test는 RED 허용) | ✅ **검증됨** (현재 트리에서 모두 통과) |
-| **Task 2** | `DefaultAdmissionService` / `DefaultMembershipService` 본문 구현 → 19 tests GREEN | `pnpm -F @soulbound/core test` 0 fail / 0 skip | ⏳ **다음 작업** |
-| Task 3+ | adapters (Supabase/noop), migrations, RLS, API routes, apps/web UI | (BuildPlan 참조) | ⛔ 미착수 |
+| 0A/0B/0C/0D | core 계약 + 19 불변식 테스트 + toolchain + freeze commit | ✅ 완료 (동결) | MANIFEST.txt |
+| 1 | monorepo+core 게이트 (typecheck/build/audit, 19 RED 정상) | ✅ 완료 | — |
+| 2 | core 서비스 본문 구현 → 19 GREEN | ✅ 완료 | — |
+| 3 | Supabase schema + RLS + RPC (DB only) | ✅ 완료 (R2 Codex 재구현) | TASK3_AUDIT_FINDINGS.md |
+| 4 | Supabase + noop adapters (3-client 경계) | ✅ 완료 (3라운드 PASS) | TASK4_AUDIT_FINDINGS.md |
+| 4.5 | 신뢰 role 소스 (`current_user_role()`) | ✅ 완료 | TASK4_5_AUDIT_FINDINGS.md |
+| 5 / 5.5 | service 배선 (`makeCoreContainer`) + seed sign-in 수정 | ✅ 완료 | TASK5_AUDIT_FINDINGS.md, TASK5_5_* |
+| 6a / 6b | API routes (applicant + admin/reviewer) | ✅ 완료 | TASK6A_*, TASK6B_* |
+| 7a / 7b | Persona Clip routes + signed-upload + recorder 컴포넌트 | ✅ 완료 | TASK7A_*, TASK7B_* |
+| profiles provision | signup→profiles 트리거 (0007) | ✅ 완료 | PROFILES_PROVISIONING_AUDIT_FINDINGS.md |
+| 8a / 8b | UI — 공개/신청 UI + member/admin UI | ✅ 완료 (UI 전체) | TASK8A_*, TASK8B_* → `docs/UIUX_CHANGELOG.md` |
+| 9a / 9b | persona-clip byte-delete worker + audit/outbox 하드닝 lock | ✅ 완료 | TASK9A_*, TASK9B_* |
+| 9a-2 | internal cron reaper route | ⏳ deferred | (잔여) |
+| 10 | external ledger PoC (옵션, 별도 브랜치) | ⛔ 미착수 (의도적 보류) | — |
 
-> ⚠️ `.clinerules`: **명시적으로 요청된 task만 구현**한다. Task 2를 끝내기 전에 adapters/migrations/UI로 넘어가지 않는다.
-
----
-
-## 3. 모듈별 구현 현황 (Module Status)
-
-`packages/core` (순수 TypeScript 도메인) 만 존재한다. `apps/`, `packages/adapters`, `supabase/` 는 아직 생성되지 않음.
-
-| 모듈 | 경로 | 상태 |
-| --- | --- | --- |
-| Result / errors / container | `packages/core/src/application/` | ✅ 계약 동결 (container wiring은 Task 5) |
-| feature-flags | `packages/core/src/config/feature-flags.ts` | ✅ 동결 (P0 main: `externalLedgerEnabled:false`) |
-| shared types | `packages/core/src/domain/shared/types.ts` | ✅ 동결 |
-| admission types/policy | `packages/core/src/domain/admission/{types,admission-policy}.ts` | ✅ 동결 (policy 구현됨) |
-| admission service | `packages/core/src/domain/admission/admission-service.ts` | ⏳ stub (Task 2에서 본문 구현) |
-| membership service | `packages/core/src/domain/membership/membership-service.ts` | ⏳ stub (Task 2에서 본문 구현) |
-| audit/outbox/ledger/storage types | `packages/core/src/domain/*/types.ts` | ✅ 동결 |
-| ports (8개) | `packages/core/src/ports/*.ts` | ✅ 동결 |
-| mock-ports (test-support) | `packages/core/src/test-support/mock-ports.ts` | ✅ 동결 |
-| adapters (Supabase/noop) | `packages/adapters/` | ⛔ 미생성 |
-| API routes | `apps/web/app/api/**` | ⛔ 미생성 |
-| UI (apps/web) | `apps/web/app/**`, `apps/web/components/**` | ⛔ 미생성 → `docs/UIUX_CHANGELOG.md` 참조 |
-| DB migrations / RLS | `supabase/migrations/**` | ⛔ 미생성 |
+**🎉 P0 MVP happy-path end-to-end**: signup → gate → apply → submit → (reviewer) approve → member. 완료.
 
 ---
 
-## 4. 테스트 RED 인벤토리 (Task 2 완료 정의)
+## 3. 릴리스 상태 (Release)
 
-총 19개 테스트가 `NOT_IMPLEMENTED`로 RED. 이들이 전부 GREEN이 되면 Task 2 완료.
-
-| 테스트 파일 | 대상 서비스 | 상태 |
-| --- | --- | --- |
-| `src/domain/admission/admission-service.test.ts` | `DefaultAdmissionService` (submit / startReview / approve / reject / requestMoreInfo 등) | ⏳ RED |
-| `src/domain/membership/membership-service.test.ts` | `DefaultMembershipService` (getMyMembership 등) | ⏳ RED |
-
-**구현 순서 (테스트가 강제):**
-1. role guard → `Err(FORBIDDEN)` (INV-11)
-2. load → `Err(NOT_FOUND)`
-3. state guard → `Err(INVALID_STATE_TRANSITION)`
-4. 원자 rpc 호출 → `admissionRepo.*Tx(...)` (INV-18)
-5. (approve만) `flags.externalLedgerEnabled` 일 때만 outbox enqueue, try/catch로 실패 흡수 (INV-13)
-
-**Task 2 제약:**
-- `*.test.ts`, port 시그니처, 도메인 타입, `AdmissionReasonCode`, `Result`, `errors`, `feature-flags` 수정 금지.
-- `@supabase` / concrete-chain SDK import 금지.
-- Persona Clip: `personaClipAssetId` / `personaClipHash` 는 OPTIONAL — 부재(undefined/null)가 submit 검증 또는 상태전이 guard에 영향을 주면 안 됨 (INV-PC-01, INV-PC-07).
-
----
-
-## 5. 불변식 게이트 (Invariant Gate) 현황
-
-`scripts/audit.sh` 정적 감사 기준. 현재 트리에서 모두 통과 또는 (경로 미존재) SKIP.
-
-| 검사 | 현황 |
+| 항목 | 상태 |
 | --- | --- |
-| FROZEN: core에 skip/todo 없음 | ✅ OK |
-| FROZEN: free-text reason 필드 없음 (INV-22) | ✅ OK |
-| chain-neutral: concrete-chain SDK import 0건 (INV-25) | ✅ OK |
-| chain-neutral: core src에 'sui' 리터럴 0건 | ✅ OK |
-| core에 @supabase import 0건 | ✅ OK |
-| persona clip: apps에 supabase.storage 직접호출 | ⏭️ SKIP (apps 미존재) |
-| components에 직접 supabase client 0건 (INV-01) | ⏭️ SKIP (apps/web/components 미존재) |
-| plaintext/raw-key 컬럼 0건 (INV-19) | ⏭️ SKIP (supabase/migrations 미존재) |
-| chat/messages route 0건 (INV-20) | ⏭️ SKIP (apps/web/app 미존재) |
-| rpc migration에 COMMIT/ROLLBACK 없음 | ⏭️ SKIP (supabase/migrations 미존재) |
-
-> ⏭️ SKIP 항목은 해당 레이어(apps/adapters/supabase)가 생성되는 후속 Task에서 OK로 활성화되어야 한다.
+| `v0.1.0-rc.1` @ `fafba30` | ✅ 태그됨. RC-1 §13 FINAL AUDIT PASS (실 SMTP·signup→profiles·role boundary·approve/reject·member·clip lifecycle→manual reap→object absence·INV-17/no-leak) |
+| `v0.1.0-rc.2` @ `e517ec3` | ✅ 태그됨 (현재). persona-clip recorder **MIME fallback**(Samsung/Safari MP4 경로, Chrome/webm 보존). 코드 Opus 최종감사 PASS + Samsung Internet 실기기 스모크 PASS |
+| staging 배포 | ✅ Vercel `soulbound-staging` + Supabase 마이그 0001–0008 (no-seed) |
+| RC 결정 | email-confirm ON · open signup · manual CLI reaper · 자동화/CAPTCHA deferred |
 
 ---
 
-## 6. 다음 작업 (Next Up)
+## 4. 잔여·미결 항목 (Open Items)
 
-1. **Task 2 구현**: `DefaultAdmissionService` / `DefaultMembershipService` 본문 작성 → 19 tests GREEN.
-   - 통과 기준: `pnpm -F @soulbound/core test` (0 skip) + build + typecheck + audit 전부 PASS.
-2. 이후 (BuildPlan 순서): adapters → migrations/RLS → API routes → `apps/web` UI.
-   - UI 단계 진입 시 `docs/UIUX_CHANGELOG.md`에 화면/컴포넌트 변경을 기록한다.
+`PROJECT_STATE.md §4` 미결 항목의 요약. (상세·이유는 원문 참조)
+
+- ⏳ **Safari persona-clip 호환성 스모크** — 후속(non-블로커). 미지원 시 graceful **PC-01 degradation**(클립 없이 제출).
+- ⏳ **Task 9a-2** — internal cron reaper 자동화. public/non-alpha 전 재평가.
+- ⏳ **Task 10-1** — outbox vs ledger 직접호출 책임 분리(중복 발급 위험). **Task 10 전** "서비스는 enqueue만, ledger 호출은 processor 1회"로 단일화 결정 필요.
+- 🟡 **[LOW/dormant] status 페이지 reasonCode 분기** — 현재 dormant(실누수 0). 신청자 비노출 의도면 분기 제거 권장.
+- ⛔ **[다음 라운드 Northstar]** privacy ledger 선택(Zcash ZSA / Aleo / Aztec) + ICP 앱체인 — P0 계약 아님. `LedgerPort` 추상 경계가 이미 수용.
 
 ---
 
-## 7. 검증 재현 절차 (How to Re-verify)
+## 5. 거버넌스 (현재 — 잊지 말 것)
+
+> 정본 = `docs/WORKFLOW.md` (2026-06-01 채택, **2026-06-05 개정**, JT 승인).
+
+- **Builder = Codex (전 레이어).** GLM / Claude Code는 빌더 **은퇴**(미사용, 2026-06-05). 재활성화 시 §6 예외 프로토콜.
+- **Architect / Final Auditor = Cowork(한 세션 고정).** 빌더 ≠ 최종 승인자 불변식 보존.
+- **First-pass Auditor = Codex(read-only, `AGENTS.md`).**
+- **Commit authority = JT(호스트 전용 `git add/commit/push`).** 샌드박스 에이전트 직접 커밋 금지.
+- 위 규칙 변경 시 `WORKFLOW.md` / `CLAUDE.md` / `.clinerules` / `AGENTS.md` / `PROJECT_STATE.md` 5곳 동기화(드리프트 금지).
+
+---
+
+## 6. 검증 재현 절차 (How to Re-verify)
 
 ```bash
-# Node 24 필요 (engineStrict). nvm 사용 시:
-nvm use 24            # 또는 nvm install 24
-corepack enable && corepack prepare pnpm@11.1.3 --activate
-
+# Node 24 필요 (engineStrict). corepack이 pnpm@11.1.3 자동 사용.
 pnpm install
-pnpm -r typecheck                  # CLEAN 기대
-pnpm -F @soulbound/core build      # dist emit 기대
-pnpm -F @soulbound/core test       # 현재 19 RED (Task 2 완료 시 GREEN)
-bash scripts/audit.sh              # AUDIT PASSED 기대
-```
+pnpm -r typecheck                    # 3 projects CLEAN
+pnpm -F @soulbound/core test         # 20 passed
+pnpm -F @soulbound/adapters test     # 22 passed (unit)
+pnpm -F web test                     # 44 passed (unit)
+bash scripts/audit.sh                # AUDIT PASSED (apps/supabase 검사 활성)
 
-> 참고: 현재 환경에서 `pnpm install`이 `esbuild` 빌드 스크립트를 무시(`ERR_PNPM_IGNORED_BUILDS`)하여
-> 비-0 종료할 수 있다. `pnpm-workspace.yaml`의 `allowBuilds.esbuild` 값은 동결 파일 내 플레이스홀더이며,
-> 검증 자체(typecheck/build/test/audit)는 `packages/core/node_modules/.bin`의 로컬 바이너리로 직접 실행해 통과를 확인했다.
+# Docker(Supabase 로컬) 필요 — 호스트 전용 결정성 게이트:
+supabase test db                     # pgTAP 73
+pnpm -F @soulbound/adapters clip:reap   # persona-clip reaper CLI (manual)
+# 통합테스트는 5x + db reset 후 green 재현으로만 PASS 판정 (PROJECT_STATE §6)
+```
 
 ---
 
-## 8. 변경 로그 (이 트래커 자체)
+## 7. 변경 로그 (이 요약 트래커 자체)
 
 | 일자 | 변경 |
 | --- | --- |
-| 2026-06-17 | 트래커 최초 작성. freeze 상태(typecheck/build/audit PASS, 19 RED) 검증 및 기록. |
+| 2026-06-17 | `phase1-p0-mvp` 현재 진실 기준으로 재작성. 이전 `main`(freeze 991dc5d) 기준 초안은 stale이라 폐기·교체. 현재 트리에서 typecheck/core 20/adapters 22/web 44/audit 게이트 재검증. `PROJECT_STATE.md` 종속 요약으로 명시. |
