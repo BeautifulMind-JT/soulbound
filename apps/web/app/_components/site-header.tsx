@@ -29,7 +29,8 @@ export function SiteHeader() {
       <nav className="site-nav" aria-label="주요 탐색">
         {!loading && session ? (
           <>
-            <Link href="/gate">입장 절차</Link>
+            <Link href="/member">멤버</Link>
+            <Link href="/gate">입장</Link>
             <button
               className="text-button"
               type="button"
@@ -41,7 +42,7 @@ export function SiteHeader() {
         ) : (
           <>
             <Link href="/login">로그인</Link>
-            <Link className="nav-action" href="/signup">가입</Link>
+            <Link className="nav-action" href="/signup">가입하기</Link>
           </>
         )}
       </nav>

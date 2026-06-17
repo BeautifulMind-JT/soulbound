@@ -82,24 +82,24 @@ export default function GatePage() {
       }
     : state?.application
       ? {
-          title: "신청을 검토하고 있습니다",
-          body: "현재 상태와 검토자의 안내를 확인하세요.",
+          title: "입장 대기",
+          body: "신청 상태와 안내를 확인하세요.",
           href: "/apply/status",
           label: "신청 현황 보기",
         }
       : {
-          title: "입장 신청이 필요합니다",
-          body: "신청 정보와 선택 사항인 Persona Clip을 제출할 수 있습니다.",
+          title: "입장 신청",
+          body: "짧은 소개와 선택 항목을 제출합니다.",
           href: "/apply",
-          label: "신청서 작성",
+          label: "입장 신청",
         };
 
   return (
     <main className="page-main">
       <header className="page-heading">
-        <p className="eyebrow">The gate</p>
+        <p className="eyebrow">Gate</p>
         <h1>입장 절차</h1>
-        <p>신청, 검토, 승인 순서로 잠긴 문을 통과합니다.</p>
+        <p>현재 상태에 맞는 한 가지 다음 행동만 보여드립니다.</p>
       </header>
 
       {errorMessage ? (
@@ -124,9 +124,9 @@ export default function GatePage() {
         <section className="status-panel" aria-labelledby="process-title">
           <h2 id="process-title">절차</h2>
           <ol className="process-list">
-            <li>1. 신청 정보를 제출합니다.</li>
-            <li>2. 인가된 검토자가 확인합니다.</li>
-            <li>3. 승인 후 멤버 공간이 열립니다.</li>
+            <li>1. 입장 신청</li>
+            <li>2. 검토 대기</li>
+            <li>3. 멤버 입장</li>
           </ol>
         </section>
       </div>

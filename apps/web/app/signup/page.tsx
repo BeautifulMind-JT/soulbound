@@ -25,7 +25,7 @@ export default function SignupPage() {
     try {
       const result = await signUp(email, password);
       if (result.requiresEmailConfirmation) {
-        setMessage("확인 메일의 링크를 연 뒤 로그인해 주세요.");
+        setMessage("메일을 확인해 주세요. 링크를 연 뒤 로그인할 수 있습니다.");
       } else {
         router.push("/gate");
       }
@@ -40,8 +40,8 @@ export default function SignupPage() {
   return (
     <main className="page-main narrow-main">
       <section className="auth-panel" aria-labelledby="signup-title">
-        <h1 id="signup-title">문 앞에 서기</h1>
-        <p>계정을 만든 뒤 입장 신청을 시작할 수 있습니다.</p>
+        <h1 id="signup-title">가입하기</h1>
+        <p>계정을 만들고 입장 신청을 시작하세요.</p>
         <form className="form-grid" onSubmit={handleSubmit}>
           <div className="field">
             <label htmlFor="signup-email">이메일</label>
@@ -74,7 +74,7 @@ export default function SignupPage() {
           ) : null}
           <div className="button-row">
             <button className="button" type="submit" disabled={submitting}>
-              {submitting ? "생성 중" : "계정 만들기"}
+              {submitting ? "가입 중" : "가입하기"}
             </button>
             <Link className="quiet-link" href="/login">이미 계정이 있어요</Link>
           </div>

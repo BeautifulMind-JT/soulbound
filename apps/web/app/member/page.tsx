@@ -12,6 +12,48 @@ import { readJson } from "../../lib/api-response";
 import styles from "./page.module.css";
 
 type MembershipState = Membership | null | undefined;
+type MemberTab = "members" | "chats" | "more";
+
+const tabs: readonly {
+  readonly id: MemberTab;
+  readonly label: string;
+}[] = [
+  { id: "members", label: "멤버" },
+  { id: "chats", label: "대화" },
+  { id: "more", label: "더보기" },
+];
+
+const memberSections: readonly {
+  readonly id: string;
+  readonly title: string;
+  readonly description: string;
+}[] = [
+  {
+    id: "new-members",
+    title: "New Members",
+    description: "새 멤버가 표시될 자리입니다.",
+  },
+  {
+    id: "active-members",
+    title: "Active Members",
+    description: "활동 중인 멤버가 표시될 자리입니다.",
+  },
+  {
+    id: "all-members",
+    title: "All Members",
+    description: "전체 멤버 목록이 표시될 자리입니다.",
+  },
+];
+
+const moreItems: readonly {
+  readonly label: string;
+  readonly description: string;
+}[] = [
+  { label: "내 프로필", description: "내 소개와 공개 범위" },
+  { label: "설정", description: "계정과 화면 설정" },
+  { label: "알림", description: "새 대화와 멤버 소식" },
+  { label: "내 멤버십", description: "멤버 상태" },
+];
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -24,6 +66,7 @@ export default function MemberPage() {
   const { session, loading, authedFetch } = useAuth();
   const [membership, setMembership] = useState<MembershipState>(undefined);
   const [errorMessage, setErrorMessage] = useState("");
+  const [activeTab, setActiveTab] = useState<MemberTab>("members");
 
   useEffect(() => {
     if (loading) {
@@ -70,10 +113,12 @@ export default function MemberPage() {
 
   return (
     <main className="page-main">
-      <header className="page-heading">
-        <p className="eyebrow">Member</p>
-        <h1>멤버 공간</h1>
-        <p>승인된 멤버십 상태를 확인합니다.</p>
+      <header className={styles.shellHeader}>
+        <div>
+          <p className="eyebrow">Member</p>
+          <h1>멤버</h1>
+          <p>승인된 멤버들이 모이는 조용한 공간입니다.</p>
+        </div>
       </header>
 
       {errorMessage ? (
@@ -86,29 +131,113 @@ export default function MemberPage() {
         ) : null}
 
         {membership?.status === "active" ? (
-          <>
-            <section className={styles.membershipBand}>
-              <div>
-                <h2>입장이 확인되었습니다</h2>
-                <p>현재 멤버십은 활성 상태입니다.</p>
-              </div>
-              <span className="status-badge">활성</span>
-            </section>
-            <dl className={styles.membershipMeta}>
-              <div>
-                <dt>등급</dt>
-                <dd>{membership.tier}</dd>
-              </div>
-              <div>
-                <dt>발급일</dt>
-                <dd>{formatDate(membership.issuedAt)}</dd>
-              </div>
-              <div>
-                <dt>멤버십 ID</dt>
-                <dd>{membership.id}</dd>
-              </div>
-            </dl>
-          </>
+          <section className={styles.appShell} aria-label="멤버 홈">
+            <div className={styles.tabPanels}>
+              {activeTab === "members" ? (
+                <div
+                  aria-labelledby="members-tab"
+                  className={styles.tabPanel}
+                  id="members-panel"
+                  role="tabpanel"
+                >
+                  <section className={styles.myPersona}>
+                    <div className={styles.avatar} aria-hidden="true">ME</div>
+                    <div className={styles.personaBody}>
+                      <div className={styles.sectionHeading}>
+                        <div>
+                          <p className={styles.sectionKicker}>My Persona</p>
+                          <h2>내 프로필</h2>
+                        </div>
+                        <span className="status-badge">멤버</span>
+                      </div>
+                      <p>
+                        입장이 확인된 멤버입니다. 프로필 소개와 공개 설정은
+                        다음 단계에서 다듬을 수 있습니다.
+                      </p>
+                      <dl className={styles.compactMeta}>
+                        <div>
+                          <dt>시작일</dt>
+                          <dd>{formatDate(membership.issuedAt)}</dd>
+                        </div>
+                        <div>
+                          <dt>상태</dt>
+                          <dd>활성</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </section>
+
+                  {memberSections.map((section) => (
+                    <section
+                      className={styles.memberSection}
+                      key={section.title}
+                      aria-labelledby={`${section.id}-title`}
+                    >
+                      <div className={styles.sectionHeading}>
+                        <h2 id={`${section.id}-title`}>{section.title}</h2>
+                        <span className={styles.countBadge}>0</span>
+                      </div>
+                      <div className={styles.emptyDirectory}>
+                        <p>{section.description}</p>
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              ) : null}
+
+              {activeTab === "chats" ? (
+                <section
+                  aria-labelledby="chats-tab"
+                  className={styles.quietPanel}
+                  id="chats-panel"
+                  role="tabpanel"
+                >
+                  <h2 id="chats-title">대화</h2>
+                  <p>아직 열린 대화가 없습니다.</p>
+                </section>
+              ) : null}
+
+              {activeTab === "more" ? (
+                <section
+                  aria-labelledby="more-tab"
+                  className={styles.morePanel}
+                  id="more-panel"
+                  role="tabpanel"
+                >
+                  <h2 id="more-title">더보기</h2>
+                  <div className={styles.moreList}>
+                    {moreItems.map((item) => (
+                      <div className={styles.moreItem} key={item.label}>
+                        <span>{item.label}</span>
+                        <small>{item.description}</small>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+            </div>
+
+            <nav
+              aria-label="멤버 탐색"
+              className={styles.bottomNav}
+              role="tablist"
+            >
+              {tabs.map((tab) => (
+                <button
+                  aria-controls={`${tab.id}-panel`}
+                  aria-selected={activeTab === tab.id}
+                  className={activeTab === tab.id ? styles.activeTab : undefined}
+                  id={`${tab.id}-tab`}
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  role="tab"
+                  type="button"
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </section>
         ) : null}
 
         {membership !== undefined && membership?.status !== "active" ? (

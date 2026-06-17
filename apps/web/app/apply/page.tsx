@@ -98,8 +98,8 @@ export default function ApplyPage() {
   return (
     <main className="page-main">
       <header className="page-heading">
-        <p className="eyebrow">Admission</p>
-        <h1>입장 신청서</h1>
+        <p className="eyebrow">Apply</p>
+        <h1>입장 신청</h1>
         <p>필요한 만큼만 적어 주세요. Persona Clip은 선택 사항입니다.</p>
       </header>
 
@@ -145,7 +145,7 @@ export default function ApplyPage() {
         ) : null}
         <div className="button-row">
           <button className="button" type="submit" disabled={submitting}>
-            {submitting ? "제출 중" : "신청서 제출"}
+            {submitting ? "제출 중" : "입장 신청"}
           </button>
         </div>
       </form>

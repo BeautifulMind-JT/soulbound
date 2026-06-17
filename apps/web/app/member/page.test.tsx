@@ -52,9 +52,10 @@ describe("MemberPage", () => {
 
     render(<MemberPage />);
 
-    expect(await screen.findByText("입장이 확인되었습니다")).toBeTruthy();
-    expect(screen.getByText("활성")).toBeTruthy();
-    expect(screen.getByText("membership-1")).toBeTruthy();
+    expect(await screen.findByText("내 프로필")).toBeTruthy();
+    expect(screen.getByText("New Members")).toBeTruthy();
+    expect(screen.getByText("Active Members")).toBeTruthy();
+    expect(screen.getByText("All Members")).toBeTruthy();
     expect(authedFetch).toHaveBeenCalledWith(
       "/api/membership/me",
       expect.objectContaining({ signal: expect.any(AbortSignal) }),

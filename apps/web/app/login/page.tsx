@@ -58,8 +58,8 @@ export default function LoginPage() {
   return (
     <main className="page-main narrow-main">
       <section className="auth-panel" aria-labelledby="login-title">
-        <h1 id="login-title">다시 문 앞에</h1>
-        <p>계정으로 돌아와 현재 입장 상태를 확인합니다.</p>
+        <h1 id="login-title">로그인</h1>
+        <p>계정으로 돌아와 입장 상태를 확인합니다.</p>
         <form className="form-grid" onSubmit={handleSubmit}>
           <div className="field">
             <label htmlFor="login-email">이메일</label>
@@ -88,7 +88,7 @@ export default function LoginPage() {
             <button className="button" type="submit" disabled={submitting}>
               {submitting ? "확인 중" : "로그인"}
             </button>
-            <Link className="quiet-link" href="/signup">계정 만들기</Link>
+            <Link className="quiet-link" href="/signup">가입하기</Link>
           </div>
         </form>
       </section>

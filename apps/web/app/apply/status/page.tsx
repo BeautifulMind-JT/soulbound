@@ -27,9 +27,9 @@ const statusLabel: Record<AdmissionStatus, string> = {
 };
 
 const reasonLabel: Record<AdmissionReasonCode, string> = {
-  meets_phase1_policy: "입장 정책 충족",
+  meets_phase1_policy: "입장 기준 충족",
   insufficient_context: "판단 정보 부족",
-  mismatch_with_policy: "입장 정책과 불일치",
+  mismatch_with_policy: "입장 기준과 불일치",
   needs_identity_clarification: "신원 확인 필요",
   duplicate_identity_suspected: "중복 신원 확인 필요",
   applicant_withdrew: "신청자 철회",
@@ -115,7 +115,7 @@ export default function ApplicationStatusPage() {
   return (
     <main className="page-main narrow-main">
       <header className="page-heading">
-        <p className="eyebrow">Application status</p>
+        <p className="eyebrow">Status</p>
         <h1>내 신청 현황</h1>
       </header>
 
@@ -132,7 +132,7 @@ export default function ApplicationStatusPage() {
           <>
             <h2>진행 중인 신청이 없습니다</h2>
             <p>새 입장 신청을 시작할 수 있습니다.</p>
-            <Link className="button" href="/apply">신청서 작성</Link>
+            <Link className="button" href="/apply">입장 신청</Link>
           </>
         ) : null}
 

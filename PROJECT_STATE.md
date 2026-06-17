@@ -7,6 +7,18 @@
 
 마지막 갱신: Task 4 adapters = Cowork 3라운드 감사 **PASS**, 커밋됨(4899ca8 feat + 4de4513 docs, pushed). Task 1–4 커밋 완료. **pre-Task-5 rpc/RLS smoke test = Opus 감사세션 최종 PASS**(Codex 빌드, 41 pgTAP green; 증적 docs/PRE_TASK5_SMOKE_TEST_AUDIT.md). 커밋 = JT(`test(db)`+`docs`). **Task 4.5(신뢰 role 소스, carry-forward ②) = Opus 감사세션 PASS**(0006 `current_user_role()` + adapter RPC 해석 + seed 정리 + smoke 41→49; 증적 docs/TASK4_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5(service 배선) = Opus 감사세션 PASS**(makeCoreContainer + 실 reviewer 승인경로 live 통합테스트; 증적 docs/TASK5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 5.5(seed sign-in 수정) = Opus 감사세션 PASS**(seed에 auth.identities + aud/instance_id/'' token 보강[role은 metadata에 안 넣음], 시드 유저 실 sign-in 런타임 게이트; 증적 docs/TASK5_5_AUDIT_FINDINGS.md). 커밋 = JT. **Task 6a = Opus 감사세션 PASS**(apps/web 스캐폴드 + applicant 라우트). 최초 PASS는 flaky 통합테스트로 성급(§6 교훈) → HOLD → **corrective(4fa4755: fixture-auth bounded retry, fixture 전용·route/단언 무손상, tsbuildinfo 정리)** → **JT 호스트 5/5 연속 + db reset 후 green = 결정성 확정** → 최종 PASS. audit.sh 빌드아티팩트 보정(1c243c1) 별개 유효. 증적 docs/TASK6A_AUDIT_FINDINGS.md. **Task 6b(admin/reviewer 라우트) = Opus 감사세션 PASS**(reviewer 큐/상세 read + 4전이; route 역할게이트가 service-role read의 유일 보호막, review_summary 경계 양방향; RLS 정책 미추가=service-role route, BuildPlan §5.3.2; 증적 docs/TASK6B_AUDIT_FINDINGS.md). 커밋 = JT. **Task 6(API routes) 완료**. **Task 7a(persona-clip routes + signed-upload adapter) = Opus 감사세션 PASS**(adapter `createUploadUrl`[core StoragePort frozen 유지·concrete adapter 확장]·reviewer signed-read-url·submit-attach시 retention clear corrective; INV-PC-06 누수 0 런타임검증; 호스트 5/5+reset 결정성; 증적 docs/TASK7A_AUDIT_FINDINGS.md). 커밋 = JT. **Task 7b(persona-clip-recorder 컴포넌트) = Opus 감사세션 PASS**(Codex 빌드[§6 표면 예외·안정성]; INV-PC-05 components에 supabase/createClient/service-role **0**·upload-before-onComplete[7a 잔여#2 차단]·라이브 viewfinder/녹화후 no-preview·retake; mocked 단위테스트 6개 결정성[flaky 위험 0]; 증적 docs/TASK7B_AUDIT_FINDINGS.md). 커밋 = JT. **Task 7 완료**. **§8 빌더정책 공식화(2026-06-05, JT 승인): Codex가 전 레이어 빌드, GLM/Claude Code는 빌더 은퇴 — 5개 정본(WORKFLOW/CLAUDE/AGENTS/.clinerules/PROJECT_STATE) 동기화, 개정 배너 + 스테일 GLM-배정 0 검증.** **Task 8(UI) = 8a/8b 분할(JT 승인).** 다음 **Task 8a(auth foundation + 공개/신청 UI) = Opus 감사세션 PASS**(Codex 빌드; browser anon 클라이언트 persistSession·authedFetch bearer·current_user_role 역할해석[새 라우트 0]·7b recorder bearer 배선보정·페이지 7; INV-17 service-role 0[소스+`.next` 번들 재확인]·PC-01·idempotency; 결정성 단위 29/29[내 재실행]·audit.sh PASS; 증적 docs/TASK8A_AUDIT_FINDINGS.md). 커밋 = JT. 🔴 **HIGH carry-forward: 신규 browser signup이 public.profiles 행 미생성 → submit FK 막힘**(8a 범위 밖 정당; §4 — profiles-provisioning 트리거 태스크를 8b 전에 권장). **profiles provisioning(migration 0007 트리거 + seed/fixtures upsert + 7 pgTAP[anti-escalation 포함, 49→56]) = Opus 감사세션 PASS**(**JT 호스트 5x+reset green 2026-06-08: `supabase test db` 56 + `test:integration` 5/5 ×5, flake 0 — 최종확정**; 증적 docs/PROFILES_PROVISIONING_AUDIT_FINDINGS.md). 커밋 = JT. **Task 8b(member + admin/reviewer) = Opus 감사세션 PASS**(Codex; 순수 클라이언트·새 라우트/adapters/core/db 0·보호표면 EMPTY; 권한 라우트403 위임[role-race 버그 빌더 발견+수정]·reviewSummary reviewer전용·clip 클릭재생·결정 reasonCode enum+idempotency·409 graceful; createClient/service_role/.from 0; web test 42/42 + audit.sh 내 재실행; 결정성 mocked·5x 불요; 증적 docs/TASK8B_AUDIT_FINDINGS.md). 커밋 = JT. **🎉 Task 8(UI) 완료** — signup→gate→apply→submit→(reviewer)approve→member happy-path end-to-end. **Task 9a(persona-clip byte-delete worker, CLI) = Opus 감사세션 FINAL PASS**(Codex 빌드; 1차감사 3×P1 FAIL → 보정 → PASS). unique `owner/assetId` path + DB unique index[#1] · DB-now() reap RPC 2개(list/mark, security-definer·service_role-only·DB COALESCE·원자 predicate 재검사)[#2/#3] · remove-first/no-leak/멱등/StoragePort frozen 유지. **동일-hash safeguard 통합테스트가 공유-hash인데도 protected 바이트 생존 증명**(make-or-break). **호스트 5x+reset green**(run-2서 §6 게이트가 cross-package 테스트격리 누수[web가 남긴 approved clip] 잡음 → web afterEach 정리 → 5x 재증명). pgTAP 56→73, adapters unit 22, audit.sh 내 재실행. 증적 docs/TASK9A_AUDIT_FINDINGS.md. 커밋 = JT. **🎉 P0 MVP 기능 완성**(마지막 실기능=clip 보존 worker). **Task 9b(audit/outbox 하드닝 회귀-lock) = Opus 감사세션 PASS** — 유일 갭(outbox payload ids-only)을 core 단위테스트로 lock(INV-16; **순수 additive·기존 19 무손상·skip 0**, Cowork 계약확장 인가 → **core 19→20**); 나머지 불변식은 이미 잠김(coverage-map docs/TASK9B_AUDIT_FINDINGS.md). 커밋 = JT. **✅ Task 9 완료 = P0 MVP 기능 + 하드닝 완성.** 잔여(deferred/옵션): **Task 9a-2**(internal cron route) · **Task 10**(external ledger PoC, 별도 브랜치). **RC staging 검증 완료**(docs/RC1_RELEASE_RUNBOOK.md + docs/RC1_VERIFICATION.md + docs/RC2_MIME_FALLBACK_AUDIT.md): 결정 = email-confirm ON·open signup·manual CLI reaper·자동화 deferred·CAPTCHA deferred(코드 미지원). `fafba30`에서 로컬 게이트·5x 결정성·reap 재게이트 green(2026-06-10), Vercel soulbound-staging[새 계정] + Supabase 마이그 0001–0008 no-seed 배포. **RC-1 §13 FINAL AUDIT PASS**(실 SMTP·signup→profiles·role boundary·approve/reject·member active·clip lifecycle→manual reap→object absence·INV-17/no-leak). **`v0.1.0-rc.1` 태그됨 @ fafba30.** **RC-2 후보 = `e517ec3`**(persona-clip recorder MIME fallback — Samsung/Safari MP4 경로, Chrome/webm 보존; recorder 2파일만·계약 무손상). **코드 = Opus 최종감사 PASS**(독립 적대검증 워크플로 3 lens 전부 holds·P0/P1 0; uploadMimeType 유니온 리터럴로 bare MIME만 API/Storage 도달; mutation test로 테스트 non-vacuity 증명; 증적 docs/RC2_MIME_FALLBACK_AUDIT.md). **CODE PASS + Samsung Internet 실기기 스모크 PASS → `v0.1.0-rc.2` 태그됨 @ e517ec3**(HEAD b66f090, RC-2 COMPLETE). **Safari = 후속 호환성 스모크(non-블로커)** — 미지원 시 graceful PC-01 degradation(클립 없이 제출). RC-1 §13 전체 스테이징 스모크는 FINAL AUDIT PASS이며, RC-2는 MIME fallback 델타 스모크 PASS로 `v0.1.0-rc.2 @ e517ec3` 기준 validated staging RC가 됨. 다음 단계는 internal alpha 운영이며, public/non-alpha 전에는 Task 9a-2 reaper 자동화 여부를 재평가. 거버넌스 교훈: 한 세션의 build→push→deploy 혼재를 JT가 교정 — 제품코드는 독립 최종감사 GO 후에만 commit/tag/deploy. 브랜치 `phase1-p0-mvp`.
 
+추가 갱신(2026-06-17, pre-alpha UI/UX polish): **이번 한정 워크플로우 예외를 JT가 승인** — Codex가 같은 builder
+세션에서 UI/UX 방향 확인 → 표면 구현 → self-check → GLM 5.2 반복정리 프롬프트 작성까지 수행하고, GLM은
+Codex가 지정한 copy/spacing/label/mobile 반복작업만 수행, 같은 Codex 세션이 GLM diff를 감독/반려, 최종 제품·보안
+검토는 Opus/Cowork가 수행한다. 이는 `docs/WORKFLOW.md`의 기본 "GLM 빌더 은퇴" 원칙을 바꾸는 것이 아니라,
+internal alpha 전 **표면 UI/UX polish에 한정한 단발 예외**다. 구현 내용: `/member`를 Members / Chats / More
+admitted shell로 재구성하고 Members 기본 화면에 My Persona / New Members / Active Members / All Members 골격을
+넣음(새 member API나 mock 사람 데이터 없음); login/signup/gate/apply/status/landing copy를 짧고 한국어 중심으로
+정리; `Persona Clip`은 제품 고유명으로 유지하되 주변 설명만 짧게 정리; hero/spacing/mobile shell 스타일 조정;
+관련 UI 테스트 셀렉터 갱신. 보호범위: schema/migrations/SQL/RLS/RPC/API auth/storage/reaper/adapters/core/env/approval
+state machine **0건 변경**. 게이트: `git diff --check`, `pnpm -F web typecheck`, `pnpm typecheck`, `pnpm -F web test`
+(44/44), `pnpm build` PASS; dummy public env로 browser smoke(`/` no console errors, `/member` unauth→`/login`) 확인.
+
 ---
 
 ## 0. 한 줄 요약
@@ -43,6 +55,20 @@ trust-first, 입장심사 기반 비공개 메신저(SoulBound) Phase 1 MVP를, 
 - source of truth = **repo의 파일** (`docs/architecture/...FROZEN.md`, frozen `packages/core/src`, 이 문서).
 - 어느 세션도 *기억*으로 계약을 재구성하지 말 것. 파일을 열어 확인.
 - 설계 결정은 파일+커밋으로 남긴다. 구두/세션-로컬 결정 금지.
+
+### 2026-06-17 UI/UX polish 예외 (이번 한정)
+- 적용 범위: internal alpha 전 **표면 UI/UX polish only**. 목적은 "초기 KakaoTalk-like private messenger shell"과
+  reference target(`https://pixel-perfect-clone-12870.lovable.app/members`)의 방향을 현재 앱 표면에 맞춰 축소 반영하는 것.
+- 예외 워크플로우: Codex가 단일 builder 세션에서 계획·구현·self-check·GLM 5.2 반복작업 프롬프트 작성까지 맡는다.
+  GLM 5.2는 Codex가 지정한 **단순 반복 표면 작업(copy 통일, spacing 반복 정리, label 통일, 모바일 보정,
+  내부용어 제거)** 만 수행한다. 같은 Codex 세션이 GLM diff를 검토해 선 넘은 변경을 rollback/지적한다.
+  최종 제품 방향성·보안층 불변식·RC 포함 가능성은 Opus/Cowork가 판단한다.
+- 이 예외는 `docs/WORKFLOW.md`의 기본 정책(2026-06-05 이후 Codex 전 레이어 빌드, GLM/Claude Code 빌더 은퇴)을
+  폐기하거나 일반화하지 않는다. 이유: 이번 작업은 DB/API/core/adapters가 동결된 **순수 UI copy/layout polish**이고,
+  GLM에게 맡길 영역도 구현이 아니라 반복적인 surface cleanup으로 제한했기 때문이다.
+- 금지선: schema/migrations, SQL/RLS/RPC/policies, adapters/core contracts, auth/session/security model,
+  API authorization, persona-clip upload/hash/storage/deletion/reaper/retention semantics, approval/gate business logic,
+  env schema, Task 9a-2 automation은 명시 승인 없이는 변경 금지.
 
 ---
 
@@ -158,6 +184,42 @@ Task 9b (Codex)  ✅ audit/outbox 하드닝 회귀-lock(thin·HARD RULE 10 준�
                     트립). 나머지(idempotency·INV-13·audit 원문금지·reason enum)는 smoke pgTAP/core/7a에 이미 잠김 — 재구현
                     안 함. core test 20 내 재실행·scope 테스트파일만·audit.sh PASS. Opus PASS. 증적 docs/TASK9B_AUDIT_FINDINGS.md.
                     **→ ✅ Task 9 완료(9a+9b) = P0 MVP 기능+하드닝 완성.**
+Pre-alpha UI/UX polish
+                  ✅/검토대기 (2026-06-17, Codex builder; Opus 최종검토 전). **이번 한정 workflow 예외**(§1):
+                    Codex가 UI 방향 확인→구현→self-check→GLM 5.2 표면반복 프롬프트 작성까지 수행. GLM은 지정된
+                    표면 반복정리만 수행했고, Codex가 diff를 검토/감독했다. 최종 판단은 Opus/Cowork가 한다.
+                    변경 표면은 apps/web UI/components/tests only. **보호표면 EMPTY**: supabase migrations/SQL/RLS/RPC,
+                    API routes, auth/session/security model, adapters/core contracts, env schema, storage/reaper/retention,
+                    approval state machine 0건 변경.
+                    구현 상세:
+                    - `/member`: 기존 "멤버십 상태 확인" 화면을 admitted shell로 재구성. 하단 `멤버/대화/더보기`
+                      tablist 도입, Members가 기본 탭. Members 안에 `My Persona`(기존 membership issuedAt/status만 사용),
+                      `New Members`, `Active Members`, `All Members` 골격 추가. **새 member API, route rename, mock 사람
+                      데이터 없음**. Chats는 조용한 empty state, More는 내 프로필/설정/알림/내 멤버십 골격만.
+                    - GLM 5.2 감독 결과: `apps/web/app/member/page.tsx`에서 ordinary-user 메뉴의 `SOUL`을
+                      `내 멤버십`으로 낮추고, page h1을 `멤버`로 맞추며, eyebrow 중복 brand 표기를 section label
+                      `Member`로 정리했다. Codex 검토 결과 forbidden layer 변경은 없고, `PROJECT_STATE.md`의
+                      More 메뉴 기록만 이 변경에 맞춰 갱신했다.
+                    - public/auth/gate/apply/status: landing hero를 간단한 private messenger positioning으로 축소,
+                      login/signup은 `로그인`/`가입하기` 중심으로 단순화, gate는 "현재 상태에 맞는 한 가지 다음 행동"으로
+                      정리, apply submit CTA를 `입장 신청`으로 통일.
+                    - ordinary-user terminology: `Persona Clip`은 제품 고유명으로 유지하고, 주변 설명만 짧게 정리.
+                      내부 구현명·API field·storage/retention semantics는 변경하지 않음. status reason label의
+                      `정책` 표현은 사용자용 `기준`으로 완화.
+                    - visual polish: `globals.css`에서 hero 높이/타이포/spacing을 줄이고 brand seal에 talk-yellow accent
+                      추가. `/member` CSS는 compact card, quiet empty state, mobile 700px 대응, tab focus/selected 상태를
+                      제공.
+                    - tests: label 변경에 맞춰 `apply/page.test.tsx`, `member/page.test.tsx` selector 갱신. behavior/assertion
+                      core는 유지(authedFetch endpoint/body/idempotency, unauth redirect).
+                    검증:
+                    - `git diff --name-only`: PROJECT_STATE.md + apps/web UI/test/component 파일 12개.
+                    - `git diff --check`: PASS.
+                    - `pnpm -F web typecheck`: PASS.
+                    - `pnpm typecheck`: PASS.
+                    - `pnpm -F web test`: PASS, 44/44.
+                    - `pnpm build`: PASS(core/adapters/web build).
+                    - Browser smoke(dummy public env): `/` renders with no console errors; `/member` unauthenticated redirects
+                      to `/login`; no Next error overlay.
 ```
 
 빌드 순서(10 Task, 하나씩 / 사이마다 Codex→Cowork 감사):

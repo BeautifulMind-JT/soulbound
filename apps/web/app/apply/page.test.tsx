@@ -110,7 +110,7 @@ describe("ApplyPage", () => {
       { target: { value: "작은 공동체를 만들고 싶습니다" } },
     );
     fireEvent.click(screen.getByRole("button", { name: "complete clip" }));
-    fireEvent.click(screen.getByRole("button", { name: "신청서 제출" }));
+    fireEvent.click(screen.getByRole("button", { name: "입장 신청" }));
 
     await waitFor(() => expect(authedFetch).toHaveBeenCalledOnce());
     const [url, init] = authedFetch.mock.calls[0] as [string, RequestInit];
@@ -146,7 +146,7 @@ describe("ApplyPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "complete clip" }));
     fireEvent.click(screen.getByRole("button", { name: "skip clip" }));
-    fireEvent.click(screen.getByRole("button", { name: "신청서 제출" }));
+    fireEvent.click(screen.getByRole("button", { name: "입장 신청" }));
 
     await waitFor(() => expect(authedFetch).toHaveBeenCalledOnce());
     const [, init] = authedFetch.mock.calls[0] as [string, RequestInit];
@@ -160,7 +160,7 @@ describe("ApplyPage", () => {
     authedFetch.mockResolvedValueOnce(new Response(null, { status: 401 }));
     render(<ApplyPage />);
 
-    fireEvent.click(screen.getByRole("button", { name: "신청서 제출" }));
+    fireEvent.click(screen.getByRole("button", { name: "입장 신청" }));
 
     await waitFor(() =>
       expect(routerMocks.replace).toHaveBeenCalledWith("/login")
@@ -178,7 +178,7 @@ describe("ApplyPage", () => {
     authedFetch.mockResolvedValueOnce(new Response(null, { status }));
     render(<ApplyPage />);
 
-    fireEvent.click(screen.getByRole("button", { name: "신청서 제출" }));
+    fireEvent.click(screen.getByRole("button", { name: "입장 신청" }));
 
     await waitFor(() =>
       expect(screen.getByRole("alert").textContent).toBe(expectedMessage)
