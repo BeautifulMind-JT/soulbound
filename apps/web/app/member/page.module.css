@@ -13,8 +13,9 @@
   min-height: min(760px, calc(100svh - 154px));
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 22px;
+  border-radius: 16px;
   background: var(--surface);
+  box-shadow: var(--elevate);
 }
 
 .phoneTop {
@@ -25,7 +26,7 @@
   gap: 12px;
   padding: 0 18px;
   border-bottom: 1px solid var(--line-soft);
-  background: var(--surface-warm);
+  background: var(--surface-oat);
 }
 
 .phoneTop span:first-child {
@@ -56,7 +57,7 @@
 .notMember {
   padding: 28px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--surface);
 }
 
@@ -68,6 +69,7 @@
 .notMember p {
   margin: 10px 0 22px;
   color: var(--muted);
+  font-family: var(--font-prose);
   line-height: 1.6;
 }
 
@@ -78,7 +80,7 @@
 
   .appShell {
     min-height: calc(100svh - 130px);
-    border-radius: 18px;
+    border-radius: 16px;
   }
 
   .tabPanel,

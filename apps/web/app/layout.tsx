@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { ServiceWorkerProvider } from "../components/pwa/service-worker-provider";
 import { AuthProvider } from "../lib/auth-provider";
 import { SiteHeader } from "./_components/site-header";
+import { sans, serif } from "./fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -27,7 +28,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="ko">
+    <html className={`${sans.variable} ${serif.variable}`} lang="ko">
       <body>
         <AuthProvider>
           <SiteHeader />

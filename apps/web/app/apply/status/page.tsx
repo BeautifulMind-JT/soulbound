@@ -130,7 +130,7 @@ export default function ApplicationStatusPage() {
               {application.applicantNotice ? (
                 <div>
                   <dt>검토자 안내</dt>
-                  <dd>{application.applicantNotice}</dd>
+                  <dd className="prose-text">{application.applicantNotice}</dd>
                 </div>
               ) : null}
             </dl>

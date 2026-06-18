@@ -6,8 +6,8 @@
   margin-bottom: 20px;
   padding: 18px 20px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.72);
+  border-radius: 12px;
+  background: var(--surface);
 }
 
 .filterField {
@@ -27,7 +27,7 @@
 .decisionForm textarea {
   width: 100%;
   border: 1px solid var(--line-strong);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--surface);
   color: var(--ink);
   font: inherit;
@@ -48,7 +48,7 @@
 .tableWrap {
   overflow-x: auto;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--surface);
 }
 
@@ -67,7 +67,7 @@
 }
 
 .queueTable th {
-  background: var(--surface-warm);
+  background: var(--surface-oat);
   color: var(--muted);
   font-size: 12px;
 }
@@ -108,7 +108,7 @@
 .permissionState {
   padding: 30px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--surface);
 }
 
@@ -139,7 +139,7 @@
 .detailSection {
   padding: 24px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--surface);
 }
 
@@ -185,7 +185,7 @@
 .internalNote {
   padding: 14px;
   border-left: 4px solid var(--accent);
-  background: var(--surface-warm);
+  background: var(--surface-oat);
 }
 
 .clipBlock {
@@ -204,8 +204,8 @@
   grid-column: 1 / -1;
   padding: 24px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-warm);
+  border-radius: 12px;
+  background: var(--surface-oat);
 }
 
 .decisionGrid {
@@ -220,7 +220,7 @@
   gap: 14px;
   padding: 18px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--surface);
 }
 
