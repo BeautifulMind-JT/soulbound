@@ -40,6 +40,40 @@ installable pass, 9-screen visual eyeball. 후속 기록: P2 SW drift-guard test
 그리고 이번 pass에 포함되지 않은 `/login`/`signup`/`gate`/`apply` 등 구 shell 페이지의 full primitive reskin은 다음
 design-pass로 분리.
 
+추가 갱신(2026-06-19, pre-alpha tone-down + warm editorial typography): ac62201(design pass + PWA) 이후
+internal-alpha 전 UIUX를 "차분·라이트·앤트로픽 웜"으로 수렴시키는 표면 패스를 **Claude 설계 → Codex plan →
+Claude 승인 → Codex 빌드 → Claude 최종 독립검토** 루프로 진행. 전부 surface/app-layer 한정, 보호표면
+(supabase/packages/app·api/lib/.env/scripts/config/**PWA logic**/Persona Clip) 0건 변경, **새 npm 의존성 0**.
+**① Tone-down(`a25deeb`) = Opus 최종 PASS**(3-lens adversarial + 게이트 재현; docs/DESIGN_PASS_ADDENDUM.md):
+다크 히어로/도어/가짜폰/intro-band 제거, 과한 굵기(650–840)→400/500/600, 패널 그림자·바디 그라디언트·uppercase
+제거, 헤딩≤22px, `.page-heading .eyebrow` muted 강등. 푸시+preview served-audit(배포 번들=tone-down 확정).
+**② Warm typography pass = Opus 최종 PASS**(docs/DESIGN_PASS_WARMTH_ADDENDUM.md). 동기: 팔레트가 앤트로픽
+정확값(#FAF9F5/#FFFFFF/#D97757/#191919, brief §1)인데도 "느낌"이 안 남. **앤트로픽 실 brand CSS 라이브 분석
+워크플로**로 ground truth 확인 — 웜함은 hex가 아니라 **타이포(세리프 본문 + 산세 제목)** 가 1차 캐리어, 카드는
+흰색(앤트로픽도 white-on-cream), **grain/noise 없음**. 결정: 정확 앤트로픽 hue 유지(베이스 워밍 거부),
+color-scheme forced-light meta는 JT가 불필요로 드롭. (a) `9f81bf2`: Source Serif 4(prose 본문) + Geist(제목/UI)
+self-host woff2 + next/font/local(**의존성 0**), 1차버튼 orange→**ink #191919**, oat #e8e6dc 세컨더리 밴드,
+`.appShell`에 웜 `--elevate`(별도 토큰; cool `--shadow`는 frozen install-prompt 보존), 캔버스 워시. **세리프는
+prose 전용 opt-in**(lede/intro/gate/status/notice/appbar desc; eyebrow·loading은 `:not` 제외; 데이터/라벨/뱃지/
+버튼/인풋엔 0). (b) **3-lens adversarial 최종감사가 내 인라인이 놓친 P2를 포착**(`.gate-status p`의 `:not(.loading-line)`
+누락 → gate 로딩문구 세리프 누출) → 1줄 수정 `c452353` → PASS. (c) JT 푸시 후 "따스함 부족" → ambient 심화
+`e522b04`: `--canvas-lit` 2-radial 웜 워시(clay 0.05 + amber 0.035)를 body·`.hero`·member `.tabPanels`에 적용
+(예전엔 불투명 canvas가 워시를 덮어 안 보였음). 보더는 따뜻한 taupe 유지(translucent-neutral ink는 흰 카드에서
+오히려 차가워져 거부 — Cowork가 잡은 nuance). 최종 PASS + 배포본 served-audit PASS(sw.js cmp=0 · canvas-lit
+clay#d977570d/amber#b9793609 · radial 2개 · `.hero` canvas-lit · 보더 taupe · 다크히어로/grain 0 · woff2 2개
+200+preload) + **JT visual eyeball PASS(2026-06-19 "uiux 괜찮아진듯")**.
+**결과 디자인 시스템**: 라이트웜 크림(#FAF9F5 정확 앤트로픽) · 세리프 prose / 산세 UI(self-host) · ink 1차버튼 ·
+oat 세컨더리 · white 카드 · `.appShell` soft warm `--elevate` · 2-radial 웜 캔버스 워시. **거버넌스 교훈 재확인**:
+빌더(Codex/GLM)≠최종승인자 유지; adversarial 워크플로가 인라인 누락 P2 포착(=full loop 가치); 정확-앤트로픽-hex
+약속이 임시 워밍을 이김; ground truth(white 카드·no grain)가 추론 lens를 오버라이드.
+**현재 상태**: origin `phase1-p0-mvp` = `e522b04`(푸시됨), Vercel preview(soulbound-staging) 배포+served-audit PASS,
+tree clean. **🔴 production/tag/RC/alpha 전 남은 host-only 게이트(여전히 OPEN)**: Android Chrome + Samsung Internet +
+iOS Safari 실기기 **설치 스모크**(홈화면 추가→standalone), **Lighthouse PWA installable**, **기능 9-screen eyeball**.
+(PWA sw.js/manifest/icons는 ac62201/rc.2와 byte-identical이라 prior validity 유지하나, 이번 사이클 device-confirm은
+아직 미수행.) **tag/RC/alpha 보류 유지.** **Backlog(P3, 비차단)**: install-prompt.module.css font-weight 760(frozen
+PWA — PWA 차기 scope 시 ≤600 정규화); SW drift-guard 테스트 string-based→구조형 강화; login/signup/gate/apply는
+globals 경유로 warmth/typography는 받았으나 `components/ui` primitive 풀 reskin은 옵션 차기 design-pass.
+
 ---
 
 ## 0. 한 줄 요약
