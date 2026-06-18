@@ -6,11 +6,11 @@
 > 설계 캐논: `docs/architecture/SoulBound_Phase1_MVP_BuildPlan_v1.3-FROZEN.md`(동결).
 > UI/UX 변경 추적: `docs/UIUX_CHANGELOG.md`. 운영 루프: `docs/WORKFLOW.md`.
 
-- **현재 단계**: **P0 MVP 기능 + 하드닝 완성** (Task 1–9 완료). RC staging 검증 완료. **`v0.1.0-rc.2` 태그됨 @ `e517ec3`**.
+- **현재 단계**: **P0 MVP 기능 + 하드닝 완성** (Task 1–9 완료). RC staging 검증 완료. **`v0.1.0-rc.2` 태그됨 @ `e517ec3`**. Pre-alpha UI/UX polish 최종 독립검토 PASS(`3bd68f2`, verdict 기록 `0efd237`).
 - **다음 단계**: internal alpha 운영. public/non-alpha 전 reaper 자동화(Task 9a-2) 재평가.
 - **현재 브랜치**: `phase1-p0-mvp`
 - **검증 환경**: Node 24 / pnpm 11.1.3
-- **요약 갱신일**: 2026-06-17 (UTC)
+- **요약 갱신일**: 2026-06-18 (KST)
 
 ---
 
@@ -49,6 +49,7 @@
 | 7a / 7b | Persona Clip routes + signed-upload + recorder 컴포넌트 | ✅ 완료 | TASK7A_*, TASK7B_* |
 | profiles provision | signup→profiles 트리거 (0007) | ✅ 완료 | PROFILES_PROVISIONING_AUDIT_FINDINGS.md |
 | 8a / 8b | UI — 공개/신청 UI + member/admin UI | ✅ 완료 (UI 전체) | TASK8A_*, TASK8B_* → `docs/UIUX_CHANGELOG.md` |
+| Pre-alpha UI/UX polish | early-KakaoTalk-like member shell (`멤버/대화/더보기`) + public/auth/gate/apply/status copy polish | ✅ 완료 (Opus/Cowork 최종 PASS) | `PROJECT_STATE.md`, `docs/UIUX_CHANGELOG.md`, `3bd68f2`, `0efd237` |
 | 9a / 9b | persona-clip byte-delete worker + audit/outbox 하드닝 lock | ✅ 완료 | TASK9A_*, TASK9B_* |
 | 9a-2 | internal cron reaper route | ⏳ deferred | (잔여) |
 | 10 | external ledger PoC (옵션, 별도 브랜치) | ⛔ 미착수 (의도적 보류) | — |
@@ -115,4 +116,5 @@ pnpm -F @soulbound/adapters clip:reap   # persona-clip reaper CLI (manual)
 
 | 일자 | 변경 |
 | --- | --- |
+| 2026-06-18 | `phase1-p0-mvp` 최신 HEAD(`0efd237`) 기준으로 pre-alpha UI/UX polish 최종 독립 PASS(`3bd68f2`)를 반영. PR 브랜치를 최신 base 위로 rebase하고 `docs/UIUX_CHANGELOG.md`와 정합화. |
 | 2026-06-17 | `phase1-p0-mvp` 현재 진실 기준으로 재작성. 이전 `main`(freeze 991dc5d) 기준 초안은 stale이라 폐기·교체. 현재 트리에서 typecheck/core 20/adapters 22/web 44/audit 게이트 재검증. `PROJECT_STATE.md` 종속 요약으로 명시. |

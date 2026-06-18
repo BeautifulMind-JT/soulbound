@@ -5,9 +5,9 @@
 > `docs/TASK8B_AUDIT_FINDINGS.md` / `docs/RC2_MIME_FALLBACK_AUDIT.md`가 정본입니다.
 > 작업 진척도 전반: `docs/PROGRESS.md`. 설계 캐논: `docs/architecture/SoulBound_Phase1_MVP_BuildPlan_v1.3-FROZEN.md`.
 
-- **현재 상태**: `apps/web` **구축 완료** (Task 8a/8b 완료). P0 happy-path 화면 전체 존재. **RC-2(`v0.1.0-rc.2 @ e517ec3`) validated staging** 기준.
-- **다음 단계**: internal alpha. UI/UX 추가 변경은 본 Changelog(§4)에 누적 기록.
-- **마지막 갱신**: 2026-06-17 (UTC)
+- **현재 상태**: `apps/web` **구축 완료** (Task 8a/8b 완료). P0 happy-path 화면 전체 존재. **RC-2(`v0.1.0-rc.2 @ e517ec3`) validated staging** 이후 pre-alpha UI/UX polish 최종 독립검토 PASS(`3bd68f2`, verdict 기록 `0efd237`).
+- **다음 단계**: internal alpha. Members placeholder를 실데이터로 연결할 때는 새 API route + service 경유(HARD RULE 1)로만 진행.
+- **마지막 갱신**: 2026-06-18 (KST)
 - **브랜치**: `phase1-p0-mvp`
 
 ---
@@ -41,7 +41,7 @@ UI는 "완벽히 돌아가더라도" 아래 가드를 깨면 빌드 실패다. �
 | Gate Hub | `app/gate/page.tsx` | 입장 절차 안내 허브 | ✅ BUILT (8a) |
 | Apply | `app/apply/page.tsx` | 신청서 + persona-clip recorder 섹션 | ✅ BUILT (8a) |
 | Apply Status | `app/apply/status/page.tsx` | 내 신청 현황 (상태 badge + 검토자 안내) | ✅ BUILT (8a) |
-| Member Home | `app/member/page.tsx` | 멤버 홈 (승인 후) | ✅ BUILT (8b) |
+| Member Home | `app/member/page.tsx` | 승인 후 shell (`멤버/대화/더보기`, My Persona, New/Active/All Members placeholder) | ✅ BUILT (8b) + polished (`3bd68f2`) |
 | Admin Queue | `app/admin/applications/page.tsx` | 검토 큐 | ✅ BUILT (8b) |
 | Admin Detail | `app/admin/applications/[id]/page.tsx` | 검토 상세 + 결정 폼 + clip 재생 | ✅ BUILT (8b) |
 
@@ -57,16 +57,16 @@ UI는 "완벽히 돌아가더라도" 아래 가드를 깨면 빌드 실패다. �
 | usePersonaClipRecorder 훅 | `components/admission/use-persona-clip-recorder.ts` | getUserMedia→MediaRecorder→blob→sha256→POST→upload PUT · upload-before-onComplete | ✅ BUILT (7b) |
 | AuthProvider | `lib/auth-provider.tsx` | 브라우저 anon 클라이언트(persistSession) · `authedFetch`(bearer 주입) · 역할=신뢰 RPC | ✅ BUILT (8a) |
 | api-response / application-state | `lib/api-response.ts`, `lib/application-state.ts` | 응답 파싱 · 신청 id 기억 | ✅ BUILT |
-| 글로벌 디자인 토큰/스타일 | `app/globals.css` | "locked door" 테마, CSS 변수(ink/green/wine/amber/danger), 반응형(@760px) | ✅ BUILT |
+| 글로벌 디자인 토큰/스타일 | `app/globals.css` | compact private messenger shell, talk-yellow accent, landing door visual 유지, 반응형(@760px/@700px) | ✅ BUILT + polished |
 | 멤버 스타일 | `app/member/page.module.css` | CSS Module | ✅ BUILT |
 | 관리자 스타일 | `app/admin/applications/admin.module.css` | CSS Module | ✅ BUILT |
 
 **디자인 시스템 요약** (`globals.css`):
-- 컬러 토큰: `--ink #18231f` / `--green #1d654f` / `--wine #7a3542` / `--amber #b3823c` / `--danger #a2342d` / `--canvas #f2f4f0`.
-- 타이포: 본문 Geist/Inter, 헤딩 Georgia serif.
+- 컬러 토큰: `--ink #18231f` / `--green #1d654f` / `--talk #f2d94e` / `--wine #7a3542` / `--amber #b3823c` / `--danger #a2342d` / `--canvas #f2f4f0`.
+- 타이포: Geist/Inter/system sans 중심. Hero/member shell heading도 sans 기준으로 단순화.
 - 컴포넌트 클래스: `.button` / `.button-secondary` / `.button-danger`, `.auth-panel`/`.form-panel`/`.status-panel`, `.status-badge`, `.gate-grid`, `.recorder-section`.
-- 모티프: hero "잠긴 문(door-visual + keyhole)" + 입장 3단계(`.intro-steps`).
-- 접근성: `aria-live`/`role="alert"`, `:focus` 링, 최소 44px 터치 타깃, 320px min-width, 모바일 브레이크포인트.
+- 모티프: landing은 "잠긴 문(door-visual + keyhole)" 유지, admitted surface는 `멤버/대화/더보기` bottom-tab shell로 전환.
+- 접근성: `aria-live`/`role="alert"`, `:focus` 링, 최소 44px 터치 타깃, 320px min-width, mobile breakpoints.
 
 ---
 
@@ -92,7 +92,8 @@ draft → submitted → under_review → needs_more_info → approved / rejected
 
 | 일자 | 화면/컴포넌트 | 유형 | 요약 | 가드 영향 | 증적 |
 | --- | --- | --- | --- | --- | --- |
-| 2026-06-17 | (문서) | 📄 문서 | UI/UX 추적 문서를 현재 진실(`apps/web` BUILT, RC-2)로 재작성. 이전 "미생성/planned" 초안 폐기 | — | (이 PR) |
+| 2026-06-18 | member, public/auth/gate/apply/status, globals | ✏️ 개선 | Pre-alpha UI polish: `/member`를 `멤버/대화/더보기` admitted shell로 전환, Members 기본 탭에 My Persona + New/Active/All Members placeholder 추가, public/auth/gate/apply/status copy를 짧은 Korean labels 중심으로 정리, `SOUL` ordinary-user 메뉴를 `내 멤버십`으로 완화 | Surface-only. DB/schema/RLS/RPC/API/auth/adapters/core/env/storage/reaper/approval 무변경. Persona Clip proper noun/semantics 유지. | `3bd68f2`, `0efd237`, `PROJECT_STATE.md` |
+| 2026-06-18 | (문서) | 📄 문서 | UI/UX 추적 문서를 현재 진실(`apps/web` BUILT, RC-2 + pre-alpha polish PASS)로 재작성. 이전 "미생성/planned" 초안 폐기 | — | (이 PR) |
 | ~RC-2 | persona-clip-recorder | 🐛 수정 | **MIME fallback** — Samsung/Safari MP4 경로 추가, Chrome/webm 보존(recorder 2파일·계약 무손상). Samsung Internet 실기기 스모크 PASS | INV-PC-05 무손상 | RC2_MIME_FALLBACK_AUDIT.md |
 | Task 8b | member, admin queue, admin detail | 🆕 신규 | 멤버 홈 + 검토 큐/상세 + 결정 폼(reasonCode enum·멱등·409 graceful)·clip 클릭 재생. 권한=라우트 403 위임 | INV-01/17, reviewSummary 경계 | TASK8B_AUDIT_FINDINGS.md |
 | Task 8a | landing/login/signup/gate/apply/status + layout/header | 🆕 신규 | 공개/신청 UI + auth foundation(anon 클라이언트·authedFetch bearer) + 디자인 시스템(globals.css) | INV-17(번들 service-role 0)·PC-01 | TASK8A_AUDIT_FINDINGS.md |
