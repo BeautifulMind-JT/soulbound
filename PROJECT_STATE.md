@@ -19,9 +19,10 @@ admitted shell로 재구성하고 Members 기본 화면에 My Persona / New Memb
 state machine **0건 변경**. 게이트: `git diff --check`, `pnpm -F web typecheck`, `pnpm typecheck`, `pnpm -F web test`
 (44/44), `pnpm build` PASS; dummy public env로 browser smoke(`/` no console errors, `/member` unauth→`/login`) 확인.
 
-추가 갱신(2026-06-18, pre-alpha design pass + PWA candidate): JT가 Claude/Cowork Step 1 brief와 Step 3 승인
-조건(6개 보정)을 제시했고, Codex가 `docs/DESIGN_PASS_PLAN.md`를 별도 커밋으로 고정한 뒤 빌드 후보를 구현했다.
-상태는 **Codex build candidate / final independent audit pending**이다. 변경 내용: warm paper + terracotta AA ramp
+추가 갱신(2026-06-18, pre-alpha design pass + PWA): JT가 Claude/Cowork Step 1 brief와 Step 3 승인
+조건(6개 보정)을 제시했고, Codex가 `docs/DESIGN_PASS_PLAN.md`를 별도 커밋으로 고정한 뒤 `ac62201`을 구현했다.
+**Step 5 Final Independent Audit = PASS(acceptable for pre-alpha)** — P0/P1 0, P2/observations only. 변경 내용:
+warm paper + terracotta AA ramp
 토큰으로 `globals.css` 재정렬, landing door motif를 messenger phone preview로 교체(모바일에서는 읽기성 위해 숨김),
 `components/ui/*` 공통 primitive(AppBar/TabBar/ListRow/Avatar/Card/Section/EmptyState/Field/Button/Badge) 추가,
 `/member`를 phone-like admitted shell로 추가 polish, admin palette 정렬, applicant status에서 `reviewSummary`와
@@ -32,8 +33,12 @@ Persona Clip recorder internals는 건드리지 않았고, DB/schema/RLS/RPC/API
 reaper/approval state machine은 변경하지 않았다. GLM 5.2 callable model은 이 Codex 도구셋에 없어서 실제 GLM 빌드는
 수행하지 않았으며, 반복 표면작업은 Codex가 동일 금지선 아래 직접 처리했다(최종 보고에서 명시 필요). 검증 후보 게이트:
 `pnpm -F web typecheck` PASS, `pnpm -F web test` 61/61 PASS, `pnpm build` PASS, browser smoke(`/`, `/login`
-390px/1200px; dev indicator 제외) 수행. 남은 최종 판단: Cowork/Opus가 SW cache boundary, protected-surface diff,
-Persona Clip semantics, page wiring, PWA installability/실기기 스모크 필요성을 독립 검토.
+390px/1200px; dev indicator 제외) 수행. 독립감사 재검증: protected-surface diff EMPTY, SW cache boundary 보수적,
+Persona Clip 시맨틱/guards 보존, status privacy test는 non-vacuous, typecheck/test/build/diff-check green. **push/deploy 전
+남은 host-only runtime gate**: Android Chrome + Samsung Internet + iOS Safari real-device install smoke, Lighthouse PWA
+installable pass, 9-screen visual eyeball. 후속 기록: P2 SW drift-guard test를 string-based에서 구조/행동형으로 강화,
+그리고 이번 pass에 포함되지 않은 `/login`/`signup`/`gate`/`apply` 등 구 shell 페이지의 full primitive reskin은 다음
+design-pass로 분리.
 
 ---
 
@@ -342,9 +347,20 @@ Pre-alpha UI/UX polish
   → 전용 보안태스크(Codex): security-definer `handle_new_user()` + `after insert on auth.users` 트리거
   (→`public.profiles(id, role='applicant')`) 마이그레이션 + pgTAP(신규 auth user → applicant profile 단언). 8a는
   supabase/·신규라우트 금지라 정당히 미수정. 증적 docs/TASK8A_AUDIT_FINDINGS.md #1.
-- **[Task 8a 잔여, LOW/latent] status 페이지가 reasonCode를 신청자에게 표시하도록 배선됨**(현재 dormant — applicant
-  AdmissionApplication에 reasonCode 없어 렌더 안 됨, 실누수 0). reasonCode는 내부 분류 enum, 신청자-대면은 applicantNotice.
-  의도 확인 필요: 신청자 비노출이면 dormant 분기 제거(미래 API 변경 시 내부 분류 우발노출 방지). 증적 #2.
+- ✅ **[완료 — ac62201] Task 8a 잔여 status reasonCode dormant 분기 제거.** applicant status는
+  `applicantNotice`만 표시하고, `reviewSummary`/`reasonCode`는 ordinary applicant 화면에 렌더하지 않는다.
+  새 `app/apply/status/page.test.tsx`가 mock payload에 `reviewSummary`와 `reasonCode`를 넣고도 미렌더를 단언해
+  미래 API 변경 시 내부 분류 우발노출을 막는다.
+- **[P2 follow-up — design pass] SW drift-guard test 강화.** 현재 `components/pwa/service-worker.security.test.ts`는
+  helper 동작 테스트 + `public/sw.js` 문자열 동기화(`toContain`)로 shipped SW를 감시한다. `ac62201` 현재 코드는
+  `shouldBypassCache()`가 fetch handler 맨 앞에서 실행되어 `/api/**`, Authorization, no-store, persona-clip,
+  cross-origin, non-GET을 network-only/no-store로 배제하므로 안전하다. 다만 미래 리팩터가 문자열은 남긴 채
+  `cache.put` 순서를 앞당기는 drift를 막으려면 SW fetch handler를 실제/준실제 Request로 평가하는 구조/행동형
+  테스트로 강화할 것.
+- **[UX follow-up — partial scope] full primitive reskin 잔여.** `ac62201`은 core primitives, PWA, landing,
+  `/member`, `/apply/status`, admin palette를 우선 정리했다. `/login`, `/signup`, `/gate`, `/apply` 등은 새 토큰은
+  적용되지만 아직 모든 구조가 `components/ui/*` primitive 기반으로 재작성된 것은 아니다. pre-alpha 후속 design pass에서
+  같은 금지선(DB/API/auth/storage/Persona Clip semantics 무변경) 아래 반복 적용.
 - **[Task 10-1] outbox vs ledger 직접호출 책임 분리.** 현재 approve 후처리가 `outbox.enqueue` +
   `ledger.issueMembershipCredential`를 *둘 다* 직접 실행(INV-13 테스트가 그렇게 강제). P0는
   `externalLedgerEnabled=false`라 안 돌지만, Task 10에서 outbox processor가 `external_ledger`

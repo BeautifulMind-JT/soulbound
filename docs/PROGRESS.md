@@ -6,7 +6,7 @@
 > 설계 캐논: `docs/architecture/SoulBound_Phase1_MVP_BuildPlan_v1.3-FROZEN.md`(동결).
 > UI/UX 변경 추적: `docs/UIUX_CHANGELOG.md`. 운영 루프: `docs/WORKFLOW.md`.
 
-- **현재 단계**: **P0 MVP 기능 + 하드닝 완성** (Task 1–9 완료). RC staging 검증 완료. **`v0.1.0-rc.2` 태그됨 @ `e517ec3`**. Pre-alpha UI/UX polish 최종 독립검토 PASS(`3bd68f2`, verdict 기록 `0efd237`). 2026-06-18 design pass + PWA candidate는 Codex build 후 최종 독립검토 대기.
+- **현재 단계**: **P0 MVP 기능 + 하드닝 완성** (Task 1–9 완료). RC staging 검증 완료. **`v0.1.0-rc.2` 태그됨 @ `e517ec3`**. Pre-alpha UI/UX polish 최종 독립검토 PASS(`3bd68f2`, verdict 기록 `0efd237`). 2026-06-18 design pass + PWA `ac62201`도 최종 독립검토 PASS(acceptable for pre-alpha); push/deploy 전 host-only runtime gate만 남음.
 - **다음 단계**: internal alpha 운영. public/non-alpha 전 reaper 자동화(Task 9a-2) 재평가.
 - **현재 브랜치**: `phase1-p0-mvp`
 - **검증 환경**: Node 24 / pnpm 11.1.3
@@ -50,7 +50,7 @@
 | profiles provision | signup→profiles 트리거 (0007) | ✅ 완료 | PROFILES_PROVISIONING_AUDIT_FINDINGS.md |
 | 8a / 8b | UI — 공개/신청 UI + member/admin UI | ✅ 완료 (UI 전체) | TASK8A_*, TASK8B_* → `docs/UIUX_CHANGELOG.md` |
 | Pre-alpha UI/UX polish | early-KakaoTalk-like member shell (`멤버/대화/더보기`) + public/auth/gate/apply/status copy polish | ✅ 완료 (Opus/Cowork 최종 PASS) | `PROJECT_STATE.md`, `docs/UIUX_CHANGELOG.md`, `3bd68f2`, `0efd237` |
-| Pre-alpha design pass + PWA | warm terracotta visual pass + UI primitives + PWA manifest/icons/install prompt/SW + applicant status privacy lock | 🟡 후보 (Codex build, final audit pending) | `docs/DESIGN_PASS_BRIEF.md`, `docs/DESIGN_PASS_PLAN.md`, `docs/UIUX_CHANGELOG.md` |
+| Pre-alpha design pass + PWA | warm terracotta visual pass + UI primitives + PWA manifest/icons/install prompt/SW + applicant status privacy lock | ✅ final audit PASS (`ac62201`, host runtime gate pending before push/deploy) | `docs/DESIGN_PASS_BRIEF.md`, `docs/DESIGN_PASS_PLAN.md`, `docs/UIUX_CHANGELOG.md`, `PROJECT_STATE.md` |
 | 9a / 9b | persona-clip byte-delete worker + audit/outbox 하드닝 lock | ✅ 완료 | TASK9A_*, TASK9B_* |
 | 9a-2 | internal cron reaper route | ⏳ deferred | (잔여) |
 | 10 | external ledger PoC (옵션, 별도 브랜치) | ⛔ 미착수 (의도적 보류) | — |
@@ -77,7 +77,9 @@
 - ⏳ **Safari persona-clip 호환성 스모크** — 후속(non-블로커). 미지원 시 graceful **PC-01 degradation**(클립 없이 제출).
 - ⏳ **Task 9a-2** — internal cron reaper 자동화. public/non-alpha 전 재평가.
 - ⏳ **Task 10-1** — outbox vs ledger 직접호출 책임 분리(중복 발급 위험). **Task 10 전** "서비스는 enqueue만, ledger 호출은 processor 1회"로 단일화 결정 필요.
-- 🟡 **Pre-alpha design pass + PWA candidate 최종 독립검토** — SW cache boundary, PWA installability, page wiring, Persona Clip semantics, protected surface diff를 Cowork/Opus가 재검증.
+- 🟡 **Pre-alpha design pass + PWA host-only runtime gate** — Android Chrome/Samsung Internet/iOS Safari install smoke, Lighthouse PWA installable, 9-screen visual eyeball.
+- 🟡 **SW drift-guard test 강화(P2)** — 현재 SW는 안전하나 shipped `sw.js` 동기화 테스트가 문자열 기반이라 구조/행동형 테스트로 후속 강화.
+- 🟡 **full primitive reskin 잔여** — `/login`, `/signup`, `/gate`, `/apply` 등 구 shell 페이지를 후속 design pass에서 `components/ui/*` 기반으로 완성.
 - ⛔ **[다음 라운드 Northstar]** privacy ledger 선택(Zcash ZSA / Aleo / Aztec) + ICP 앱체인 — P0 계약 아님. `LedgerPort` 추상 경계가 이미 수용.
 
 ---

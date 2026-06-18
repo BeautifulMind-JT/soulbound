@@ -5,7 +5,7 @@
 > `docs/TASK8B_AUDIT_FINDINGS.md` / `docs/RC2_MIME_FALLBACK_AUDIT.md`가 정본입니다.
 > 작업 진척도 전반: `docs/PROGRESS.md`. 설계 캐논: `docs/architecture/SoulBound_Phase1_MVP_BuildPlan_v1.3-FROZEN.md`.
 
-- **현재 상태**: `apps/web` **구축 완료** (Task 8a/8b 완료). P0 happy-path 화면 전체 존재. **RC-2(`v0.1.0-rc.2 @ e517ec3`) validated staging** 이후 pre-alpha UI/UX polish 최종 독립검토 PASS(`3bd68f2`, verdict 기록 `0efd237`). 2026-06-18 design pass + PWA candidate는 Codex build 완료 후 최종 독립검토 대기.
+- **현재 상태**: `apps/web` **구축 완료** (Task 8a/8b 완료). P0 happy-path 화면 전체 존재. **RC-2(`v0.1.0-rc.2 @ e517ec3`) validated staging** 이후 pre-alpha UI/UX polish 최종 독립검토 PASS(`3bd68f2`, verdict 기록 `0efd237`). 2026-06-18 design pass + PWA `ac62201`도 최종 독립검토 PASS(acceptable for pre-alpha); push/deploy 전 host-only runtime gate만 남음.
 - **다음 단계**: internal alpha. Members placeholder를 실데이터로 연결할 때는 새 API route + service 경유(HARD RULE 1)로만 진행.
 - **마지막 갱신**: 2026-06-18 (KST)
 - **브랜치**: `phase1-p0-mvp`
@@ -94,7 +94,7 @@ draft → submitted → under_review → needs_more_info → approved / rejected
 
 | 일자 | 화면/컴포넌트 | 유형 | 요약 | 가드 영향 | 증적 |
 | --- | --- | --- | --- | --- | --- |
-| 2026-06-18 | app shell, components/ui, PWA, member, landing, status | 🆕/✏️ 후보 | Pre-alpha design pass candidate: warm terracotta token ramp, reusable UI primitives, PWA manifest/icons/install prompt/hand-rolled SW, landing messenger preview, `/member` phone-like shell refinement, applicant status privacy lock(`reviewSummary`/`reasonCode` 미렌더), admin palette alignment | Candidate only. DB/schema/RLS/RPC/API/auth/adapters/core/env/storage/reaper/approval 무변경. SW는 `/api/**`, Authorization, no-store, persona-clip, cross-origin, non-GET bypass. Persona Clip recorder internals untouched. | `docs/DESIGN_PASS_BRIEF.md`, `docs/DESIGN_PASS_PLAN.md`, final review pending |
+| 2026-06-18 | app shell, components/ui, PWA, member, landing, status | 🆕/✏️ 개선 | Pre-alpha design pass + PWA: warm terracotta token ramp, reusable UI primitives, PWA manifest/icons/install prompt/hand-rolled SW, landing messenger preview, `/member` phone-like shell refinement, applicant status privacy lock(`reviewSummary`/`reasonCode` 미렌더), admin palette alignment | Final independent audit PASS. DB/schema/RLS/RPC/API/auth/adapters/core/env/storage/reaper/approval 무변경. SW는 `/api/**`, Authorization, no-store, persona-clip, cross-origin, non-GET bypass. Persona Clip recorder internals untouched. Host-only install/Lighthouse/visual smoke pending before push/deploy. | `ac62201`, `docs/DESIGN_PASS_BRIEF.md`, `docs/DESIGN_PASS_PLAN.md`, `PROJECT_STATE.md` |
 | 2026-06-18 | member, public/auth/gate/apply/status, globals | ✏️ 개선 | Pre-alpha UI polish: `/member`를 `멤버/대화/더보기` admitted shell로 전환, Members 기본 탭에 My Persona + New/Active/All Members placeholder 추가, public/auth/gate/apply/status copy를 짧은 Korean labels 중심으로 정리, `SOUL` ordinary-user 메뉴를 `내 멤버십`으로 완화 | Surface-only. DB/schema/RLS/RPC/API/auth/adapters/core/env/storage/reaper/approval 무변경. Persona Clip proper noun/semantics 유지. | `3bd68f2`, `0efd237`, `PROJECT_STATE.md` |
 | 2026-06-18 | (문서) | 📄 문서 | UI/UX 추적 문서를 현재 진실(`apps/web` BUILT, RC-2 + pre-alpha polish PASS)로 재작성. 이전 "미생성/planned" 초안 폐기 | — | (이 PR) |
 | ~RC-2 | persona-clip-recorder | 🐛 수정 | **MIME fallback** — Samsung/Safari MP4 경로 추가, Chrome/webm 보존(recorder 2파일·계약 무손상). Samsung Internet 실기기 스모크 PASS | INV-PC-05 무손상 | RC2_MIME_FALLBACK_AUDIT.md |
@@ -121,4 +121,6 @@ UI/UX를 건드릴 때 매번:
 ## 6. 알려진 UX 후속 (Known Follow-ups)
 
 - ⏳ **Safari persona-clip 호환성 스모크** (non-블로커). 미지원 시 graceful **PC-01 degradation**(클립 없이 제출).
-- 🟡 2026-06-18 design pass + PWA candidate 최종 독립검토(Cowork/Opus) 및 실기기 설치 스모크.
+- 🟡 2026-06-18 design pass + PWA host-only runtime gate: Android Chrome/Samsung Internet/iOS Safari install smoke, Lighthouse PWA installable, 9-screen visual eyeball.
+- 🟡 SW drift-guard test 강화: 현재 SW는 안전하나 shipped `sw.js` 동기화 테스트가 문자열 기반이라 구조/행동형 테스트로 후속 강화.
+- 🟡 full primitive reskin 잔여: `/login`, `/signup`, `/gate`, `/apply` 등 구 shell 페이지를 후속 design pass에서 `components/ui/*` 기반으로 완성.
