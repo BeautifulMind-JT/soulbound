@@ -185,7 +185,12 @@ Task 9b (Codex)  ✅ audit/outbox 하드닝 회귀-lock(thin·HARD RULE 10 준�
                     안 함. core test 20 내 재실행·scope 테스트파일만·audit.sh PASS. Opus PASS. 증적 docs/TASK9B_AUDIT_FINDINGS.md.
                     **→ ✅ Task 9 완료(9a+9b) = P0 MVP 기능+하드닝 완성.**
 Pre-alpha UI/UX polish
-                  ✅/검토대기 (2026-06-17, Codex builder; Opus 최종검토 전). **이번 한정 workflow 예외**(§1):
+                  ✅ **Opus/Cowork 최종 독립검토 PASS** (2026-06-18, candidate 3bd68f2; Codex builder + GLM 표면).
+                    검증(내 재도출): 보호표면 git show EMPTY(supabase/packages/api/lib/.env/scripts/next.config/lock),
+                    페이지 추가라인에 직접 supabase/createClient/service-role/raw-fetch/env **0건**, member 페이지
+                    auth-guard+membership fetch+비active→/gate 보존, Persona Clip 고유명·시맨틱 무손상(recorder/adapter/route
+                    미변경), 테스트 무약화(라벨/UI 셀렉터만), diff --check clean, typecheck/test 44/test/build PASS. P0/P1 0.
+                    **이번 한정 workflow 예외**(§1):
                     Codex가 UI 방향 확인→구현→self-check→GLM 5.2 표면반복 프롬프트 작성까지 수행. GLM은 지정된
                     표면 반복정리만 수행했고, Codex가 diff를 검토/감독했다. 최종 판단은 Opus/Cowork가 한다.
                     변경 표면은 apps/web UI/components/tests only. **보호표면 EMPTY**: supabase migrations/SQL/RLS/RPC,
