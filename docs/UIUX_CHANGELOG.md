@@ -5,7 +5,7 @@
 > `docs/TASK8B_AUDIT_FINDINGS.md` / `docs/RC2_MIME_FALLBACK_AUDIT.md`가 정본입니다.
 > 작업 진척도 전반: `docs/PROGRESS.md`. 설계 캐논: `docs/architecture/SoulBound_Phase1_MVP_BuildPlan_v1.3-FROZEN.md`.
 
-- **현재 상태**: `apps/web` **구축 완료** (Task 8a/8b 완료). P0 happy-path 화면 전체 존재. **RC-2(`v0.1.0-rc.2 @ e517ec3`) validated staging** 이후 pre-alpha UI/UX polish 최종 독립검토 PASS(`3bd68f2`, verdict 기록 `0efd237`).
+- **현재 상태**: `apps/web` **구축 완료** (Task 8a/8b 완료). P0 happy-path 화면 전체 존재. **RC-2(`v0.1.0-rc.2 @ e517ec3`) validated staging** 이후 pre-alpha UI/UX polish 최종 독립검토 PASS(`3bd68f2`, verdict 기록 `0efd237`). 2026-06-18 design pass + PWA candidate는 Codex build 완료 후 최종 독립검토 대기.
 - **다음 단계**: internal alpha. Members placeholder를 실데이터로 연결할 때는 새 API route + service 경유(HARD RULE 1)로만 진행.
 - **마지막 갱신**: 2026-06-18 (KST)
 - **브랜치**: `phase1-p0-mvp`
@@ -60,12 +60,14 @@ UI는 "완벽히 돌아가더라도" 아래 가드를 깨면 빌드 실패다. �
 | 글로벌 디자인 토큰/스타일 | `app/globals.css` | compact private messenger shell, talk-yellow accent, landing door visual 유지, 반응형(@760px/@700px) | ✅ BUILT + polished |
 | 멤버 스타일 | `app/member/page.module.css` | CSS Module | ✅ BUILT |
 | 관리자 스타일 | `app/admin/applications/admin.module.css` | CSS Module | ✅ BUILT |
+| UI primitives | `components/ui/*` | AppBar/TabBar/ListRow/Avatar/Card/Section/EmptyState/Field/Button/Badge | 🟡 CANDIDATE |
+| PWA shell | `app/manifest.ts`, `app/icon.png`, `app/apple-icon.png`, `public/sw.js`, `public/icons/*`, `components/pwa/*` | manifest/icons/install prompt/hand-rolled SW + cache-boundary tests | 🟡 CANDIDATE |
 
 **디자인 시스템 요약** (`globals.css`):
-- 컬러 토큰: `--ink #18231f` / `--green #1d654f` / `--talk #f2d94e` / `--wine #7a3542` / `--amber #b3823c` / `--danger #a2342d` / `--canvas #f2f4f0`.
+- 컬러 토큰: warm paper + terracotta ramp. Main values: `--ink #191919`, `--canvas #faf9f5`, `--surface #ffffff`, `--accent #d97757`, `--accent-text #a94728`, `--accent-pressed #963b20`, `--accent-weak #f5e4dc`, `--success #3d9a6d`, `--danger #c0392b`.
 - 타이포: Geist/Inter/system sans 중심. Hero/member shell heading도 sans 기준으로 단순화.
 - 컴포넌트 클래스: `.button` / `.button-secondary` / `.button-danger`, `.auth-panel`/`.form-panel`/`.status-panel`, `.status-badge`, `.gate-grid`, `.recorder-section`.
-- 모티프: landing은 "잠긴 문(door-visual + keyhole)" 유지, admitted surface는 `멤버/대화/더보기` bottom-tab shell로 전환.
+- 모티프: landing은 messenger phone preview, admitted surface는 `멤버/대화/더보기` bottom-tab shell.
 - 접근성: `aria-live`/`role="alert"`, `:focus` 링, 최소 44px 터치 타깃, 320px min-width, mobile breakpoints.
 
 ---
@@ -81,7 +83,7 @@ draft → submitted → under_review → needs_more_info → approved / rejected
 
 - applicant 화면 노출: `applicantNotice`("검토자 안내")만. `review_summary`(관리자 내부 메모)는 노출 금지(라우트 403로 차단).
 - 결정 사유는 `reasonCode`(enum) → 한글 라벨 매핑으로만 표시. 자유서술 입력 없음.
-- ⚠️ status 페이지의 `reasonCode` 분기는 현재 **dormant**(applicant 응답에 reasonCode 없음 → 실누수 0). 비노출 확정 시 분기 제거 검토(`PROJECT_STATE.md §4`).
+- applicant status는 `applicantNotice`만 표시한다. `reviewSummary` 및 `reasonCode`는 ordinary applicant 화면에 렌더하지 않는다.
 
 ---
 
@@ -92,6 +94,7 @@ draft → submitted → under_review → needs_more_info → approved / rejected
 
 | 일자 | 화면/컴포넌트 | 유형 | 요약 | 가드 영향 | 증적 |
 | --- | --- | --- | --- | --- | --- |
+| 2026-06-18 | app shell, components/ui, PWA, member, landing, status | 🆕/✏️ 후보 | Pre-alpha design pass candidate: warm terracotta token ramp, reusable UI primitives, PWA manifest/icons/install prompt/hand-rolled SW, landing messenger preview, `/member` phone-like shell refinement, applicant status privacy lock(`reviewSummary`/`reasonCode` 미렌더), admin palette alignment | Candidate only. DB/schema/RLS/RPC/API/auth/adapters/core/env/storage/reaper/approval 무변경. SW는 `/api/**`, Authorization, no-store, persona-clip, cross-origin, non-GET bypass. Persona Clip recorder internals untouched. | `docs/DESIGN_PASS_BRIEF.md`, `docs/DESIGN_PASS_PLAN.md`, final review pending |
 | 2026-06-18 | member, public/auth/gate/apply/status, globals | ✏️ 개선 | Pre-alpha UI polish: `/member`를 `멤버/대화/더보기` admitted shell로 전환, Members 기본 탭에 My Persona + New/Active/All Members placeholder 추가, public/auth/gate/apply/status copy를 짧은 Korean labels 중심으로 정리, `SOUL` ordinary-user 메뉴를 `내 멤버십`으로 완화 | Surface-only. DB/schema/RLS/RPC/API/auth/adapters/core/env/storage/reaper/approval 무변경. Persona Clip proper noun/semantics 유지. | `3bd68f2`, `0efd237`, `PROJECT_STATE.md` |
 | 2026-06-18 | (문서) | 📄 문서 | UI/UX 추적 문서를 현재 진실(`apps/web` BUILT, RC-2 + pre-alpha polish PASS)로 재작성. 이전 "미생성/planned" 초안 폐기 | — | (이 PR) |
 | ~RC-2 | persona-clip-recorder | 🐛 수정 | **MIME fallback** — Samsung/Safari MP4 경로 추가, Chrome/webm 보존(recorder 2파일·계약 무손상). Samsung Internet 실기기 스모크 PASS | INV-PC-05 무손상 | RC2_MIME_FALLBACK_AUDIT.md |
@@ -118,4 +121,4 @@ UI/UX를 건드릴 때 매번:
 ## 6. 알려진 UX 후속 (Known Follow-ups)
 
 - ⏳ **Safari persona-clip 호환성 스모크** (non-블로커). 미지원 시 graceful **PC-01 degradation**(클립 없이 제출).
-- 🟡 status 페이지 `reasonCode` dormant 분기 제거 여부 결정 (신청자 비노출 의도 확인 후).
+- 🟡 2026-06-18 design pass + PWA candidate 최종 독립검토(Cowork/Opus) 및 실기기 설치 스모크.

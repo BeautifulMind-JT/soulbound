@@ -5,7 +5,9 @@
   gap: 18px;
   margin-bottom: 20px;
   padding: 18px 20px;
-  border-block: 1px solid var(--line);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .filterField {
@@ -24,8 +26,8 @@
 .decisionForm select,
 .decisionForm textarea {
   width: 100%;
-  border: 1px solid #aeb8b2;
-  border-radius: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
   background: var(--surface);
   color: var(--ink);
   font: inherit;
@@ -65,8 +67,8 @@
 }
 
 .queueTable th {
-  background: #e8ece8;
-  color: #48544e;
+  background: var(--surface-warm);
+  color: var(--muted);
   font-size: 12px;
   text-transform: uppercase;
 }
@@ -76,7 +78,7 @@
 }
 
 .queueTable tbody tr:hover {
-  background: #f7f9f6;
+  background: var(--surface-sunken);
 }
 
 .queueTable :global(.status-badge) {
@@ -91,13 +93,13 @@
 }
 
 .clipMarker {
-  color: var(--wine);
+  color: var(--accent-text);
   font-size: 13px;
   font-weight: 750;
 }
 
 .rowLink {
-  color: var(--green);
+  color: var(--accent-text);
   font-weight: 750;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -124,7 +126,7 @@
 }
 
 .backLink {
-  color: var(--green);
+  color: var(--accent-text);
   font-size: 14px;
   font-weight: 750;
 }
@@ -182,8 +184,8 @@
 
 .internalNote {
   padding: 14px;
-  border-left: 4px solid var(--wine);
-  background: #f7eef0;
+  border-left: 4px solid var(--accent);
+  background: var(--surface-warm);
 }
 
 .clipBlock {
@@ -203,7 +205,7 @@
   padding: 24px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #e8ece8;
+  background: var(--surface-warm);
 }
 
 .decisionGrid {
@@ -217,7 +219,7 @@
   align-content: start;
   gap: 14px;
   padding: 18px;
-  border: 1px solid #bcc5bf;
+  border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
 }
@@ -230,7 +232,7 @@
 .decisionForm label {
   display: grid;
   gap: 7px;
-  color: #48544e;
+  color: var(--muted);
   font-size: 13px;
   font-weight: 700;
 }
@@ -244,7 +246,7 @@
 
 .actionMessage {
   margin: 0 0 16px;
-  color: var(--wine);
+  color: var(--accent-text);
   font-weight: 700;
 }
 

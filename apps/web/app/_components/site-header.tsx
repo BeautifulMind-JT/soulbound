@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
+import { InstallPrompt } from "../../components/pwa/install-prompt";
 import { useAuth } from "../../lib/auth-provider";
 
 export function SiteHeader() {
@@ -45,6 +46,7 @@ export function SiteHeader() {
             <Link className="nav-action" href="/signup">가입하기</Link>
           </>
         )}
+        <InstallPrompt />
       </nav>
       {signOutError ? (
         <p className="header-error" role="alert">{signOutError}</p>

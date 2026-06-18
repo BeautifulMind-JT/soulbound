@@ -1,0 +1,42 @@
+"use client";
+
+import React, { type ReactNode } from "react";
+import styles from "./ui.module.css";
+
+interface TabItem<T extends string> {
+  readonly id: T;
+  readonly label: string;
+  readonly icon?: ReactNode;
+}
+
+interface TabBarProps<T extends string> {
+  readonly label: string;
+  readonly items: readonly TabItem<T>[];
+  readonly activeId: T;
+  readonly onChange: (id: T) => void;
+}
+
+export function TabBar<T extends string>({
+  label,
+  items,
+  activeId,
+  onChange,
+}: TabBarProps<T>) {
+  return (
+    <nav aria-label={label} className={styles.tabBar} role="tablist">
+      {items.map((item) => (
+        <button
+          aria-selected={activeId === item.id}
+          className={activeId === item.id ? styles.tabActive : undefined}
+          key={item.id}
+          onClick={() => onChange(item.id)}
+          role="tab"
+          type="button"
+        >
+          {item.icon ? <span aria-hidden="true">{item.icon}</span> : null}
+          <span>{item.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+}

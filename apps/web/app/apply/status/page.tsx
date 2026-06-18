@@ -2,7 +2,6 @@
 
 import type {
   AdmissionApplication,
-  AdmissionReasonCode,
   AdmissionStatus,
 } from "@soulbound/core";
 import Link from "next/link";
@@ -26,25 +25,7 @@ const statusLabel: Record<AdmissionStatus, string> = {
   expired: "만료됨",
 };
 
-const reasonLabel: Record<AdmissionReasonCode, string> = {
-  meets_phase1_policy: "입장 기준 충족",
-  insufficient_context: "판단 정보 부족",
-  mismatch_with_policy: "입장 기준과 불일치",
-  needs_identity_clarification: "신원 확인 필요",
-  duplicate_identity_suspected: "중복 신원 확인 필요",
-  applicant_withdrew: "신청자 철회",
-  application_expired: "신청 만료",
-};
-
-type ApplicantApplicationView = AdmissionApplication & {
-  readonly reasonCode?: AdmissionReasonCode;
-};
-
-function isAdmissionReasonCode(
-  value: string | undefined,
-): value is AdmissionReasonCode {
-  return Boolean(value && value in reasonLabel);
-}
+type ApplicantApplicationView = AdmissionApplication;
 
 export default function ApplicationStatusPage() {
   const router = useRouter();
@@ -146,12 +127,6 @@ export default function ApplicationStatusPage() {
                 <dt>신청 상태</dt>
                 <dd>{statusLabel[application.status]}</dd>
               </div>
-              {isAdmissionReasonCode(application.reasonCode) ? (
-                <div>
-                  <dt>사유</dt>
-                  <dd>{reasonLabel[application.reasonCode]}</dd>
-                </div>
-              ) : null}
               {application.applicantNotice ? (
                 <div>
                   <dt>검토자 안내</dt>

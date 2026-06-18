@@ -19,6 +19,22 @@ admitted shell로 재구성하고 Members 기본 화면에 My Persona / New Memb
 state machine **0건 변경**. 게이트: `git diff --check`, `pnpm -F web typecheck`, `pnpm typecheck`, `pnpm -F web test`
 (44/44), `pnpm build` PASS; dummy public env로 browser smoke(`/` no console errors, `/member` unauth→`/login`) 확인.
 
+추가 갱신(2026-06-18, pre-alpha design pass + PWA candidate): JT가 Claude/Cowork Step 1 brief와 Step 3 승인
+조건(6개 보정)을 제시했고, Codex가 `docs/DESIGN_PASS_PLAN.md`를 별도 커밋으로 고정한 뒤 빌드 후보를 구현했다.
+상태는 **Codex build candidate / final independent audit pending**이다. 변경 내용: warm paper + terracotta AA ramp
+토큰으로 `globals.css` 재정렬, landing door motif를 messenger phone preview로 교체(모바일에서는 읽기성 위해 숨김),
+`components/ui/*` 공통 primitive(AppBar/TabBar/ListRow/Avatar/Card/Section/EmptyState/Field/Button/Badge) 추가,
+`/member`를 phone-like admitted shell로 추가 polish, admin palette 정렬, applicant status에서 `reviewSummary`와
+`reasonCode`가 ordinary applicant 화면에 렌더되지 않도록 잠금, PWA manifest/icons/install prompt/hand-rolled SW 추가.
+SW 보안 설계: `/api/**`, Authorization-bearing, `no-store`, persona-clip, cross-origin, non-GET은 network-only/no-store
+bypass; cache 대상은 public shell/static asset으로 한정하고 `components/pwa/service-worker.security.test.ts`로 증명.
+Persona Clip recorder internals는 건드리지 않았고, DB/schema/RLS/RPC/API routes/auth/session/adapters/core/env/storage/
+reaper/approval state machine은 변경하지 않았다. GLM 5.2 callable model은 이 Codex 도구셋에 없어서 실제 GLM 빌드는
+수행하지 않았으며, 반복 표면작업은 Codex가 동일 금지선 아래 직접 처리했다(최종 보고에서 명시 필요). 검증 후보 게이트:
+`pnpm -F web typecheck` PASS, `pnpm -F web test` 61/61 PASS, `pnpm build` PASS, browser smoke(`/`, `/login`
+390px/1200px; dev indicator 제외) 수행. 남은 최종 판단: Cowork/Opus가 SW cache boundary, protected-surface diff,
+Persona Clip semantics, page wiring, PWA installability/실기기 스모크 필요성을 독립 검토.
+
 ---
 
 ## 0. 한 줄 요약

@@ -1,217 +1,61 @@
+.memberPage {
+  width: min(100%, 760px);
+}
+
 .memberShell {
   display: grid;
-  gap: 18px;
-}
-
-.shellHeader {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 22px;
-}
-
-.shellHeader h1 {
-  margin: 0;
-  font-size: 42px;
-  line-height: 1.05;
-}
-
-.shellHeader p:last-child {
-  max-width: 560px;
-  margin: 10px 0 0;
-  color: var(--muted);
-  line-height: 1.55;
+  gap: 16px;
 }
 
 .appShell {
   display: grid;
-  min-height: min(760px, calc(100svh - 190px));
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: min(760px, calc(100svh - 154px));
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 22px;
   background: var(--surface);
-  box-shadow: var(--shadow);
+  box-shadow: 0 22px 60px rgba(25, 25, 25, 0.11);
+}
+
+.phoneTop {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--surface-warm);
+}
+
+.phoneTop span:first-child {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 820;
 }
 
 .tabPanels {
   min-height: 0;
   overflow-y: auto;
-  padding: 22px;
+  background: var(--canvas);
 }
 
-.tabPanel {
-  display: grid;
-  gap: 18px;
-}
-
-.myPersona {
-  display: grid;
-  grid-template-columns: 54px minmax(0, 1fr);
-  gap: 16px;
-  padding: 18px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #f8faf7;
-}
-
-.avatar {
-  display: grid;
-  width: 54px;
-  height: 54px;
-  place-items: center;
-  border-radius: 18px;
-  background: #25332d;
-  color: white;
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.personaBody {
-  display: grid;
-  gap: 12px;
-  min-width: 0;
-}
-
-.personaBody p,
-.emptyDirectory p,
-.quietPanel p {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.5;
-}
-
-.sectionHeading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.sectionHeading h2 {
-  margin: 0;
-  font-size: 19px;
-  line-height: 1.2;
-}
-
-.sectionKicker {
-  margin: 0 0 4px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.compactMeta {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin: 0;
-}
-
-.compactMeta div {
-  min-width: 0;
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
-}
-
-.compactMeta dt {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 750;
-}
-
-.compactMeta dd {
-  margin: 5px 0 0;
-  overflow-wrap: anywhere;
-  font-weight: 750;
-}
-
-.memberSection,
+.tabPanel,
 .quietPanel,
 .morePanel {
   display: grid;
   gap: 12px;
-  padding: 16px 0 0;
-  border-top: 1px solid var(--line);
-}
-
-.countBadge {
-  display: inline-grid;
-  min-width: 28px;
-  height: 28px;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.emptyDirectory {
-  padding: 15px;
-  border: 1px dashed #b9c2bc;
-  border-radius: 8px;
-  background: #fbfcfa;
+  padding: 14px;
 }
 
 .moreList {
   display: grid;
-  gap: 1px;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--line);
-}
-
-.moreItem {
-  display: grid;
-  gap: 4px;
-  padding: 15px;
   background: var(--surface);
 }
 
-.moreItem span {
-  font-weight: 780;
-}
-
-.moreItem small {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.bottomNav {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid var(--line);
-  background: #f8faf7;
-}
-
-.bottomNav button {
-  min-height: 58px;
-  border: 0;
-  border-right: 1px solid var(--line);
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  font-weight: 780;
-}
-
-.bottomNav button:last-child {
-  border-right: 0;
-}
-
-.bottomNav button:hover,
-.bottomNav button:focus-visible,
-.bottomNav .activeTab {
-  color: var(--green-dark);
-}
-
-.bottomNav .activeTab {
-  background: #edf3ef;
-}
-
 .notMember {
-  padding: 32px;
+  padding: 28px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
@@ -219,7 +63,7 @@
 
 .notMember h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: 22px;
 }
 
 .notMember p {
@@ -229,27 +73,19 @@
 }
 
 @media (max-width: 700px) {
-  .shellHeader h1 {
-    font-size: 36px;
+  .memberPage {
+    padding-inline: 12px;
   }
 
   .appShell {
-    min-height: calc(100svh - 154px);
+    min-height: calc(100svh - 130px);
+    border-radius: 18px;
     box-shadow: none;
   }
 
-  .tabPanels {
-    padding: 16px;
-  }
-
-  .myPersona,
-  .compactMeta {
-    grid-template-columns: 1fr;
-  }
-
-  .avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 16px;
+  .tabPanel,
+  .quietPanel,
+  .morePanel {
+    padding: 12px;
   }
 }

@@ -28,9 +28,32 @@ export default function LandingPage() {
             )}
           </div>
         </div>
-        <div className="door-visual" aria-hidden="true">
-          <div className="door-panel">
-            <span className="keyhole" />
+        <div className="hero-phone" aria-hidden="true">
+          <div className="hero-phone-bar">
+            <span>멤버</span>
+            <span>09:12</span>
+          </div>
+          <div className="hero-phone-list">
+            <div className="hero-phone-me">
+              <span>ME</span>
+              <div>
+                <strong>내 프로필</strong>
+                <small>입장이 확인된 멤버</small>
+              </div>
+            </div>
+            <div className="hero-phone-row">
+              <span />
+              <div />
+            </div>
+            <div className="hero-phone-row">
+              <span />
+              <div />
+            </div>
+          </div>
+          <div className="hero-phone-tabs">
+            <span>멤버</span>
+            <span>대화</span>
+            <span>더보기</span>
           </div>
         </div>
       </section>

@@ -5,6 +5,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import {
+  AppBar,
+  Avatar,
+  Badge,
+  EmptyState,
+  ListRow,
+  Section,
+  TabBar,
+} from "../../components/ui";
+import {
   UnauthenticatedError,
   useAuth,
 } from "../../lib/auth-provider";
@@ -112,14 +121,12 @@ export default function MemberPage() {
   }, [authedFetch, loading, router, session]);
 
   return (
-    <main className="page-main">
-      <header className={styles.shellHeader}>
-        <div>
-          <p className="eyebrow">Member</p>
-          <h1>멤버</h1>
-          <p>승인된 멤버들이 모이는 조용한 공간입니다.</p>
-        </div>
-      </header>
+    <main className={`page-main ${styles.memberPage}`}>
+      <AppBar
+        eyebrow="Member"
+        title="멤버"
+        description="승인된 멤버들이 모이는 조용한 공간입니다."
+      />
 
       {errorMessage ? (
         <p className="form-message" role="alert">{errorMessage}</p>
@@ -132,6 +139,10 @@ export default function MemberPage() {
 
         {membership?.status === "active" ? (
           <section className={styles.appShell} aria-label="멤버 홈">
+            <div className={styles.phoneTop}>
+              <span>SoulBound</span>
+              <Badge tone="success">멤버</Badge>
+            </div>
             <div className={styles.tabPanels}>
               {activeTab === "members" ? (
                 <div
@@ -140,47 +151,27 @@ export default function MemberPage() {
                   id="members-panel"
                   role="tabpanel"
                 >
-                  <section className={styles.myPersona}>
-                    <div className={styles.avatar} aria-hidden="true">ME</div>
-                    <div className={styles.personaBody}>
-                      <div className={styles.sectionHeading}>
-                        <div>
-                          <p className={styles.sectionKicker}>My Persona</p>
-                          <h2>내 프로필</h2>
-                        </div>
-                        <span className="status-badge">멤버</span>
-                      </div>
-                      <p>
-                        입장이 확인된 멤버입니다. 프로필 소개와 공개 설정은
-                        다음 단계에서 다듬을 수 있습니다.
-                      </p>
-                      <dl className={styles.compactMeta}>
-                        <div>
-                          <dt>시작일</dt>
-                          <dd>{formatDate(membership.issuedAt)}</dd>
-                        </div>
-                        <div>
-                          <dt>상태</dt>
-                          <dd>활성</dd>
-                        </div>
-                      </dl>
-                    </div>
-                  </section>
+                  <Section
+                    title="My Persona"
+                    description="내가 이 공간에서 보이는 첫 모습"
+                    action={<Badge tone="success">활성</Badge>}
+                  >
+                    <ListRow
+                      leading={<Avatar label="ME" />}
+                      title="내 프로필"
+                      description="입장이 확인된 멤버입니다."
+                      meta={`시작일 ${formatDate(membership.issuedAt)}`}
+                    />
+                  </Section>
 
                   {memberSections.map((section) => (
-                    <section
-                      className={styles.memberSection}
+                    <Section
                       key={section.title}
-                      aria-labelledby={`${section.id}-title`}
+                      title={section.title}
+                      action={<Badge>0</Badge>}
                     >
-                      <div className={styles.sectionHeading}>
-                        <h2 id={`${section.id}-title`}>{section.title}</h2>
-                        <span className={styles.countBadge}>0</span>
-                      </div>
-                      <div className={styles.emptyDirectory}>
-                        <p>{section.description}</p>
-                      </div>
-                    </section>
+                      <EmptyState>{section.description}</EmptyState>
+                    </Section>
                   ))}
                 </div>
               ) : null}
@@ -192,8 +183,9 @@ export default function MemberPage() {
                   id="chats-panel"
                   role="tabpanel"
                 >
-                  <h2 id="chats-title">대화</h2>
-                  <p>아직 열린 대화가 없습니다.</p>
+                  <Section title="대화">
+                    <EmptyState>아직 열린 대화가 없습니다.</EmptyState>
+                  </Section>
                 </section>
               ) : null}
 
@@ -204,39 +196,28 @@ export default function MemberPage() {
                   id="more-panel"
                   role="tabpanel"
                 >
-                  <h2 id="more-title">더보기</h2>
-                  <div className={styles.moreList}>
+                  <Section title="더보기">
+                    <div className={styles.moreList}>
                     {moreItems.map((item) => (
-                      <div className={styles.moreItem} key={item.label}>
-                        <span>{item.label}</span>
-                        <small>{item.description}</small>
-                      </div>
+                      <ListRow
+                        key={item.label}
+                        title={item.label}
+                        description={item.description}
+                        trailing={<span aria-hidden="true">›</span>}
+                      />
                     ))}
-                  </div>
+                    </div>
+                  </Section>
                 </section>
               ) : null}
             </div>
 
-            <nav
-              aria-label="멤버 탐색"
-              className={styles.bottomNav}
-              role="tablist"
-            >
-              {tabs.map((tab) => (
-                <button
-                  aria-controls={`${tab.id}-panel`}
-                  aria-selected={activeTab === tab.id}
-                  className={activeTab === tab.id ? styles.activeTab : undefined}
-                  id={`${tab.id}-tab`}
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  role="tab"
-                  type="button"
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
+            <TabBar
+              activeId={activeTab}
+              items={tabs}
+              label="멤버 탐색"
+              onChange={setActiveTab}
+            />
           </section>
         ) : null}
 
