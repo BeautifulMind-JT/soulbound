@@ -213,6 +213,9 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
     const { data, error } = await getBrowserClient().auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/login`,
+      },
     });
     if (error) {
       throw error;
