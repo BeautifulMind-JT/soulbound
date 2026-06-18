@@ -15,7 +15,6 @@
   border: 1px solid var(--line);
   border-radius: 22px;
   background: var(--surface);
-  box-shadow: 0 22px 60px rgba(25, 25, 25, 0.11);
 }
 
 .phoneTop {
@@ -32,7 +31,7 @@
 .phoneTop span:first-child {
   color: var(--ink);
   font-size: 15px;
-  font-weight: 820;
+  font-weight: 600;
 }
 
 .tabPanels {
@@ -80,7 +79,6 @@
   .appShell {
     min-height: calc(100svh - 130px);
     border-radius: 18px;
-    box-shadow: none;
   }
 
   .tabPanel,

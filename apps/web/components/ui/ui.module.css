@@ -13,9 +13,9 @@
 .appBarText h1 {
   margin: 0;
   color: var(--ink);
-  font-size: clamp(30px, 6vw, 44px);
-  font-weight: 760;
-  line-height: 1.08;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 .appBarText p:last-child {
@@ -31,11 +31,10 @@
 
 .eyebrow {
   margin: 0 0 8px;
-  color: var(--accent-text);
+  color: var(--muted);
   font-size: 12px;
-  font-weight: 780;
+  font-weight: 400;
   letter-spacing: 0;
-  text-transform: uppercase;
 }
 
 .card,
@@ -55,7 +54,6 @@
 
 .card-sunken {
   background: var(--surface-sunken);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .section {
@@ -75,7 +73,7 @@
   margin: 0;
   color: var(--ink);
   font-size: 18px;
-  font-weight: 760;
+  font-weight: 600;
   line-height: 1.2;
 }
 
@@ -115,7 +113,7 @@
   overflow: hidden;
   color: var(--ink);
   font-size: 15px;
-  font-weight: 760;
+  font-weight: 500;
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -145,7 +143,7 @@
   border: 1px solid transparent;
   border-radius: 15px;
   font-size: 12px;
-  font-weight: 820;
+  font-weight: 600;
 }
 
 .avatar-brand {
@@ -175,7 +173,7 @@
   border: 1px solid transparent;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 780;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -212,7 +210,7 @@
   border: 1px solid transparent;
   border-radius: 8px;
   cursor: pointer;
-  font-weight: 780;
+  font-weight: 600;
   line-height: 1;
   transition:
     background-color 140ms ease,
@@ -267,7 +265,7 @@
 .field label {
   color: var(--ink);
   font-size: 14px;
-  font-weight: 760;
+  font-weight: 500;
 }
 
 .field small {
@@ -313,7 +311,7 @@
   color: var(--muted);
   cursor: pointer;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: 500;
 }
 
 .tabBar button:last-child {

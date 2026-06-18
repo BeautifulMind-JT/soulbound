@@ -19,7 +19,7 @@
 .filterField label {
   color: var(--muted);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .filterField select,
@@ -70,7 +70,6 @@
   background: var(--surface-warm);
   color: var(--muted);
   font-size: 12px;
-  text-transform: uppercase;
 }
 
 .queueTable tbody tr:last-child td {
@@ -95,12 +94,12 @@
 .clipMarker {
   color: var(--accent-text);
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 500;
 }
 
 .rowLink {
   color: var(--accent-text);
-  font-weight: 750;
+  font-weight: 500;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -128,7 +127,7 @@
 .backLink {
   color: var(--accent-text);
   font-size: 14px;
-  font-weight: 750;
+  font-weight: 500;
 }
 
 .detailGrid {
@@ -148,6 +147,7 @@
 .actionSection h2 {
   margin: 0 0 20px;
   font-size: 21px;
+  font-weight: 600;
 }
 
 .detailList {
@@ -172,7 +172,7 @@
 .detailList dt {
   color: var(--muted);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .detailList dd {
@@ -227,6 +227,7 @@
 .decisionForm h3 {
   margin: 0;
   font-size: 17px;
+  font-weight: 600;
 }
 
 .decisionForm label {
@@ -234,7 +235,7 @@
   gap: 7px;
   color: var(--muted);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .decisionForm textarea {
@@ -247,7 +248,7 @@
 .actionMessage {
   margin: 0 0 16px;
   color: var(--accent-text);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 @media (max-width: 860px) {
