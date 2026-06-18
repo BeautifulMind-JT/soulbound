@@ -396,7 +396,7 @@ a {
   font-weight: 600;
 }
 
-.gate-status p {
+.gate-status p:not(.loading-line) {
   color: var(--muted);
   font-family: var(--font-prose);
   line-height: 1.6;
