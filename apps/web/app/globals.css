@@ -4,6 +4,18 @@
   --muted: #6b6862;
   --muted-soft: #8f8b80;
   --canvas: #faf9f5;
+  --canvas-lit:
+    radial-gradient(
+      140% 90% at 50% -10%,
+      rgba(217, 119, 87, 0.05),
+      transparent 62%
+    ),
+    radial-gradient(
+      120% 95% at 100% 100%,
+      rgba(185, 121, 54, 0.035),
+      transparent 58%
+    ),
+    var(--canvas);
   --surface: #ffffff;
   --surface-warm: #fff8f3;
   --surface-oat: #e8e6dc;
@@ -44,13 +56,7 @@ html {
 body {
   min-height: 100vh;
   margin: 0;
-  background:
-    radial-gradient(
-      120% 80% at 50% 0%,
-      rgba(217, 119, 87, 0.03),
-      transparent 60%
-    ),
-    var(--canvas);
+  background: var(--canvas-lit);
   color: var(--ink);
   font-family: var(--font-ui);
   letter-spacing: 0;
@@ -157,7 +163,7 @@ a {
   align-content: center;
   gap: 24px;
   padding: clamp(36px, 8vw, 64px) clamp(20px, 8vw, 96px);
-  background: var(--canvas);
+  background: var(--canvas-lit);
 }
 
 .hero-copy {

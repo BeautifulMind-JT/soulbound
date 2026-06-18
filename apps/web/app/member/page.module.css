@@ -38,7 +38,7 @@
 .tabPanels {
   min-height: 0;
   overflow-y: auto;
-  background: var(--canvas);
+  background: var(--canvas-lit);
 }
 
 .tabPanel,
