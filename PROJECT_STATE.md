@@ -85,7 +85,7 @@ PASS(manifest `id`/theme `#D97757`/background 크림 · `<meta theme-color #D977
 **4-이슈 상태:** **① 가입확인 메일 — Email confirmation: RC-1 Custom SMTP remains valid; Resend POST /emails 200
 confirmed on 2026-06-19** (from "SoulBound" `<noreply@soulbound.co.kr>`, subject "Confirm your email address") = **발송 정상**
 (200 = Resend 수락/발송). **실원인 = Supabase Auth URL config drift**(Site URL/Redirect 허용목록이 최신 stable alias 미반영)
-**→ stable alias로 갱신해 해결.** 남은 검증 = 링크 클릭→`${alias}/login` 복귀→로그인 `/gate`(real-device pending).
+**→ stable alias로 갱신해 해결.** 링크 클릭→`${alias}/login` 복귀→로그인 `/gate` = **real-device 확인 완료(2026-06-19) → ① CLOSED.**
 (교훈: 초기 "Supabase 기본 이메일 default" 가설은 부정확 — `docs/RC1_VERIFICATION.md` 증거와 reconcile해 정정. 진단은
 repo 코드뿐 아니라 *프로젝트 기록*과도 대조할 것.) **② 운영자 계정 — HOST/operational, pending:** no-seed 스테이징이라
 reviewer/admin 지정 계정 0(신규가입=`applicant`, reviewer/admin은 seed.sql에만 있고 미실행) → 모든 `/api/admin/*` 403.
@@ -97,8 +97,8 @@ JT가 계정 지정 + §6 기록(앱 미자동감사 `role.changed`). **③ 모�
 **Vercel auth-wall은 배제**(preview+alias 둘 다 인증 없이 200 서빙 직접 확인). **커스텀 도메인이 유일·확실 해법 아님**
 (갓 산 도메인도 초기 저평판이라 동일 경고 가능; 평판은 시간/트래픽으로 누적) — 정확 fix는 *경고 문구*에 의존(Play-Protect
 '무시하고 설치' 가능류 vs HTTPS류 vs 출처불명-APK류) → **JT 스크린샷 pending.** manifest `id` 추가(a9d3be3)로 PWA
-정체성 안정화. **production/tag/RC/alpha 보류 유지.** 알파 전 host-pending: ① 메일 링크-클릭→로그인 flow 확인, ② 운영자
-SQL 지정, ④ 설치경고 문구 확정 후 조치, + 기존 미완 device 설치 스모크/Lighthouse/기능 9-screen.
+정체성 안정화. **production/tag/RC/alpha 보류 유지.** 알파 전 host-pending: ② 운영자 SQL
+지정, ④ 설치경고 문구 확정 후 조치, + 기존 미완 device 설치 스모크/Lighthouse/기능 9-screen. (① 메일 flow CLOSED 2026-06-19.)
 
 ---
 
