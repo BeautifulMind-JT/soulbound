@@ -14,6 +14,7 @@ interface TabBarProps<T extends string> {
   readonly items: readonly TabItem<T>[];
   readonly activeId: T;
   readonly onChange: (id: T) => void;
+  readonly orientation?: "horizontal" | "vertical";
 }
 
 export function TabBar<T extends string>({
@@ -21,9 +22,16 @@ export function TabBar<T extends string>({
   items,
   activeId,
   onChange,
+  orientation = "horizontal",
 }: TabBarProps<T>) {
   return (
-    <nav aria-label={label} className={styles.tabBar} role="tablist">
+    <nav
+      aria-label={label}
+      aria-orientation={orientation}
+      className={styles.tabBar}
+      data-orientation={orientation}
+      role="tablist"
+    >
       {items.map((item) => (
         <button
           aria-selected={activeId === item.id}

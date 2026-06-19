@@ -87,8 +87,7 @@
 }
 
 .listRow {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  display: flex;
   gap: 12px;
   align-items: center;
   min-height: 66px;
@@ -104,10 +103,12 @@
 .listLeading,
 .listTrailing {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
 }
 
 .listBody {
+  flex: 1;
   min-width: 0;
 }
 
@@ -121,20 +122,27 @@
   white-space: nowrap;
 }
 
-.listDescription,
-.listMeta {
+.listDescription {
+  display: -webkit-box;
   overflow: hidden;
   color: var(--muted);
   font-size: 13px;
+  line-clamp: 2;
   line-height: 1.35;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .listMeta {
   margin-top: 4px;
   color: var(--muted-soft);
   font-size: 12px;
+  overflow: hidden;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .avatar {

@@ -1,5 +1,6 @@
 .memberPage {
   width: min(100%, 760px);
+  padding-top: clamp(16px, 4vw, 28px);
 }
 
 .memberShell {
@@ -10,7 +11,7 @@
 .appShell {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  min-height: min(760px, calc(100svh - 154px));
+  min-height: min(760px, calc(100svh - 118px));
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -51,7 +52,34 @@
 
 .moreList {
   display: grid;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
   background: var(--surface);
+}
+
+.moreDisabledRow {
+  cursor: default;
+}
+
+.rowAction {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.rowAction:hover {
+  border-color: var(--ink);
 }
 
 .notMember {
@@ -79,7 +107,7 @@
   }
 
   .appShell {
-    min-height: calc(100svh - 130px);
+    min-height: calc(100svh - 102px);
     border-radius: 16px;
   }
 

@@ -3,9 +3,9 @@
 import type { Membership } from "@soulbound/core";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { type ReactNode, useEffect, useState } from "react";
+import { InstallPrompt } from "../../components/pwa/install-prompt";
 import {
-  AppBar,
   Avatar,
   Badge,
   EmptyState,
@@ -23,13 +23,83 @@ import styles from "./page.module.css";
 type MembershipState = Membership | null | undefined;
 type MemberTab = "members" | "chats" | "more";
 
+function MembersIcon() {
+  return (
+    <svg fill="none" height="22" viewBox="0 0 24 24" width="22">
+      <path
+        d="M8.5 11.25a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M15.75 10.75a2.75 2.75 0 1 0 0-5.5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M3.75 18.75c.68-2.75 2.36-4.25 4.75-4.25s4.07 1.5 4.75 4.25"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M14.5 14.75c1.95.22 3.31 1.57 3.75 4"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.7"
+      />
+    </svg>
+  );
+}
+
+function ChatsIcon() {
+  return (
+    <svg fill="none" height="22" viewBox="0 0 24 24" width="22">
+      <path
+        d="M5.25 6.25h13.5v8.5H9.4L5.25 18.25v-12Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M8.5 9.5h7M8.5 12h4.75"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.7"
+      />
+    </svg>
+  );
+}
+
+function MoreIcon() {
+  return (
+    <svg fill="none" height="22" viewBox="0 0 24 24" width="22">
+      <path
+        d="M6.5 12h.01M12 12h.01M17.5 12h.01"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="3"
+      />
+    </svg>
+  );
+}
+
 const tabs: readonly {
   readonly id: MemberTab;
   readonly label: string;
+  readonly icon: ReactNode;
 }[] = [
-  { id: "members", label: "멤버" },
-  { id: "chats", label: "대화" },
-  { id: "more", label: "더보기" },
+  { id: "members", label: "멤버", icon: <MembersIcon /> },
+  { id: "chats", label: "대화", icon: <ChatsIcon /> },
+  { id: "more", label: "더보기", icon: <MoreIcon /> },
 ];
 
 const memberSections: readonly {
@@ -54,14 +124,82 @@ const memberSections: readonly {
   },
 ];
 
-const moreItems: readonly {
+const disabledMoreGroups: readonly {
+  readonly title: string;
+  readonly rows: readonly {
+    readonly label: string;
+    readonly description: string;
+    readonly badge?: string;
+  }[];
+}[] = [
+  {
+    title: "소통",
+    rows: [
+      {
+        label: "대화 / 다이렉트 메시지 (E2EE)",
+        description: "멤버와 안전하게 이야기하는 공간",
+      },
+      { label: "알림", description: "새 대화와 멤버 소식" },
+    ],
+  },
+  {
+    title: "커뮤니티",
+    rows: [
+      { label: "멤버 디렉터리", description: "멤버를 찾고 소개를 둘러보기" },
+    ],
+  },
+  {
+    title: "신원 & 자산",
+    rows: [
+      {
+        label: "소울바운드 신원 / 온체인 크리덴셜",
+        description: "검증된 신원을 안전하게 보관",
+      },
+      {
+        label: "SOUL 잔액 · 스테이킹 · 원장",
+        description: "참여 상태와 원장 기록",
+      },
+      { label: "지갑 연결", description: "지갑과 멤버십 연결" },
+    ],
+  },
+  {
+    title: "신뢰 & 안전",
+    rows: [
+      { label: "신고 · 모더레이션", description: "문제 상황을 안전하게 알리기" },
+      {
+        label: "Support / Challenge (stake review)",
+        description: "스테이크 기반 이의 제기와 지원",
+      },
+      {
+        label: "심사 권한",
+        description: "심사 역할을 얻으면 사용할 수 있습니다.",
+        badge: "자격 획득 필요",
+      },
+    ],
+  },
+  {
+    title: "개인정보·보안 & 설정",
+    rows: [
+      {
+        label: "프라이버시 / 데이터 보관 정책",
+        description: "개인정보와 보관 기준 확인",
+      },
+      { label: "E2EE 보안 설명", description: "대화 보안 구조 안내" },
+      { label: "설정 (계정/화면)", description: "계정과 화면 설정" },
+    ],
+  },
+];
+
+const appInfo: readonly {
   readonly label: string;
   readonly description: string;
+  readonly badge: string;
 }[] = [
-  { label: "내 프로필", description: "내 소개와 공개 범위" },
-  { label: "설정", description: "계정과 화면 설정" },
-  { label: "알림", description: "새 대화와 멤버 소식" },
-  { label: "내 멤버십", description: "멤버 상태" },
+  {
+    label: "앱 정보 / 버전",
+    description: "Pre-alpha staging shell",
+    badge: "pre-alpha",
+  },
 ];
 
 function formatDate(value: string): string {
@@ -70,12 +208,43 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
+function DisabledMoreRow({
+  label,
+  description,
+  badge = "준비 중",
+}: {
+  readonly label: string;
+  readonly description: string;
+  readonly badge?: string;
+}) {
+  return (
+    <div aria-disabled="true" className={styles.moreDisabledRow}>
+      <ListRow
+        title={label}
+        description={description}
+        trailing={<Badge>{badge}</Badge>}
+      />
+    </div>
+  );
+}
+
 export default function MemberPage() {
   const router = useRouter();
-  const { session, loading, authedFetch } = useAuth();
+  const { session, loading, authedFetch, signOut } = useAuth();
   const [membership, setMembership] = useState<MembershipState>(undefined);
   const [errorMessage, setErrorMessage] = useState("");
+  const [signOutError, setSignOutError] = useState("");
   const [activeTab, setActiveTab] = useState<MemberTab>("members");
+
+  async function handleSignOut() {
+    setSignOutError("");
+    try {
+      await signOut();
+      router.push("/");
+    } catch {
+      setSignOutError("로그아웃하지 못했습니다.");
+    }
+  }
 
   useEffect(() => {
     if (loading) {
@@ -122,12 +291,6 @@ export default function MemberPage() {
 
   return (
     <main className={`page-main ${styles.memberPage}`}>
-      <AppBar
-        eyebrow="Member"
-        title="멤버"
-        description="승인된 멤버들이 모이는 조용한 공간입니다."
-      />
-
       {errorMessage ? (
         <p className="form-message" role="alert">{errorMessage}</p>
       ) : null}
@@ -198,14 +361,77 @@ export default function MemberPage() {
                 >
                   <Section title="더보기">
                     <div className={styles.moreList}>
-                    {moreItems.map((item) => (
                       <ListRow
-                        key={item.label}
-                        title={item.label}
-                        description={item.description}
-                        trailing={<span aria-hidden="true">›</span>}
+                        title="로그아웃"
+                        description="이 기기에서 계정을 닫습니다."
+                        trailing={
+                          <button
+                            className={styles.rowAction}
+                            type="button"
+                            onClick={() => void handleSignOut()}
+                          >
+                            로그아웃
+                          </button>
+                        }
                       />
-                    ))}
+                      <ListRow
+                        title="입장 현황"
+                        description="신청 상태와 다음 단계를 확인합니다."
+                        trailing={
+                          <Link className={styles.rowAction} href="/gate">
+                            열기
+                          </Link>
+                        }
+                      />
+                      <ListRow
+                        title="내 멤버십"
+                        description={`활성 · ${membership.tier} · 시작일 ${
+                          formatDate(membership.issuedAt)
+                        }`}
+                        trailing={<Badge tone="success">활성</Badge>}
+                      />
+                      <DisabledMoreRow
+                        label="내 프로필 (페르소나)"
+                        description="내 소개와 공개 범위"
+                      />
+                    </div>
+                    {signOutError ? (
+                      <p className="form-message" role="alert">
+                        {signOutError}
+                      </p>
+                    ) : null}
+                  </Section>
+
+                  {disabledMoreGroups.map((group) => (
+                    <Section key={group.title} title={group.title}>
+                      <div className={styles.moreList}>
+                        {group.rows.map((row) => (
+                          <DisabledMoreRow
+                            key={row.label}
+                            label={row.label}
+                            description={row.description}
+                            {...(row.badge ? { badge: row.badge } : {})}
+                          />
+                        ))}
+                      </div>
+                    </Section>
+                  ))}
+
+                  <Section title="앱">
+                    <div className={styles.moreList}>
+                      <ListRow
+                        title="앱 설치"
+                        description="홈 화면에 SoulBound를 추가합니다."
+                        trailing={<InstallPrompt />}
+                      />
+                      {appInfo.map((item) => (
+                        <ListRow
+                          key={item.label}
+                          title={item.label}
+                          description={item.description}
+                          trailing={<Badge>{item.badge}</Badge>}
+                        />
+                      ))}
                     </div>
                   </Section>
                 </section>
