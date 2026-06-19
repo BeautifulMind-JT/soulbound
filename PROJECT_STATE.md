@@ -74,6 +74,32 @@ iOS Safari 실기기 **설치 스모크**(홈화면 추가→standalone), **Ligh
 PWA — PWA 차기 scope 시 ≤600 정규화); SW drift-guard 테스트 string-based→구조형 강화; login/signup/gate/apply는
 globals 경유로 warmth/typography는 받았으나 `components/ui` primitive 풀 reskin은 옵션 차기 design-pass.
 
+추가 갱신(2026-06-19, internal-alpha readiness — repo 번들 + 4-이슈 진단): warmth 사이클 종료 후 알파 운영이슈
+4개를 워크플로로 진단하고 repo 번들 1개를 PASS. **repo 번들 `a9d3be3`(fix: alpha PWA theme + signup redirect)
+= Opus 최종 독립검토 PASS** — 3파일만(layout.tsx viewport themeColor `#FAF9F5`→**`#D97757`**; manifest.ts +`id:"/"`
++ theme_color `#D97757`[**background_color `#FAF9F5` 크림 유지**]; lib/auth-provider.tsx signUp에 `options.emailRedirectTo:
+${window.location.origin}/login` 추가, signUp 외 무변경·SSR-safe). boundary EMPTY(**새 의존성 0**·sw.js/PWA logic 무변경·
+lib는 auth-provider만 인가변경), 테스트 0변경 **61/61**, 게이트 재현(typecheck/test/build/audit/diff), 배포본 served-audit
+PASS(manifest `id`/theme `#D97757`/background 크림 · `<meta theme-color #D97757>` · 클라번들에 `emailRedirectTo`+
+`location.origin}/login` 실재 · sw.js cmp=0 · stable alias 동일). 직전 docs 기록 `cfafa89` 포함, **푸시됨(origin 동기화).**
+**4-이슈 상태:** **① 가입확인 메일 — Email confirmation: RC-1 Custom SMTP remains valid; Resend POST /emails 200
+confirmed on 2026-06-19** (from "SoulBound" `<noreply@soulbound.co.kr>`, subject "Confirm your email address") = **발송 정상**
+(200 = Resend 수락/발송). **실원인 = Supabase Auth URL config drift**(Site URL/Redirect 허용목록이 최신 stable alias 미반영)
+**→ stable alias로 갱신해 해결.** 남은 검증 = 링크 클릭→`${alias}/login` 복귀→로그인 `/gate`(real-device pending).
+(교훈: 초기 "Supabase 기본 이메일 default" 가설은 부정확 — `docs/RC1_VERIFICATION.md` 증거와 reconcile해 정정. 진단은
+repo 코드뿐 아니라 *프로젝트 기록*과도 대조할 것.) **② 운영자 계정 — HOST/operational, pending:** no-seed 스테이징이라
+reviewer/admin 지정 계정 0(신규가입=`applicant`, reviewer/admin은 seed.sql에만 있고 미실행) → 모든 `/api/admin/*` 403.
+승격 UI/RPC 없음 → 대시보드 SQL `update public.profiles set role='reviewer', updated_at=now() where id=(select id from
+auth.users where email='OPERATOR_EMAIL')` 후 재로그인. `reviewer`=심사큐 전체 충분, `admin`=superset(멤버십/관리까지 시).
+JT가 계정 지정 + §6 기록(앱 미자동감사 `role.changed`). **③ 모바일 탭/설치 색 — SOLVED**(a9d3be3, theme-color `#D97757`;
+앤트로픽은 theme-color를 *안* 써서 복사값 없음→팔레트 클레이 선택; 크림은 모바일 주소창에서 무색이라 기각). **④ 설치
+"안전하지 않은 앱" 경고 — pending(문구 확인 대기):** origin-trust/Play-Protect 신호(공유 `*.vercel.app` 저평판 origin).
+**Vercel auth-wall은 배제**(preview+alias 둘 다 인증 없이 200 서빙 직접 확인). **커스텀 도메인이 유일·확실 해법 아님**
+(갓 산 도메인도 초기 저평판이라 동일 경고 가능; 평판은 시간/트래픽으로 누적) — 정확 fix는 *경고 문구*에 의존(Play-Protect
+'무시하고 설치' 가능류 vs HTTPS류 vs 출처불명-APK류) → **JT 스크린샷 pending.** manifest `id` 추가(a9d3be3)로 PWA
+정체성 안정화. **production/tag/RC/alpha 보류 유지.** 알파 전 host-pending: ① 메일 링크-클릭→로그인 flow 확인, ② 운영자
+SQL 지정, ④ 설치경고 문구 확정 후 조치, + 기존 미완 device 설치 스모크/Lighthouse/기능 9-screen.
+
 ---
 
 ## 0. 한 줄 요약
