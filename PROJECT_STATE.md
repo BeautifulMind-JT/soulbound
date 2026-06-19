@@ -100,6 +100,11 @@ JT가 계정 지정 + §6 기록(앱 미자동감사 `role.changed`). **③ 모�
 정체성 안정화. **production/tag/RC/alpha 보류 유지.** 알파 전 host-pending: ② 운영자 SQL
 지정, ④ 설치경고 문구 확정 후 조치, + 기존 미완 device 설치 스모크/Lighthouse/기능 9-screen. (① 메일 flow CLOSED 2026-06-19.)
 
+추가 갱신(2026-06-19, member shell nav consolidation): **`23ce4b6`(feat: consolidate member shell navigation) =
+독립 최종감사 PASS** — surface/app-layer only, 보호표면(api/auth-provider/core/adapters/supabase/PWA/lockfile) 0-diff.
+SiteHeader 3-state(pathname 기반 `/member`→null·비멤버 로그아웃·anon 로그인/가입, role/membership fetch 0),
+`/member` de-stack(AppBar 제거·phoneTop 단일 헤더), More=northstar 전체 그룹 스캐폴드(wired: 내멤버십 inline·입장현황→`/gate`·로그아웃·앱설치 / 준비중·심사권한=`<div aria-disabled>` 비-내비게이션·href/onClick 0·심사=role무관 "자격 획득 필요"·`/admin` 0), ListRow grid→flex 버그수정(leading-없는 행 truncation 해소·description 2-line clamp), TabBar inline SVG 아이콘 + orientation prop(horizontal 기본·vertical 미구현). Cowork 게이트 재실행: web typecheck/build/audit PASS·web test 64/64·boundary diff EMPTY. 비-블로커: 호스트 `/member` 육안 스모크(sandbox 브라우저 부재). follow-up: 데스크톱 좌측 레일(반응형, TabBar orientation 예약)·Q4 role-aware 라이브 심사 진입점(별도 brief). production/tag/RC/alpha 보류 유지. 증적 `docs/MEMBER_SHELL_NAV_BRIEF.md`.
+
 ---
 
 ## 0. 한 줄 요약

@@ -5,9 +5,9 @@
 > `docs/TASK8B_AUDIT_FINDINGS.md` / `docs/RC2_MIME_FALLBACK_AUDIT.md`가 정본입니다.
 > 작업 진척도 전반: `docs/PROGRESS.md`. 설계 캐논: `docs/architecture/SoulBound_Phase1_MVP_BuildPlan_v1.3-FROZEN.md`.
 
-- **현재 상태**: `apps/web` **구축 완료** (Task 8a/8b 완료). P0 happy-path 화면 전체 존재. **RC-2(`v0.1.0-rc.2 @ e517ec3`) validated staging** 이후 pre-alpha UI/UX polish 최종 독립검토 PASS(`3bd68f2`, verdict 기록 `0efd237`). 2026-06-18 design pass + PWA `ac62201`도 최종 독립검토 PASS(acceptable for pre-alpha); push/deploy 전 host-only runtime gate만 남음.
+- **현재 상태**: `apps/web` **구축 완료** (Task 8a/8b 완료). P0 happy-path 화면 전체 존재. **RC-2(`v0.1.0-rc.2 @ e517ec3`) validated staging** 이후 pre-alpha UI/UX polish 최종 독립검토 PASS(`3bd68f2`, verdict 기록 `0efd237`). 2026-06-18 design pass + PWA `ac62201` 최종 독립검토 PASS, warm typography/ambient pass `e522b04` PASS, member shell nav consolidation `23ce4b6` PASS.
 - **다음 단계**: internal alpha. Members placeholder를 실데이터로 연결할 때는 새 API route + service 경유(HARD RULE 1)로만 진행.
-- **마지막 갱신**: 2026-06-18 (KST)
+- **마지막 갱신**: 2026-06-19 (KST)
 - **브랜치**: `phase1-p0-mvp`
 
 ---
@@ -41,7 +41,7 @@ UI는 "완벽히 돌아가더라도" 아래 가드를 깨면 빌드 실패다. �
 | Gate Hub | `app/gate/page.tsx` | 입장 절차 안내 허브 | ✅ BUILT (8a) |
 | Apply | `app/apply/page.tsx` | 신청서 + persona-clip recorder 섹션 | ✅ BUILT (8a) |
 | Apply Status | `app/apply/status/page.tsx` | 내 신청 현황 (상태 badge + 검토자 안내) | ✅ BUILT (8a) |
-| Member Home | `app/member/page.tsx` | 승인 후 shell (`멤버/대화/더보기`, My Persona, New/Active/All Members placeholder) | ✅ BUILT (8b) + polished (`3bd68f2`) |
+| Member Home | `app/member/page.tsx` | 승인 후 shell (`멤버/대화/더보기`, My Persona, New/Active/All Members placeholder) | ✅ BUILT (8b) + polished (`3bd68f2`) + nav consolidated (`23ce4b6`) |
 | Admin Queue | `app/admin/applications/page.tsx` | 검토 큐 | ✅ BUILT (8b) |
 | Admin Detail | `app/admin/applications/[id]/page.tsx` | 검토 상세 + 결정 폼 + clip 재생 | ✅ BUILT (8b) |
 
@@ -60,8 +60,8 @@ UI는 "완벽히 돌아가더라도" 아래 가드를 깨면 빌드 실패다. �
 | 글로벌 디자인 토큰/스타일 | `app/globals.css` | compact private messenger shell, talk-yellow accent, landing door visual 유지, 반응형(@760px/@700px) | ✅ BUILT + polished |
 | 멤버 스타일 | `app/member/page.module.css` | CSS Module | ✅ BUILT |
 | 관리자 스타일 | `app/admin/applications/admin.module.css` | CSS Module | ✅ BUILT |
-| UI primitives | `components/ui/*` | AppBar/TabBar/ListRow/Avatar/Card/Section/EmptyState/Field/Button/Badge | 🟡 CANDIDATE |
-| PWA shell | `app/manifest.ts`, `app/icon.png`, `app/apple-icon.png`, `public/sw.js`, `public/icons/*`, `components/pwa/*` | manifest/icons/install prompt/hand-rolled SW + cache-boundary tests | 🟡 CANDIDATE |
+| UI primitives | `components/ui/*` | AppBar/TabBar/ListRow/Avatar/Card/Section/EmptyState/Field/Button/Badge, member shell ListRow/TabBar polish | ✅ BUILT + nav/list polish (`23ce4b6`) |
+| PWA shell | `app/manifest.ts`, `app/icon.png`, `app/apple-icon.png`, `public/sw.js`, `public/icons/*`, `components/pwa/*` | manifest/icons/install prompt/hand-rolled SW + cache-boundary tests | ✅ BUILT + served-audited (install smoke pending) |
 
 **디자인 시스템 요약** (`globals.css`):
 - 컬러 토큰: warm paper + terracotta ramp. Main values: `--ink #191919`, `--canvas #faf9f5`, `--surface #ffffff`, `--accent #d97757`, `--accent-text #a94728`, `--accent-pressed #963b20`, `--accent-weak #f5e4dc`, `--success #3d9a6d`, `--danger #c0392b`.
@@ -94,6 +94,7 @@ draft → submitted → under_review → needs_more_info → approved / rejected
 
 | 일자 | 화면/컴포넌트 | 유형 | 요약 | 가드 영향 | 증적 |
 | --- | --- | --- | --- | --- | --- |
+| 2026-06-19 | site-header · member(shell/More/tabs) · ui(ListRow/TabBar) | ✏️/🐛 개선·수정 | Member shell nav 통합: 전역 헤더 3-state(`/member`→null·비멤버 로그아웃·anon 로그인·설치) + AppBar 제거로 단일 헤더, More=northstar 전체 스캐폴드(wired 내멤버십 inline/입장현황/로그아웃/앱설치 · 준비중·심사권한은 비-내비 aria-disabled "자격 획득 필요"), ListRow grid→flex 버그수정(leading-없는 행 truncation 해소·desc 2-line clamp), 하단 탭 inline SVG 아이콘 + TabBar orientation prop(좌측 레일은 follow-up) | 독립 최종감사 PASS. 보호표면(api/auth-provider/core/adapters/supabase/PWA) 0-diff · role-fetch 0 · 새 route/href 0(chat/admin 0) · 새 의존성 0 | `23ce4b6`, `docs/MEMBER_SHELL_NAV_BRIEF.md`, `PROJECT_STATE.md` |
 | 2026-06-18 | app shell, components/ui, PWA, member, landing, status | 🆕/✏️ 개선 | Pre-alpha design pass + PWA: warm terracotta token ramp, reusable UI primitives, PWA manifest/icons/install prompt/hand-rolled SW, landing messenger preview, `/member` phone-like shell refinement, applicant status privacy lock(`reviewSummary`/`reasonCode` 미렌더), admin palette alignment | Final independent audit PASS. DB/schema/RLS/RPC/API/auth/adapters/core/env/storage/reaper/approval 무변경. SW는 `/api/**`, Authorization, no-store, persona-clip, cross-origin, non-GET bypass. Persona Clip recorder internals untouched. Host-only install/Lighthouse/visual smoke pending before push/deploy. | `ac62201`, `docs/DESIGN_PASS_BRIEF.md`, `docs/DESIGN_PASS_PLAN.md`, `PROJECT_STATE.md` |
 | 2026-06-18 | member, public/auth/gate/apply/status, globals | ✏️ 개선 | Pre-alpha UI polish: `/member`를 `멤버/대화/더보기` admitted shell로 전환, Members 기본 탭에 My Persona + New/Active/All Members placeholder 추가, public/auth/gate/apply/status copy를 짧은 Korean labels 중심으로 정리, `SOUL` ordinary-user 메뉴를 `내 멤버십`으로 완화 | Surface-only. DB/schema/RLS/RPC/API/auth/adapters/core/env/storage/reaper/approval 무변경. Persona Clip proper noun/semantics 유지. | `3bd68f2`, `0efd237`, `PROJECT_STATE.md` |
 | 2026-06-18 | (문서) | 📄 문서 | UI/UX 추적 문서를 현재 진실(`apps/web` BUILT, RC-2 + pre-alpha polish PASS)로 재작성. 이전 "미생성/planned" 초안 폐기 | — | (이 PR) |
