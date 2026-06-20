@@ -4,6 +4,7 @@ import type {
   AuditLogEntry,
   Membership,
   OutboxEvent,
+  Persona,
 } from "@soulbound/core";
 
 export interface AdmissionApplicationRow {
@@ -38,6 +39,12 @@ export interface MembershipRow {
   readonly issued_at: string;
   readonly expires_at?: string | null;
   readonly revoked_at?: string | null;
+}
+
+export interface ProfileRow {
+  readonly handle?: string | null;
+  readonly display_name?: string | null;
+  readonly bio?: string | null;
 }
 
 export interface AuditLogRow {
@@ -157,6 +164,14 @@ export function mapMembershipRow(row: MembershipRow): Membership {
     issuedAt: row.issued_at,
     ...spreadString("expiresAt", row.expires_at),
     ...spreadString("revokedAt", row.revoked_at),
+  };
+}
+
+export function mapProfileRow(row: ProfileRow): Persona {
+  return {
+    handle: row.handle ?? null,
+    displayName: row.display_name ?? null,
+    bio: row.bio ?? null,
   };
 }
 

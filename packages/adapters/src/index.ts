@@ -10,6 +10,7 @@ export {
   mapAdmissionApplicationRow,
   mapApproveOutcomeRow,
   mapMembershipRow,
+  mapProfileRow,
   mapOutboxEventRow,
 } from "./supabase/mappers";
 export {
@@ -30,6 +31,10 @@ export {
   SupabaseMembershipRepository,
   makeSupabaseMembershipRepository,
 } from "./supabase/supabase-membership-repository";
+export {
+  SupabaseProfileRepository,
+  makeUserScopedProfileRepository,
+} from "./supabase/supabase-profile-repository";
 export {
   SupabaseAuditLogRepository,
   makeSupabaseAuditLogRepository,

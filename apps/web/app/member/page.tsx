@@ -1,6 +1,6 @@
 "use client";
 
-import type { Membership } from "@soulbound/core";
+import type { Membership, Persona } from "@soulbound/core";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { type ReactNode, useEffect, useState } from "react";
@@ -8,7 +8,9 @@ import { InstallPrompt } from "../../components/pwa/install-prompt";
 import {
   Avatar,
   Badge,
+  Button,
   EmptyState,
+  Field,
   ListRow,
   Section,
   TabBar,
@@ -21,7 +23,14 @@ import { readJson } from "../../lib/api-response";
 import styles from "./page.module.css";
 
 type MembershipState = Membership | null | undefined;
+type PersonaState = Persona | undefined;
 type MemberTab = "members" | "chats" | "more";
+
+interface PersonaFormState {
+  readonly handle: string;
+  readonly displayName: string;
+  readonly bio: string;
+}
 
 function MembersIcon() {
   return (
@@ -208,6 +217,36 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
+function formFromPersona(persona: Persona | undefined): PersonaFormState {
+  return {
+    handle: persona?.handle ?? "",
+    displayName: persona?.displayName ?? "",
+    bio: persona?.bio ?? "",
+  };
+}
+
+function personaMark(persona: Persona | undefined): string {
+  const source = persona?.displayName ?? persona?.handle ?? "";
+  const letters = Array.from(source.replace(/[^\p{L}\p{N}]/gu, ""));
+  return letters.slice(0, 2).join("").toUpperCase() || "ME";
+}
+
+function personaTitle(persona: Persona | undefined): string {
+  if (persona === undefined) {
+    return "프로필을 불러오는 중입니다.";
+  }
+  return persona.displayName ?? "익명 멤버";
+}
+
+function personaDescription(persona: Persona | undefined): string {
+  if (persona === undefined) {
+    return "잠시만 기다려 주세요.";
+  }
+  const handle = persona.handle ? `@${persona.handle}` : "handle 설정 전";
+  const bio = persona.bio ?? "아직 소개가 없습니다.";
+  return `${handle} · ${bio}`;
+}
+
 function DisabledMoreRow({
   label,
   description,
@@ -232,6 +271,16 @@ export default function MemberPage() {
   const router = useRouter();
   const { session, loading, authedFetch, signOut } = useAuth();
   const [membership, setMembership] = useState<MembershipState>(undefined);
+  const [persona, setPersona] = useState<PersonaState>(undefined);
+  const [personaForm, setPersonaForm] = useState<PersonaFormState>({
+    handle: "",
+    displayName: "",
+    bio: "",
+  });
+  const [isEditingPersona, setIsEditingPersona] = useState(false);
+  const [personaSaving, setPersonaSaving] = useState(false);
+  const [personaMessage, setPersonaMessage] = useState("");
+  const [personaError, setPersonaError] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [signOutError, setSignOutError] = useState("");
   const [activeTab, setActiveTab] = useState<MemberTab>("members");
@@ -243,6 +292,67 @@ export default function MemberPage() {
       router.push("/");
     } catch {
       setSignOutError("로그아웃하지 못했습니다.");
+    }
+  }
+
+  function openPersonaEditor() {
+    setPersonaError("");
+    setPersonaMessage("");
+    setPersonaForm(formFromPersona(persona));
+    setActiveTab("members");
+    setIsEditingPersona(true);
+  }
+
+  function closePersonaEditor() {
+    setPersonaError("");
+    setPersonaMessage("");
+    setPersonaForm(formFromPersona(persona));
+    setIsEditingPersona(false);
+  }
+
+  async function handlePersonaSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPersonaSaving(true);
+    setPersonaError("");
+    setPersonaMessage("");
+    try {
+      const response = await authedFetch("/api/profile/me", {
+        method: "PATCH",
+        body: JSON.stringify(personaForm),
+      });
+      if (response.status === 401) {
+        router.replace("/login");
+        return;
+      }
+      if (response.status === 403) {
+        router.replace("/gate");
+        return;
+      }
+      if (response.status === 409) {
+        setPersonaError("이미 사용 중인 handle입니다.");
+        return;
+      }
+      if (response.status === 422) {
+        setPersonaError("프로필 내용을 확인해 주세요.");
+        return;
+      }
+      if (!response.ok) {
+        throw new Error("Unable to update persona");
+      }
+
+      const nextPersona = await readJson<Persona>(response);
+      setPersona(nextPersona);
+      setPersonaForm(formFromPersona(nextPersona));
+      setIsEditingPersona(false);
+      setPersonaMessage("프로필을 저장했습니다.");
+    } catch (error) {
+      if (error instanceof UnauthenticatedError) {
+        router.replace("/login");
+      } else {
+        setPersonaError("프로필을 저장하지 못했습니다.");
+      }
+    } finally {
+      setPersonaSaving(false);
     }
   }
 
@@ -273,14 +383,36 @@ export default function MemberPage() {
         setMembership(nextMembership);
         if (nextMembership?.status !== "active") {
           router.replace("/gate");
+          setPersona(undefined);
+          setIsEditingPersona(false);
+          return;
         }
+
+        const personaResponse = await authedFetch("/api/profile/me", {
+          signal: controller.signal,
+        });
+        if (personaResponse.status === 401) {
+          router.replace("/login");
+          return;
+        }
+        if (personaResponse.status === 403) {
+          router.replace("/gate");
+          return;
+        }
+        if (!personaResponse.ok) {
+          throw new Error("Unable to load persona");
+        }
+
+        const nextPersona = await readJson<Persona>(personaResponse);
+        setPersona(nextPersona);
+        setPersonaForm(formFromPersona(nextPersona));
       } catch (error) {
         if (error instanceof UnauthenticatedError) {
           router.replace("/login");
         } else if (
           !(error instanceof DOMException && error.name === "AbortError")
         ) {
-          setErrorMessage("멤버십 정보를 불러오지 못했습니다.");
+          setErrorMessage("멤버십 또는 프로필 정보를 불러오지 못했습니다.");
         }
       }
     };
@@ -317,14 +449,120 @@ export default function MemberPage() {
                   <Section
                     title="My Persona"
                     description="내가 이 공간에서 보이는 첫 모습"
-                    action={<Badge tone="success">활성</Badge>}
+                    action={
+                      isEditingPersona ? (
+                        <Button
+                          type="button"
+                          tone="ghost"
+                          onClick={closePersonaEditor}
+                        >
+                          취소
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          tone="secondary"
+                          onClick={openPersonaEditor}
+                          disabled={persona === undefined}
+                        >
+                          편집
+                        </Button>
+                      )
+                    }
                   >
-                    <ListRow
-                      leading={<Avatar label="ME" />}
-                      title="내 프로필"
-                      description="입장이 확인된 멤버입니다."
-                      meta={`시작일 ${formatDate(membership.issuedAt)}`}
-                    />
+                    {isEditingPersona ? (
+                      <form
+                        className={styles.personaForm}
+                        onSubmit={(event) => void handlePersonaSubmit(event)}
+                      >
+                        <Field
+                          label="핸들"
+                          htmlFor="persona-handle"
+                          hint="3-24자, 영문 소문자·숫자·_·-"
+                        >
+                          <input
+                            id="persona-handle"
+                            maxLength={24}
+                            value={personaForm.handle}
+                            onChange={(event) =>
+                              setPersonaForm((current) => ({
+                                ...current,
+                                handle: event.target.value,
+                              }))
+                            }
+                          />
+                        </Field>
+                        <Field
+                          label="표시 이름"
+                          htmlFor="persona-display-name"
+                          hint="40자 이내"
+                        >
+                          <input
+                            id="persona-display-name"
+                            maxLength={40}
+                            value={personaForm.displayName}
+                            onChange={(event) =>
+                              setPersonaForm((current) => ({
+                                ...current,
+                                displayName: event.target.value,
+                              }))
+                            }
+                          />
+                        </Field>
+                        <Field
+                          label="소개"
+                          htmlFor="persona-bio"
+                          hint="160자 이내, 본인이 직접 쓴 짧은 소개"
+                        >
+                          <textarea
+                            id="persona-bio"
+                            maxLength={160}
+                            value={personaForm.bio}
+                            onChange={(event) =>
+                              setPersonaForm((current) => ({
+                                ...current,
+                                bio: event.target.value,
+                              }))
+                            }
+                          />
+                        </Field>
+                        <div className={styles.personaActions}>
+                          <Button type="submit" disabled={personaSaving}>
+                            {personaSaving ? "저장 중" : "저장"}
+                          </Button>
+                          <Button
+                            type="button"
+                            tone="ghost"
+                            onClick={closePersonaEditor}
+                            disabled={personaSaving}
+                          >
+                            취소
+                          </Button>
+                        </div>
+                        {personaError ? (
+                          <p className="form-message" role="alert">
+                            {personaError}
+                          </p>
+                        ) : null}
+                      </form>
+                    ) : (
+                      <>
+                        <ListRow
+                          leading={<Avatar label={personaMark(persona)} />}
+                          title={personaTitle(persona)}
+                          description={personaDescription(persona)}
+                          meta={`시작일 ${formatDate(membership.issuedAt)}`}
+                        />
+                        {personaMessage ? (
+                          <p
+                            className="form-message success-message"
+                            role="status"
+                          >
+                            {personaMessage}
+                          </p>
+                        ) : null}
+                      </>
+                    )}
                   </Section>
 
                   {memberSections.map((section) => (
@@ -390,9 +628,19 @@ export default function MemberPage() {
                         }`}
                         trailing={<Badge tone="success">활성</Badge>}
                       />
-                      <DisabledMoreRow
-                        label="내 프로필 (페르소나)"
+                      <ListRow
+                        title="내 프로필 (페르소나)"
                         description="내 소개와 공개 범위"
+                        trailing={
+                          <button
+                            className={styles.rowAction}
+                            type="button"
+                            onClick={openPersonaEditor}
+                            disabled={persona === undefined}
+                          >
+                            편집
+                          </button>
+                        }
                       />
                     </div>
                     {signOutError ? (

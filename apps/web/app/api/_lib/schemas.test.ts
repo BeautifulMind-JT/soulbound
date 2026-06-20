@@ -1,6 +1,7 @@
 import {
   createPersonaClipSchema,
   deletePersonaClipQuerySchema,
+  profilePersonaPatchSchema,
   reviewDecisionSchema,
   reviewQueueQuerySchema,
   startReviewSchema,
@@ -104,6 +105,32 @@ describe("persona clip schemas", () => {
     });
     expect(deletePersonaClipQuerySchema.safeParse({
       assetId: "not-a-uuid",
+    }).success).toBe(false);
+  });
+});
+
+describe("profile persona schema", () => {
+  it("accepts partial persona patches and normalizes empty strings to null", () => {
+    expect(profilePersonaPatchSchema.parse({
+      handle: "  Member_1 ",
+      bio: "   ",
+    })).toEqual({
+      handle: "Member_1",
+      bio: null,
+    });
+  });
+
+  it("rejects empty patches and non-persona fields", () => {
+    expect(profilePersonaPatchSchema.safeParse({}).success).toBe(false);
+    expect(profilePersonaPatchSchema.safeParse({
+      avatar_url: "https://example.com/avatar.png",
+    }).success).toBe(false);
+    expect(profilePersonaPatchSchema.safeParse({
+      display_name: "snake case is not the API",
+    }).success).toBe(false);
+    expect(profilePersonaPatchSchema.safeParse({
+      role: "admin",
+      displayName: "Member",
     }).success).toBe(false);
   });
 });

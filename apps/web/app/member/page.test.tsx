@@ -65,11 +65,20 @@ describe("MemberPage", () => {
     }), {
       status: 200,
       headers: { "content-type": "application/json" },
+    })).mockResolvedValueOnce(new Response(JSON.stringify({
+      handle: "quiet_member",
+      displayName: "Quiet Member",
+      bio: "I prefer signal over spectacle.",
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
     }));
 
     render(<MemberPage />);
 
-    expect(await screen.findByText("내 프로필")).toBeTruthy();
+    expect(await screen.findByText("Quiet Member")).toBeTruthy();
+    expect(screen.getByText("@quiet_member · I prefer signal over spectacle."))
+      .toBeTruthy();
     expect(screen.getByText("New Members")).toBeTruthy();
     expect(screen.getByText("Active Members")).toBeTruthy();
     expect(screen.getByText("All Members")).toBeTruthy();
@@ -99,6 +108,69 @@ describe("MemberPage", () => {
       "/api/membership/me",
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
+    expect(authedFetch).toHaveBeenCalledWith(
+      "/api/profile/me",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it("edits the active member persona", async () => {
+    authedFetch.mockResolvedValueOnce(new Response(JSON.stringify({
+      id: "membership-1",
+      userId: "member-1",
+      status: "active",
+      tier: "member",
+      issuedAt: "2026-06-08T00:00:00.000Z",
+      revokedAt: null,
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    })).mockResolvedValueOnce(new Response(JSON.stringify({
+      handle: null,
+      displayName: null,
+      bio: null,
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    })).mockResolvedValueOnce(new Response(JSON.stringify({
+      handle: "new_member",
+      displayName: "New Member",
+      bio: "Self-authored intro.",
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+
+    render(<MemberPage />);
+
+    expect(await screen.findByText("익명 멤버")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "편집" }));
+    fireEvent.change(screen.getByLabelText("핸들"), {
+      target: { value: "new_member" },
+    });
+    fireEvent.change(screen.getByLabelText("표시 이름"), {
+      target: { value: "New Member" },
+    });
+    fireEvent.change(screen.getByLabelText("소개"), {
+      target: { value: "Self-authored intro." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+
+    await waitFor(() =>
+      expect(authedFetch).toHaveBeenCalledWith(
+        "/api/profile/me",
+        expect.objectContaining({
+          method: "PATCH",
+          body: JSON.stringify({
+            handle: "new_member",
+            displayName: "New Member",
+            bio: "Self-authored intro.",
+          }),
+        }),
+      )
+    );
+    expect(await screen.findByText("New Member")).toBeTruthy();
+    expect(screen.queryByRole("img")).toBeNull();
   });
 
   it("returns a non-member to the gate", async () => {

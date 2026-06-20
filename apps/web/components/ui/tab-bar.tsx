@@ -34,6 +34,7 @@ export function TabBar<T extends string>({
     >
       {items.map((item) => (
         <button
+          aria-label={item.label}
           aria-selected={activeId === item.id}
           className={activeId === item.id ? styles.tabActive : undefined}
           key={item.id}
@@ -42,7 +43,6 @@ export function TabBar<T extends string>({
           type="button"
         >
           {item.icon ? <span aria-hidden="true">{item.icon}</span> : null}
-          <span>{item.label}</span>
         </button>
       ))}
     </nav>

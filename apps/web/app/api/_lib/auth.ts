@@ -44,6 +44,35 @@ export function userClientFromRequest(
   });
 }
 
+export interface UserContext {
+  readonly userId: string;
+  readonly client: SupabaseAdapterClient;
+}
+
+export async function resolveUserContext(
+  request: Request,
+): Promise<UserContext | null> {
+  const accessToken = bearerTokenFromRequest(request);
+  if (!accessToken) {
+    return null;
+  }
+
+  const client = userClientFromRequest(request);
+  if (!client) {
+    return null;
+  }
+
+  const { data, error } = await client.auth.getUser(accessToken);
+  if (error || !data.user) {
+    return null;
+  }
+
+  return {
+    userId: data.user.id,
+    client,
+  };
+}
+
 export async function resolveActor(request: Request): Promise<Actor | null> {
   const accessToken = bearerTokenFromRequest(request);
   if (!accessToken) {

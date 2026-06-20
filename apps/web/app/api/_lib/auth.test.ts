@@ -1,4 +1,4 @@
-import { bearerTokenFromRequest, resolveActor } from "./auth";
+import { bearerTokenFromRequest, resolveActor, resolveUserContext } from "./auth";
 
 describe("auth helpers", () => {
   it("extracts bearer tokens", () => {
@@ -20,6 +20,8 @@ describe("auth helpers", () => {
       },
     }))).toBeNull();
     await expect(resolveActor(new Request("http://localhost/api")))
+      .resolves.toBeNull();
+    await expect(resolveUserContext(new Request("http://localhost/api")))
       .resolves.toBeNull();
   });
 });

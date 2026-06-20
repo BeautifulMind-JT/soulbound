@@ -95,3 +95,23 @@ export const deletePersonaClipQuerySchema = z.object({
 
 export type DeletePersonaClipQuery =
   z.infer<typeof deletePersonaClipQuerySchema>;
+
+const profileString = z.string().transform((value) => value.trim());
+const nullableProfileString = profileString.transform((value) =>
+  value.length > 0 ? value : null
+);
+
+export const profilePersonaPatchSchema = z.object({
+  handle: nullableProfileString.optional(),
+  displayName: nullableProfileString.optional(),
+  bio: nullableProfileString.optional(),
+}).strict().refine(
+  (value) =>
+    Object.prototype.hasOwnProperty.call(value, "handle")
+    || Object.prototype.hasOwnProperty.call(value, "displayName")
+    || Object.prototype.hasOwnProperty.call(value, "bio"),
+  { message: "at least one persona field is required" },
+);
+
+export type ProfilePersonaPatchBody =
+  z.infer<typeof profilePersonaPatchSchema>;

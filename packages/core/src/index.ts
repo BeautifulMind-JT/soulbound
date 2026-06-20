@@ -48,6 +48,14 @@ export type {
   MembershipServiceDeps,
 } from "./domain/membership/membership-service";
 
+// profile
+export type { Persona, UpdatePersonaInput } from "./domain/profile/types";
+export { DefaultProfileService } from "./domain/profile/profile-service";
+export type {
+  ProfileService,
+  ProfileServiceDeps,
+} from "./domain/profile/profile-service";
+
 // audit / outbox / ledger / storage
 export type { AuditAction, AuditAppendInput, AuditLogEntry } from "./domain/audit/types";
 export type {
@@ -79,6 +87,7 @@ export type {
   SubmitApplicationTxInput,
 } from "./ports/admission-repository";
 export type { MembershipRepository } from "./ports/membership-repository";
+export type { ProfileRepository } from "./ports/profile-repository";
 export type { AuditLogRepository } from "./ports/audit-log-repository";
 export type { OutboxRepository } from "./ports/outbox-repository";
 export type { LedgerPort } from "./ports/ledger-port";
