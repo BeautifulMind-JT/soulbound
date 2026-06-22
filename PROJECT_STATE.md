@@ -105,6 +105,34 @@ JT가 계정 지정 + §6 기록(앱 미자동감사 `role.changed`). **③ 모�
 SiteHeader 3-state(pathname 기반 `/member`→null·비멤버 로그아웃·anon 로그인/가입, role/membership fetch 0),
 `/member` de-stack(AppBar 제거·phoneTop 단일 헤더), More=northstar 전체 그룹 스캐폴드(wired: 내멤버십 inline·입장현황→`/gate`·로그아웃·앱설치 / 준비중·심사권한=`<div aria-disabled>` 비-내비게이션·href/onClick 0·심사=role무관 "자격 획득 필요"·`/admin` 0), ListRow grid→flex 버그수정(leading-없는 행 truncation 해소·description 2-line clamp), TabBar inline SVG 아이콘 + orientation prop(horizontal 기본·vertical 미구현). Cowork 게이트 재실행: web typecheck/build/audit PASS·web test 64/64·boundary diff EMPTY. 비-블로커: 호스트 `/member` 육안 스모크(sandbox 브라우저 부재). follow-up: 데스크톱 좌측 레일(반응형, TabBar orientation 예약)·Q4 role-aware 라이브 심사 진입점(별도 brief). production/tag/RC/alpha 보류 유지. 증적 `docs/MEMBER_SHELL_NAV_BRIEF.md`.
 
+추가 갱신(2026-06-20, profile/persona Tier A — **P0 이후 첫 northstar 기능**): `6a32dd2`(feat: add pseudonymous
+persona profile) = 독립 최종감사 **FINAL PASS, pushed**(origin 동기화). 첫 real feature라 surface fast-loop이 아니라
+**풀 BUILD ORDER(core+테스트 → 어댑터 → 라우트 → UI) + 풀 감사**로 진행.
+- **기능**: post-admission `/member` persona 보기+편집(handle/display_name/bio). persona = **net-new 자기저작 가명
+  정체성, 심사 dossier(motivation/statement/referral/clip)와 테이블·컬럼 차원 분리(⟂)** — admission이 persona를 안
+  채움 → de-anon 누수 경로 구조적 0(잠긴 익명성 불변식 강화). **AI 개입 0**(파이널클럽=사람이 사람 심사; AI저작은
+  진정성↓·동질화·인프라/프라이버시 비용으로 코어 역행 → JT+Cowork 합의 배제).
+- 🔴 **구조적 no-photo**: `avatar_url`을 PATCH 스키마·ProfileService 입력·어댑터 write·`Persona` 타입·UI 전 경로에서
+  제외(쓰는 코드 0). 클라는 이니셜/모노그램 마크만. DB grant는 avatar_url update를 허용하므로 정책 아닌 *구조*로 강제
+  (DB-레벨 회수[profiles update grant에서 avatar_url 제외=migration]는 defense-in-depth follow-up).
+- 🔴 **no-leak**: GET/PATCH 응답·`Persona` 타입 = `{handle,displayName,bio}`만 — role/wallet/email/membership/auth-id 0.
+- **빌드**: core Profile 도메인/포트/서비스(검증 handle 3-24·alnum·displayName 40·bio 160·empty-patch VALIDATION·conflict
+  409)+단위테스트 → supabase 어댑터(**user-JWT**, 23505→CONFLICT) → `/api/profile/me` GET/PATCH(**user-JWT per-request
+  ProfileService**[service-role 컨테이너 미사용]·active membership gate→403·strict schema→422) → `/member` view/edit +
+  하단 탭 icon-only(aria-label). 보호표면(migrations/RLS/seed/auth-provider/PWA/manifest/persona-clip/admission/apply/
+  package/lock) 0-diff · 새 의존성 0 · core supabase-free.
+- **보안 모델(검증됨)**: column-grant(handle/display_name/bio/avatar_url만)가 **role/membership/wallet escalation을
+  DB에서 차단** + RLS own-row + schema 422.
+- **검증**: Cowork 코드 인라인 전수 + host-독립 게이트 재실행(core 27 · adapters 27 · web 74 · typecheck · build · audit ·
+  diff) + **host 통합 보안 게이트 = profile-routes ~11x 결정적 green**(own-only RLS cross-user 거부 · role escalation DB
+  거부 · persona-only 응답 · 타유저 unchanged; 실-DB라 ~3–9s → testTimeout 15–20k 필요). 빌더(Codex)≠승인자(Cowork),
+  보안 게이트 *실제 실행*(rubber-stamp 아님).
+- **follow-up(하네스/ops — 기능과 별개·비차단)**: ① `vitest.integration.config.ts` `testTimeout` ~20000 상향(profile
+  통합이 기본 5000ms엔 flaky, 수동 플래그로만 green) ② **기존 admin-routes 통합테스트 flake**(reviewer 테스트 60s 행
+  ~1/5, auth-fixture 재시도-부하 추정 — 이번 기능 무관, §6 스위트 신뢰성 별도 조사) ③ 통합 env reviewer/admin 시드
+  재현성(수동 Node 생성 → `supabase db reset`/스크립트화) ④ avatar_url DB-grant 회수(no-photo DB-레벨 방어).
+- production/tag/RC/alpha 보류 유지. 증적 `docs/PROFILE_PERSONA_BRIEF.md`.
+
 ---
 
 ## 0. 한 줄 요약
