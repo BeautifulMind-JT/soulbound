@@ -157,6 +157,16 @@ persona profile) = 독립 최종감사 **FINAL PASS, pushed**(origin 동기화).
   ② admin 계정 SQL 승격(host) ③ **통합 하네스 정리**(testTimeout config·admin-routes 통합 flake·reviewer/admin 시드 재현성 — 다음 작업).
 - production/tag/RC/alpha 보류 유지. 증적 `docs/ADMIN_SURFACE_CLEANUP_BRIEF.md`.
 
+추가 갱신(2026-06-23, integration harness cleanup): `50660c7` + `c465677` = **FINAL PASS** — web/adapters
+통합 하네스 결정성 확보. seeded reviewer/password 의존 제거(**web admin/persona-clip 한정**: self-created reviewer
+fixture로 교체; applicant/profile은 공통 fixture로 DRY), fixture sign-in per-attempt timeout/retry + vitest integration
+`testTimeout`/`hookTimeout` 20_000, FK-aware cleanup(`c465677`: `reviewer_id`/`actor_id` null 처리 + 관련
+application/membership 정리 후 auth user 삭제). **Host binding gate**: `supabase db reset` 후
+`pnpm -F web test:integration`(4 suites/6 tests) + `pnpm -F @soulbound/adapters test:integration`(2 suites/4 tests)
+**5회 연속 GREEN**, flake 0, cross-package persona-clip reaper 누수 0. 제품 코드/schema/seed/auth-provider/PWA/
+package-lock/core/adapters-src **0-diff**. Follow-up(non-blocking): 로컬 integration env/export 루프 스크립트화,
+adapters container 시드 의존 제거, backend reasonCode-per-action defense-in-depth, alpha admin SQL.
+
 ---
 
 ## 0. 한 줄 요약
