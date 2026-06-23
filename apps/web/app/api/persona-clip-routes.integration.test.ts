@@ -1,7 +1,14 @@
 import {
-  createAnonSupabaseClient,
   createServiceRoleSupabaseClient,
 } from "@soulbound/adapters";
+import {
+  createApplicant,
+  createReviewer,
+  deleteFixtureUsers,
+  readIntegrationConfig,
+  uniqueSuffix,
+  type TestSession,
+} from "./_integration/fixtures";
 import { POST as postApplication } from "./admission/applications/route";
 import {
   DELETE as deletePersonaClip,
@@ -10,32 +17,6 @@ import {
 import { GET as getPersonaClipUrl } from "./admin/applications/[id]/persona-clip-url/route";
 import { POST as postReview } from "./admin/applications/[id]/review/route";
 import { POST as postApprove } from "./admin/applications/[id]/approve/route";
-
-declare const process: {
-  readonly env: Record<string, string | undefined>;
-};
-
-interface IntegrationConfig {
-  readonly url: string;
-  readonly anonKey: string;
-  readonly serviceRoleKey: string;
-}
-
-interface TestSession {
-  readonly id: string;
-  readonly email: string;
-  readonly accessToken: string;
-}
-
-interface TestApplicant extends TestSession {
-  readonly password: string;
-}
-
-interface AuthRetryOptions {
-  readonly label: string;
-  readonly attempts?: number;
-  readonly delayMs?: number;
-}
 
 interface RouteContext {
   readonly params: Promise<{
@@ -47,79 +28,6 @@ interface UploadContract {
   readonly url: string;
   readonly method: "PUT";
   readonly headers: Record<string, string>;
-}
-
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(
-      `Missing ${name}. Export NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY before running web integration tests.`,
-    );
-  }
-
-  return value;
-}
-
-function readConfig(): IntegrationConfig {
-  return {
-    url: requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
-    anonKey: requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-    serviceRoleKey: requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
-  };
-}
-
-function uniqueSuffix(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function describeError(error: unknown): string {
-  if (error instanceof Error) {
-    return `${error.name}: ${error.message}`;
-  }
-
-  return JSON.stringify(error);
-}
-
-function isRetryableAuthError(error: unknown): boolean {
-  if (!(error instanceof Error)) {
-    return false;
-  }
-
-  return (
-    error.name === "AuthRetryableFetchError"
-    || error.message === "fetch failed"
-    || error.message.includes("fetch failed")
-  );
-}
-
-async function retryAuthFixtureOperation<T>(
-  options: AuthRetryOptions,
-  operation: () => Promise<T>,
-): Promise<T> {
-  const attempts = options.attempts ?? 4;
-  const delayMs = options.delayMs ?? 250;
-  let lastError: unknown;
-
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error;
-      if (!isRetryableAuthError(error) || attempt === attempts) {
-        break;
-      }
-
-      await sleep(delayMs * attempt);
-    }
-  }
-
-  throw new Error(
-    `Auth fixture operation '${options.label}' failed after ${attempts} attempts: ${describeError(lastError)}`,
-  );
 }
 
 function authedRequest(
@@ -156,102 +64,8 @@ function routeContext(id: string): RouteContext {
   };
 }
 
-async function signIn(
-  config: IntegrationConfig,
-  email: string,
-  password: string,
-): Promise<TestSession> {
-  const anonClient = createAnonSupabaseClient({
-    url: config.url,
-    anonKey: config.anonKey,
-  });
-
-  const signInResult = await retryAuthFixtureOperation({
-    label: `signInWithPassword(${email})`,
-  }, async () => {
-    const { data, error } = await anonClient.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) {
-      throw error;
-    }
-
-    return data;
-  });
-
-  const id = signInResult.user?.id;
-  const accessToken = signInResult.session?.access_token;
-  if (!id || !accessToken) {
-    throw new Error(`Supabase signIn returned no user/session for ${email}.`);
-  }
-
-  return {
-    id,
-    email,
-    accessToken,
-  };
-}
-
-async function createApplicant(
-  config: IntegrationConfig,
-  purpose: string,
-): Promise<TestApplicant> {
-  const serviceRoleClient = createServiceRoleSupabaseClient({
-    url: config.url,
-    serviceRoleKey: config.serviceRoleKey,
-  });
-  const suffix = uniqueSuffix();
-  const email = `task7a-${purpose}-${suffix}@soulbound.local`;
-  const password = `Task7a-${suffix}!`;
-
-  const created = await retryAuthFixtureOperation({
-    label: `admin.createUser(${email})`,
-  }, async () => {
-    const { data, error } = await serviceRoleClient.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {},
-      app_metadata: {},
-    });
-    if (error) {
-      throw error;
-    }
-
-    return data;
-  });
-
-  const id = created.user?.id;
-  if (!id) {
-    throw new Error("Supabase admin createUser returned no user id.");
-  }
-
-  const { error: profileError } = await serviceRoleClient
-    .from("profiles")
-    .upsert(
-      {
-        id,
-        handle: `task7a-${purpose}-${suffix}`,
-        role: "applicant",
-        membership_status: "none",
-      },
-      { onConflict: "id" },
-    );
-  if (profileError) {
-    throw profileError;
-  }
-
-  const session = await signIn(config, email, password);
-
-  return {
-    ...session,
-    password,
-  };
-}
-
 async function submitApplication(
-  applicant: TestApplicant,
+  applicant: TestSession,
   body: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
   const response = await postApplication(jsonRequest(
@@ -268,7 +82,7 @@ async function submitApplication(
 }
 
 async function createPersonaClip(
-  applicant: TestApplicant,
+  applicant: TestSession,
   body: Record<string, unknown>,
 ): Promise<{
   readonly assetId: string;
@@ -323,74 +137,94 @@ function expectNoPersonaClipSecretLeak(
 
 describe("persona clip route handlers", () => {
   const fixtureApplicantIds: string[] = [];
+  const fixtureUsers: TestSession[] = [];
 
   afterEach(async () => {
-    if (fixtureApplicantIds.length === 0) {
+    if (fixtureApplicantIds.length === 0 && fixtureUsers.length === 0) {
       return;
     }
 
+    let cleanupError: unknown;
     try {
-      const config = readConfig();
+      const config = readIntegrationConfig();
       const serviceRoleClient = createServiceRoleSupabaseClient({
         url: config.url,
         serviceRoleKey: config.serviceRoleKey,
       });
-      const { data: clips, error: clipsError } = await serviceRoleClient
-        .from("persona_clip_assets")
-        .select("id,storage_path")
-        .in("applicant_id", fixtureApplicantIds);
-      if (clipsError) {
-        throw clipsError;
-      }
 
-      const clipIds = (clips ?? []).map(({ id }) => id);
-      const storagePaths = (clips ?? []).map(({ storage_path }) => storage_path);
-      if (storagePaths.length > 0) {
-        const { error: removeError } = await serviceRoleClient.storage
-          .from("persona-clips")
-          .remove(storagePaths);
-        if (removeError) {
-          throw removeError;
-        }
-      }
-
-      if (clipIds.length > 0) {
-        const { error: detachError } = await serviceRoleClient
-          .from("admission_applications")
-          .update({ persona_clip_asset_id: null })
-          .in("persona_clip_asset_id", clipIds);
-        if (detachError) {
-          throw detachError;
-        }
-
-        const { error: deleteError } = await serviceRoleClient
+      if (fixtureApplicantIds.length > 0) {
+        const { data: clips, error: clipsError } = await serviceRoleClient
           .from("persona_clip_assets")
-          .delete()
-          .in("id", clipIds);
-        if (deleteError) {
-          throw deleteError;
+          .select("id,storage_path")
+          .in("applicant_id", fixtureApplicantIds);
+        if (clipsError) {
+          throw clipsError;
+        }
+
+        const clipIds = (clips ?? []).map(({ id }) => id);
+        const storagePaths = (clips ?? []).map(({ storage_path }) => storage_path);
+        if (storagePaths.length > 0) {
+          const { error: removeError } = await serviceRoleClient.storage
+            .from("persona-clips")
+            .remove(storagePaths);
+          if (removeError) {
+            throw removeError;
+          }
+        }
+
+        if (clipIds.length > 0) {
+          const { error: detachError } = await serviceRoleClient
+            .from("admission_applications")
+            .update({ persona_clip_asset_id: null })
+            .in("persona_clip_asset_id", clipIds);
+          if (detachError) {
+            throw detachError;
+          }
+
+          const { error: deleteError } = await serviceRoleClient
+            .from("persona_clip_assets")
+            .delete()
+            .in("id", clipIds);
+          if (deleteError) {
+            throw deleteError;
+          }
         }
       }
+    } catch (error) {
+      cleanupError = error;
+    }
+
+    try {
+      if (fixtureUsers.length > 0) {
+        await deleteFixtureUsers(readIntegrationConfig(), fixtureUsers);
+      }
+    } catch (error) {
+      cleanupError ??= error;
     } finally {
       fixtureApplicantIds.length = 0;
+      fixtureUsers.length = 0;
+    }
+
+    if (cleanupError) {
+      throw cleanupError;
     }
   });
 
   it("creates upload URLs, protects reviewer read URLs, and preserves retention invariants", async () => {
-    const config = readConfig();
+    const config = readIntegrationConfig();
     const serviceRoleClient = createServiceRoleSupabaseClient({
       url: config.url,
       serviceRoleKey: config.serviceRoleKey,
     });
-    const reviewer = await signIn(
-      config,
-      "reviewer@soulbound.local",
-      "password123",
-    );
+    const reviewer = await createReviewer(config, "persona-clip");
+    fixtureUsers.push(reviewer);
     const applicant = await createApplicant(config, "clip-owner");
-    fixtureApplicantIds.push(applicant.id);
+    fixtureUsers.push(applicant);
     const otherApplicant = await createApplicant(config, "clip-other");
+    fixtureUsers.push(otherApplicant);
     const noClipApplicant = await createApplicant(config, "no-clip");
+    fixtureUsers.push(noClipApplicant);
+    fixtureApplicantIds.push(applicant.id, otherApplicant.id, noClipApplicant.id);
 
     const deleteDraft = await createPersonaClip(applicant, {
       contentHash: `delete-${uniqueSuffix()}`,

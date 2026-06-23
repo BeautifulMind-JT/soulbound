@@ -5,5 +5,7 @@ export default defineConfig({
     globals: true,
     include: ["app/**/*.integration.test.ts"],
     exclude: [".next/**"],
+    testTimeout: 20_000,
+    hookTimeout: 20_000,
   },
 });

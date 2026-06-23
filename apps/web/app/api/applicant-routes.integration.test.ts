@@ -1,107 +1,14 @@
 import {
-  createAnonSupabaseClient,
-  createServiceRoleSupabaseClient,
-} from "@soulbound/adapters";
+  createApplicant,
+  deleteFixtureUsers,
+  readIntegrationConfig,
+  uniqueSuffix,
+  type TestSession,
+} from "./_integration/fixtures";
 import { POST as postApplication } from "./admission/applications/route";
 import { GET as getMyApplication } from "./admission/applications/me/route";
 import { GET as getApplicationById } from "./admission/applications/[id]/route";
 import { GET as getMyMembership } from "./membership/me/route";
-
-declare const process: {
-  readonly env: Record<string, string | undefined>;
-};
-
-interface IntegrationConfig {
-  readonly url: string;
-  readonly anonKey: string;
-  readonly serviceRoleKey: string;
-}
-
-interface TestApplicant {
-  readonly id: string;
-  readonly email: string;
-  readonly password: string;
-  readonly accessToken: string;
-}
-
-interface AuthRetryOptions {
-  readonly label: string;
-  readonly attempts?: number;
-  readonly delayMs?: number;
-}
-
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(
-      `Missing ${name}. Export NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY before running web integration tests.`,
-    );
-  }
-
-  return value;
-}
-
-function readConfig(): IntegrationConfig {
-  return {
-    url: requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
-    anonKey: requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-    serviceRoleKey: requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
-  };
-}
-
-function uniqueSuffix(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function describeError(error: unknown): string {
-  if (error instanceof Error) {
-    return `${error.name}: ${error.message}`;
-  }
-
-  return JSON.stringify(error);
-}
-
-function isRetryableAuthError(error: unknown): boolean {
-  if (!(error instanceof Error)) {
-    return false;
-  }
-
-  return (
-    error.name === "AuthRetryableFetchError"
-    || error.message === "fetch failed"
-    || error.message.includes("fetch failed")
-  );
-}
-
-async function retryAuthFixtureOperation<T>(
-  options: AuthRetryOptions,
-  operation: () => Promise<T>,
-): Promise<T> {
-  const attempts = options.attempts ?? 4;
-  const delayMs = options.delayMs ?? 250;
-  let lastError: unknown;
-
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error;
-      if (!isRetryableAuthError(error) || attempt === attempts) {
-        break;
-      }
-
-      await sleep(delayMs * attempt);
-    }
-  }
-
-  throw new Error(
-    `Auth fixture operation '${options.label}' failed after ${attempts} attempts: ${describeError(lastError)}`,
-  );
-}
 
 function authedRequest(
   accessToken: string,
@@ -115,85 +22,6 @@ function authedRequest(
     ...init,
     headers,
   });
-}
-
-async function createApplicant(
-  config: IntegrationConfig,
-): Promise<TestApplicant> {
-  const serviceRoleClient = createServiceRoleSupabaseClient({
-    url: config.url,
-    serviceRoleKey: config.serviceRoleKey,
-  });
-  const suffix = uniqueSuffix();
-  const email = `task6a-applicant-${suffix}@soulbound.local`;
-  const password = `Task6a-${suffix}!`;
-
-  const created = await retryAuthFixtureOperation({
-    label: `admin.createUser(${email})`,
-  }, async () => {
-    const { data, error } = await serviceRoleClient.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {},
-      app_metadata: {},
-    });
-    if (error) {
-      throw error;
-    }
-
-    return data;
-  });
-
-  const id = created.user?.id;
-  if (!id) {
-    throw new Error("Supabase admin createUser returned no user id.");
-  }
-
-  const { error: profileError } = await serviceRoleClient
-    .from("profiles")
-    .upsert(
-      {
-        id,
-        handle: `task6a-${suffix}`,
-        role: "applicant",
-        membership_status: "none",
-      },
-      { onConflict: "id" },
-    );
-  if (profileError) {
-    throw profileError;
-  }
-
-  const anonClient = createAnonSupabaseClient({
-    url: config.url,
-    anonKey: config.anonKey,
-  });
-  const signIn = await retryAuthFixtureOperation({
-    label: `signInWithPassword(${email})`,
-  }, async () => {
-    const { data, error } = await anonClient.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) {
-      throw error;
-    }
-
-    return data;
-  });
-
-  const accessToken = signIn.session?.access_token;
-  if (!accessToken) {
-    throw new Error("Supabase signIn returned no access token.");
-  }
-
-  return {
-    id,
-    email,
-    password,
-    accessToken,
-  };
 }
 
 async function submitApplication(
@@ -210,10 +38,26 @@ async function submitApplication(
 }
 
 describe("applicant route handlers", () => {
+  const fixtureUsers: TestSession[] = [];
+
+  afterEach(async () => {
+    if (fixtureUsers.length === 0) {
+      return;
+    }
+
+    try {
+      await deleteFixtureUsers(readIntegrationConfig(), fixtureUsers);
+    } finally {
+      fixtureUsers.length = 0;
+    }
+  });
+
   it("handles applicant submit/read/membership routes with real bearer auth", async () => {
-    const config = readConfig();
-    const applicant = await createApplicant(config);
-    const otherApplicant = await createApplicant(config);
+    const config = readIntegrationConfig();
+    const applicant = await createApplicant(config, "task6a-owner");
+    fixtureUsers.push(applicant);
+    const otherApplicant = await createApplicant(config, "task6a-other");
+    fixtureUsers.push(otherApplicant);
 
     const maliciousSubmitResponse = await submitApplication(
       applicant.accessToken,

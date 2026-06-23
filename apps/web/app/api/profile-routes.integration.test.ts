@@ -1,106 +1,14 @@
 import {
-  createAnonSupabaseClient,
   createServiceRoleSupabaseClient,
   createUserSupabaseClient,
 } from "@soulbound/adapters";
+import {
+  createActiveMember,
+  deleteFixtureUsers,
+  readIntegrationConfig,
+  type TestSession,
+} from "./_integration/fixtures";
 import { GET, PATCH } from "./profile/me/route";
-
-declare const process: {
-  readonly env: Record<string, string | undefined>;
-};
-
-interface IntegrationConfig {
-  readonly url: string;
-  readonly anonKey: string;
-  readonly serviceRoleKey: string;
-}
-
-interface TestMember {
-  readonly id: string;
-  readonly email: string;
-  readonly password: string;
-  readonly accessToken: string;
-  readonly handle: string;
-}
-
-interface AuthRetryOptions {
-  readonly label: string;
-  readonly attempts?: number;
-  readonly delayMs?: number;
-}
-
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(
-      `Missing ${name}. Export NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY before running web integration tests.`,
-    );
-  }
-
-  return value;
-}
-
-function readConfig(): IntegrationConfig {
-  return {
-    url: requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
-    anonKey: requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-    serviceRoleKey: requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
-  };
-}
-
-function uniqueSuffix(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function describeError(error: unknown): string {
-  if (error instanceof Error) {
-    return `${error.name}: ${error.message}`;
-  }
-
-  return JSON.stringify(error);
-}
-
-function isRetryableAuthError(error: unknown): boolean {
-  if (!(error instanceof Error)) {
-    return false;
-  }
-
-  return (
-    error.name === "AuthRetryableFetchError"
-    || error.message === "fetch failed"
-    || error.message.includes("fetch failed")
-  );
-}
-
-async function retryAuthFixtureOperation<T>(
-  options: AuthRetryOptions,
-  operation: () => Promise<T>,
-): Promise<T> {
-  const attempts = options.attempts ?? 4;
-  const delayMs = options.delayMs ?? 250;
-  let lastError: unknown;
-
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error;
-      if (!isRetryableAuthError(error) || attempt === attempts) {
-        break;
-      }
-
-      await sleep(delayMs * attempt);
-    }
-  }
-
-  throw new Error(
-    `Auth fixture operation '${options.label}' failed after ${attempts} attempts: ${describeError(lastError)}`,
-  );
-}
 
 function authedRequest(
   accessToken: string,
@@ -119,106 +27,33 @@ function authedRequest(
   });
 }
 
-async function createActiveMember(
-  config: IntegrationConfig,
-  purpose: string,
-): Promise<TestMember> {
-  const serviceRoleClient = createServiceRoleSupabaseClient({
-    url: config.url,
-    serviceRoleKey: config.serviceRoleKey,
-  });
-  const suffix = uniqueSuffix();
-  const email = `profile-${purpose}-${suffix}@soulbound.local`;
-  const password = `Profile-${suffix}!`;
-  const handle = `profile_${purpose}_${suffix}`.replace(/-/g, "_").slice(0, 24);
-
-  const created = await retryAuthFixtureOperation({
-    label: `admin.createUser(${email})`,
-  }, async () => {
-    const { data, error } = await serviceRoleClient.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {},
-      app_metadata: {},
-    });
-    if (error) {
-      throw error;
-    }
-
-    return data;
-  });
-
-  const id = created.user?.id;
-  if (!id) {
-    throw new Error("Supabase admin createUser returned no user id.");
-  }
-
-  const { error: profileError } = await serviceRoleClient
-    .from("profiles")
-    .upsert(
-      {
-        id,
-        handle,
-        display_name: `Member ${purpose}`,
-        bio: `Initial ${purpose} bio.`,
-        role: "member",
-        membership_status: "active",
-      },
-      { onConflict: "id" },
-    );
-  if (profileError) {
-    throw profileError;
-  }
-
-  const { error: membershipError } = await serviceRoleClient
-    .from("memberships")
-    .insert({
-      user_id: id,
-      status: "active",
-      tier: "basic",
-    });
-  if (membershipError) {
-    throw membershipError;
-  }
-
-  const anonClient = createAnonSupabaseClient({
-    url: config.url,
-    anonKey: config.anonKey,
-  });
-  const signIn = await retryAuthFixtureOperation({
-    label: `signInWithPassword(${email})`,
-  }, async () => {
-    const { data, error } = await anonClient.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) {
-      throw error;
-    }
-
-    return data;
-  });
-
-  const accessToken = signIn.session?.access_token;
-  if (!accessToken) {
-    throw new Error("Supabase signIn returned no access token.");
-  }
-
-  return {
-    id,
-    email,
-    password,
-    accessToken,
-    handle,
-  };
-}
-
 describe("profile route handlers", () => {
+  const fixtureUsers: TestSession[] = [];
+
+  afterEach(async () => {
+    if (fixtureUsers.length === 0) {
+      return;
+    }
+
+    try {
+      await deleteFixtureUsers(readIntegrationConfig(), fixtureUsers);
+    } finally {
+      fixtureUsers.length = 0;
+    }
+  });
+
   it("handles active-member read/update with persona-only responses and RLS-backed own-only writes", async () => {
-    const config = readConfig();
-    const member = await createActiveMember(config, "owner");
-    const otherMember = await createActiveMember(config, "other");
+    const config = readIntegrationConfig();
+    const member = await createActiveMember(config, "owner", {
+      display_name: "Member owner",
+      bio: "Initial owner bio.",
+    });
+    fixtureUsers.push(member);
+    const otherMember = await createActiveMember(config, "other", {
+      display_name: "Member other",
+      bio: "Initial other bio.",
+    });
+    fixtureUsers.push(otherMember);
     const serviceRoleClient = createServiceRoleSupabaseClient({
       url: config.url,
       serviceRoleKey: config.serviceRoleKey,
