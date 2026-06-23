@@ -500,6 +500,12 @@ Pre-alpha UI/UX polish
   §3.3 서명 unfreeze+법무/커스터디 선행 · ICP 결정 선행 · alpha 검증 후). BOUND v1.1 = HYPE식 staking 보상,
   100M 캡·12M emission·10년 half-life·100% feature-fee burn+60% buyback-burn·ICP reserve 분리·Howey 법무 게이트.
   적대검토 commit-pin `4d7f99e`.
+- **[다음 라운드] 검열저항 / 운영자 데이터-최소화 (단일-ICP)** = `docs/FUTURE_censorship_resistance_icp.md` 참조
+  (dormant Northstar · option-branch only · 목표=영장 시 운영자 빈손+운영안정성 · 체인 grab-bag 전부 skip, 단일-ICP 확정 ·
+  🔴 critical: canister controller 키를 threshold/blackhole 안 하면 전향적 강압에 오늘보다 약함 · 도달성/메타그래프/규제는 못 삼).
+- **[지금 가능 · SECURITY full 루프] Operator Hardening STAGE-0** = `docs/OPERATOR_HARDENING_STAGE0_BRIEF.md` 참조
+  (체인 무관·main 위 · 0a audit hash chain 강제(설계된 미배선 완성) + 0b service-role 슈퍼키 구획화 ·
+  ⚠️ frozen 0003 RLS·audit 서비스 건드림 → JT GO + unfreeze 필요 · 0a 먼저 권장).
 
 ---
 
