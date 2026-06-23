@@ -495,6 +495,11 @@ Pre-alpha UI/UX polish
   processor/adapter에서 1회"로 단일화 결정. INV-13(실패내성)은 유지. (Codex P2 finding, Cowork 동의.)
 - **[다음 라운드] privacy ledger 선택** (Zcash ZSA / Aleo / Aztec) + **ICP 앱체인 전환** — Northstar,
   P0 계약 아님. LedgerPort 추상 경계가 이미 이걸 수용함.
+- **[다음 라운드] SOUL/BOUND 토크노믹스 후보설계** = `docs/FUTURE_tokenomics_design_notes.md` 참조
+  (✅ 전액준비 수량-peg escrow로서 경제 건전 · 리스크=구현/커스터디/권한 · net-new Layer 3 ·
+  §3.3 서명 unfreeze+법무/커스터디 선행 · ICP 결정 선행 · alpha 검증 후). BOUND v1.1 = HYPE식 staking 보상,
+  100M 캡·12M emission·10년 half-life·100% feature-fee burn+60% buyback-burn·ICP reserve 분리·Howey 법무 게이트.
+  적대검토 commit-pin `4d7f99e`.
 
 ---
 
