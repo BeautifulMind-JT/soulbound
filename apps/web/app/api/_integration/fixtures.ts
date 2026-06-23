@@ -314,6 +314,86 @@ export async function deleteFixtureUsers(
   });
 
   const ids = [...new Set(users.map((user) => user.id))];
+  if (ids.length === 0) {
+    return;
+  }
+
+  const { data: applicantApplications, error: applicantAppsError } =
+    await serviceRoleClient
+      .from("admission_applications")
+      .select("id")
+      .in("applicant_id", ids);
+  if (applicantAppsError) {
+    throw applicantAppsError;
+  }
+
+  const { data: reviewerApplications, error: reviewerAppsError } =
+    await serviceRoleClient
+      .from("admission_applications")
+      .select("id")
+      .in("reviewer_id", ids);
+  if (reviewerAppsError) {
+    throw reviewerAppsError;
+  }
+
+  const applicationIds = [
+    ...new Set([
+      ...(applicantApplications ?? []).map((row) => row.id),
+      ...(reviewerApplications ?? []).map((row) => row.id),
+    ]),
+  ];
+
+  const { error: clearEventActorError } = await serviceRoleClient
+    .from("admission_events")
+    .update({ actor_id: null })
+    .in("actor_id", ids);
+  if (clearEventActorError) {
+    throw clearEventActorError;
+  }
+
+  const { error: clearAuditActorError } = await serviceRoleClient
+    .from("audit_logs")
+    .update({ actor_id: null })
+    .in("actor_id", ids);
+  if (clearAuditActorError) {
+    throw clearAuditActorError;
+  }
+
+  const { error: clearReviewerError } = await serviceRoleClient
+    .from("admission_applications")
+    .update({ reviewer_id: null })
+    .in("reviewer_id", ids);
+  if (clearReviewerError) {
+    throw clearReviewerError;
+  }
+
+  if (applicationIds.length > 0) {
+    const { error: deleteMembershipsByApplicationError } =
+      await serviceRoleClient
+        .from("memberships")
+        .delete()
+        .in("source_application_id", applicationIds);
+    if (deleteMembershipsByApplicationError) {
+      throw deleteMembershipsByApplicationError;
+    }
+
+    const { error: deleteApplicationsError } = await serviceRoleClient
+      .from("admission_applications")
+      .delete()
+      .in("id", applicationIds);
+    if (deleteApplicationsError) {
+      throw deleteApplicationsError;
+    }
+  }
+
+  const { error: deleteMembershipsByUserError } = await serviceRoleClient
+    .from("memberships")
+    .delete()
+    .in("user_id", ids);
+  if (deleteMembershipsByUserError) {
+    throw deleteMembershipsByUserError;
+  }
+
   for (const id of ids) {
     const { error } = await serviceRoleClient.auth.admin.deleteUser(id);
     if (error) {
