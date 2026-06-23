@@ -133,6 +133,30 @@ persona profile) = 독립 최종감사 **FINAL PASS, pushed**(origin 동기화).
   재현성(수동 Node 생성 → `supabase db reset`/스크립트화) ④ avatar_url DB-grant 회수(no-photo DB-레벨 방어).
 - production/tag/RC/alpha 보류 유지. 증적 `docs/PROFILE_PERSONA_BRIEF.md`.
 
+추가 갱신(2026-06-20, admin surface cleanup): `4b1f304`(feat(web): clean up admin review surface) = 독립 최종감사
+**FINAL PASS, pushed**. surface/app-layer only — 보호표면(`apps/web/app/api`/`packages/core`/`packages/adapters`/`supabase`/
+`auth-provider`/PWA/manifest/`package`/lockfile) **0-diff**, 새 의존성 0.
+- **consistency-polish**: 큐/상세 → `components/ui` primitive(AppBar/Card/Section/Field/Button/LinkButton/Badge/EmptyState),
+  member와 톤 통일. `admin.module.css`엔 table/grid/clip-video 등 admin 전용 layout만 잔류. (Card/Button/Section은 `className?`
+  optional additive 보강 — 기존 시그니처 무수정.)
+- **3 IA**: ① **결정 UI 3폼→1 DecisionPanel**(액션 세그먼트→reasonCode 동적, **같은 엔드포인트/payload/idempotency**;
+  🔴 **옵션-스코프 = 기존 `decisionConfigs` 파생**[손수 union 0] + **비공허 옵션-SET 테스트**[approve→meets_phase1_policy /
+  reject→mismatch·insufficient·duplicate / req-info→needs_identity·insufficient]로 회귀 잠금) ② **dossier-first 상세**
+  (statement/motivation/referral/clip 우선, 메타/결정기록 분리) ③ **큐 트리아지**(정직한 현재-필터 count+`+`cap·UUID 축약+copy·
+  status badge·quick-filter, 같은 `?status=`).
+- **노트 안전구분**: applicantNotice "신청자에게 보여집니다" vs reviewSummary "내부 전용·신청자 비공개" — 라벨+시각 분리.
+- **불변식 보존**: 결정 contract·reasonCode enum·idempotency(submit 시점 생성)·409·requireReviewer 403 위임·Persona Clip
+  on-click signed-URL(reviewer-only)·reviewSummary 리뷰어 전용(/apply/status no-render 락 무변경)·status 렌더 게이트
+  (submitted→review / under_review→panel / terminal→read-only)·**persona⟂dossier(admin에 persona 0, 가명 applicantId UUID)**.
+- **검증**: Cowork 양 페이지+핵심 테스트 100% 인라인 + 게이트 재현(typecheck·**web test 75/75**·build·audit·diff·boundary EMPTY·
+  persona grep 0). surface-only(boundary EMPTY)라 별도 워크플로 불요. 빌더(Codex)≠승인자(Cowork).
+- **Step-3 핵심 부가가치(코드대조 확인)**: approve↔reasonCode 옵션-스코프는 *백엔드 미강제 = UI-only 가드*다
+  (`reviewDecisionSchema.reasonCode = z.enum(full)`[schemas.ts:59], core `approveApplication`은 role/state만 가드·reasonCode
+  값 무검증) → 통합 시 UI 파생+옵션-SET 테스트로 잠금.
+- **follow-up**: ① **backend reasonCode-per-action 강제**(defense-in-depth — 옵션-스코프가 직접 API론 우회 가능, core/route, 별개)
+  ② admin 계정 SQL 승격(host) ③ **통합 하네스 정리**(testTimeout config·admin-routes 통합 flake·reviewer/admin 시드 재현성 — 다음 작업).
+- production/tag/RC/alpha 보류 유지. 증적 `docs/ADMIN_SURFACE_CLEANUP_BRIEF.md`.
+
 ---
 
 ## 0. 한 줄 요약
