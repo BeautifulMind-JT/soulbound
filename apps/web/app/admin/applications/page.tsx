@@ -4,7 +4,6 @@ import type {
   AdmissionApplication,
   AdmissionStatus,
 } from "@soulbound/core";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -12,7 +11,18 @@ import {
   useAuth,
 } from "../../../lib/auth-provider";
 import { readJson } from "../../../lib/api-response";
+import {
+  AppBar,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  LinkButton,
+} from "../../../components/ui";
 import styles from "./admin.module.css";
+
+const QUEUE_LIMIT = 50;
 
 const statusOptions: readonly {
   readonly value: AdmissionStatus | "all";
@@ -29,6 +39,16 @@ const statusOptions: readonly {
   { value: "all", label: "전체" },
 ];
 
+const quickStatusOptions: readonly {
+  readonly value: AdmissionStatus | "all";
+  readonly label: string;
+}[] = [
+  { value: "submitted", label: "제출됨" },
+  { value: "under_review", label: "검토 중" },
+  { value: "needs_more_info", label: "추가 정보 필요" },
+  { value: "all", label: "전체" },
+];
+
 const statusLabel: Record<AdmissionStatus, string> = {
   draft: "작성 중",
   submitted: "제출됨",
@@ -40,11 +60,28 @@ const statusLabel: Record<AdmissionStatus, string> = {
   expired: "만료됨",
 };
 
+function statusTone(status: AdmissionStatus): "brand" | "success" | "muted" | "danger" {
+  if (status === "approved") {
+    return "success";
+  }
+  if (status === "rejected" || status === "expired" || status === "withdrawn") {
+    return "danger";
+  }
+  if (status === "submitted" || status === "under_review") {
+    return "brand";
+  }
+  return "muted";
+}
+
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat("ko-KR", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function shortId(value: string): string {
+  return value.length > 8 ? `${value.slice(0, 8)}...` : value;
 }
 
 export default function ReviewQueuePage() {
@@ -55,6 +92,7 @@ export default function ReviewQueuePage() {
     useState<readonly AdmissionApplication[] | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [copiedId, setCopiedId] = useState("");
 
   const loadQueue = useCallback(async (
     nextStatus: AdmissionStatus | "all",
@@ -112,24 +150,43 @@ export default function ReviewQueuePage() {
     return () => controller.abort();
   }, [loadQueue, loading, router, session, status]);
 
+  async function copyApplicantId(value: string) {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      await navigator.clipboard.writeText(value);
+      setCopiedId(value);
+    }
+  }
+
+  function selectStatus(nextStatus: AdmissionStatus | "all") {
+    if (nextStatus === status) {
+      return;
+    }
+    setApplications(null);
+    setStatus(nextStatus);
+  }
+
+  const selectedStatusLabel = status === "all" ? "전체" : statusLabel[status];
+  const countLabel = applications === null
+    ? "불러오는 중"
+    : `${selectedStatusLabel} ${applications.length}${applications.length >= QUEUE_LIMIT ? "+" : ""}건`;
+
   return (
     <main className="page-main">
-      <header className="page-heading">
-        <p className="eyebrow">Review operations</p>
-        <h1>입장 신청 검토</h1>
-        <p>상태별 신청을 확인하고 상세 검토로 이동합니다.</p>
-      </header>
+      <AppBar
+        eyebrow="Review operations"
+        title="입장 신청 검토"
+        description="상태별 신청을 확인하고 상세 검토로 이동합니다."
+      />
 
-      <section className={styles.toolbar} aria-label="검토 대기열 필터">
-        <div className={styles.filterField}>
-          <label htmlFor="queue-status">신청 상태</label>
+      <Card className={styles.toolbar} aria-label="검토 대기열 필터">
+        <Field label="신청 상태" htmlFor="queue-status">
           <select
+            className={styles.selectInput}
             id="queue-status"
             value={status}
-            onChange={(event) => {
-              setApplications(null);
-              setStatus(event.target.value as AdmissionStatus | "all");
-            }}
+            onChange={(event) =>
+              selectStatus(event.target.value as AdmissionStatus | "all")
+            }
           >
             {statusOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -137,11 +194,22 @@ export default function ReviewQueuePage() {
               </option>
             ))}
           </select>
+        </Field>
+        <div className={styles.quickFilters} aria-label="빠른 상태 필터">
+          {quickStatusOptions.map((option) => (
+            <Button
+              key={option.value}
+              type="button"
+              tone={status === option.value ? "primary" : "secondary"}
+              className={styles.filterChip}
+              onClick={() => selectStatus(option.value)}
+            >
+              {option.label}
+            </Button>
+          ))}
         </div>
-        <p className={styles.queueCount}>
-          {applications === null ? "불러오는 중" : `${applications.length}건`}
-        </p>
-      </section>
+        <p className={styles.queueCount}>{countLabel}</p>
+      </Card>
 
       {permissionDenied ? (
         <section className={styles.permissionState} role="alert">
@@ -155,9 +223,9 @@ export default function ReviewQueuePage() {
       ) : null}
 
       {!permissionDenied && applications?.length === 0 ? (
-        <section className={styles.emptyState}>
-          <h2>해당 상태의 신청이 없습니다</h2>
-        </section>
+        <EmptyState title="해당 상태의 신청이 없습니다">
+          다른 상태를 선택해 대기열을 확인해 주세요.
+        </EmptyState>
       ) : null}
 
       {!permissionDenied && applications && applications.length > 0 ? (
@@ -175,11 +243,23 @@ export default function ReviewQueuePage() {
             <tbody>
               {applications.map((application) => (
                 <tr key={application.id}>
-                  <td className={styles.idCell}>{application.applicantId}</td>
-                  <td>
-                    <span className="status-badge">
-                      {statusLabel[application.status]}
+                  <td className={styles.idCell}>
+                    <span title={application.applicantId}>
+                      {shortId(application.applicantId)}
                     </span>
+                    <button
+                      className={styles.copyButton}
+                      type="button"
+                      aria-label={`신청자 ID ${shortId(application.applicantId)} 복사`}
+                      onClick={() => void copyApplicantId(application.applicantId)}
+                    >
+                      {copiedId === application.applicantId ? "복사됨" : "복사"}
+                    </button>
+                  </td>
+                  <td>
+                    <Badge tone={statusTone(application.status)}>
+                      {statusLabel[application.status]}
+                    </Badge>
                   </td>
                   <td>{formatDate(application.createdAt)}</td>
                   <td>
@@ -188,12 +268,13 @@ export default function ReviewQueuePage() {
                     ) : "없음"}
                   </td>
                   <td>
-                    <Link
-                      className={styles.rowLink}
+                    <LinkButton
+                      className={styles.rowLinkButton}
+                      tone="secondary"
                       href={`/admin/applications/${application.id}`}
                     >
-                      열기
-                    </Link>
+                      상세
+                    </LinkButton>
                   </td>
                 </tr>
               ))}

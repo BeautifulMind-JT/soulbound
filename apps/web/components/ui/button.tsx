@@ -7,7 +7,7 @@ type ButtonTone = "primary" | "secondary" | "danger" | "ghost";
 interface ButtonBaseProps {
   readonly children: ReactNode;
   readonly tone?: ButtonTone;
-  readonly className?: string;
+  readonly className?: string | undefined;
 }
 
 type ButtonProps = ButtonBaseProps & ComponentPropsWithoutRef<"button">;

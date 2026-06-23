@@ -5,7 +5,6 @@ import type {
   AdmissionReasonCode,
   AdmissionStatus,
 } from "@soulbound/core";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import React, {
   useCallback,
@@ -18,6 +17,15 @@ import {
   useAuth,
 } from "../../../../lib/auth-provider";
 import { readJson } from "../../../../lib/api-response";
+import {
+  AppBar,
+  Badge,
+  Button,
+  EmptyState,
+  Field,
+  LinkButton,
+  Section,
+} from "../../../../components/ui";
 import styles from "../admin.module.css";
 
 const statusLabel: Record<AdmissionStatus, string> = {
@@ -47,7 +55,7 @@ const decisionConfigs = [
     title: "승인",
     submitLabel: "승인 확정",
     options: ["meets_phase1_policy"],
-    buttonClassName: "button",
+    tone: "primary",
   },
   {
     action: "reject",
@@ -58,7 +66,7 @@ const decisionConfigs = [
       "insufficient_context",
       "duplicate_identity_suspected",
     ],
-    buttonClassName: "button-danger",
+    tone: "danger",
   },
   {
     action: "request-more-info",
@@ -68,18 +76,23 @@ const decisionConfigs = [
       "needs_identity_clarification",
       "insufficient_context",
     ],
-    buttonClassName: "button-secondary",
+    tone: "secondary",
   },
 ] as const satisfies readonly {
   readonly action: "approve" | "reject" | "request-more-info";
   readonly title: string;
   readonly submitLabel: string;
   readonly options: readonly AdmissionReasonCode[];
-  readonly buttonClassName: string;
+  readonly tone: "primary" | "secondary" | "danger";
 }[];
 
 type DecisionAction =
   typeof decisionConfigs[number]["action"];
+
+function getDecisionConfig(action: DecisionAction) {
+  return decisionConfigs.find((config) => config.action === action)
+    ?? decisionConfigs[0];
+}
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -93,12 +106,7 @@ function optionalFormText(form: FormData, name: string): string | undefined {
   return value || undefined;
 }
 
-interface DecisionFormProps {
-  readonly action: DecisionAction;
-  readonly title: string;
-  readonly submitLabel: string;
-  readonly options: readonly AdmissionReasonCode[];
-  readonly buttonClassName: string;
+interface DecisionPanelProps {
   readonly busy: boolean;
   readonly onSubmit: (
     action: DecisionAction,
@@ -110,22 +118,28 @@ interface DecisionFormProps {
   ) => Promise<void>;
 }
 
-function DecisionForm({
-  action,
-  title,
-  submitLabel,
-  options,
-  buttonClassName,
+function DecisionPanel({
   busy,
   onSubmit,
-}: DecisionFormProps) {
+}: DecisionPanelProps) {
+  const [selectedAction, setSelectedAction] =
+    useState<DecisionAction>("approve");
+  const selectedConfig = getDecisionConfig(selectedAction);
+  const [reasonCode, setReasonCode] =
+    useState<AdmissionReasonCode>(selectedConfig.options[0]);
+
+  function selectAction(action: DecisionAction) {
+    const config = getDecisionConfig(action);
+    setSelectedAction(action);
+    setReasonCode(config.options[0]);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const reasonCode = String(form.get("reasonCode")) as AdmissionReasonCode;
     const applicantNotice = optionalFormText(form, "applicantNotice");
     const reviewSummary = optionalFormText(form, "reviewSummary");
-    await onSubmit(action, {
+    await onSubmit(selectedAction, {
       reasonCode,
       ...(applicantNotice ? { applicantNotice } : {}),
       ...(reviewSummary ? { reviewSummary } : {}),
@@ -134,41 +148,78 @@ function DecisionForm({
 
   return (
     <form
-      className={styles.decisionForm}
+      className={styles.decisionPanel}
       onSubmit={(event) => void handleSubmit(event)}
     >
-      <h3>{title}</h3>
-      <label>
-        사유 코드
-        <select name="reasonCode" aria-label={`${title} 사유 코드`}>
-          {options.map((option) => (
+      <fieldset className={styles.decisionSelector}>
+        <legend>결정</legend>
+        <div className={styles.decisionOptions}>
+          {decisionConfigs.map((config) => (
+            <label key={config.action}>
+              <input
+                type="radio"
+                name="decisionAction"
+                value={config.action}
+                checked={selectedAction === config.action}
+                onChange={() => selectAction(config.action)}
+              />
+              <span>{config.title}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <Field label="사유 코드" htmlFor="decision-reason">
+        <select
+          id="decision-reason"
+          name="reasonCode"
+          value={reasonCode}
+          onChange={(event) =>
+            setReasonCode(event.target.value as AdmissionReasonCode)
+          }
+        >
+          {selectedConfig.options.map((option) => (
             <option key={option} value={option}>
               {reasonLabel[option]}
             </option>
           ))}
         </select>
-      </label>
-      <label>
-        신청자 안내
-        <textarea
-          name="applicantNotice"
-          aria-label={`${title} 신청자 안내`}
-        />
-      </label>
-      <label>
-        검토자 내부 메모
-        <textarea
-          name="reviewSummary"
-          aria-label={`${title} 검토자 내부 메모`}
-        />
-      </label>
-      <button
-        className={buttonClassName}
+      </Field>
+
+      <div className={styles.noteGrid}>
+        <div className={styles.applicantNoticeField}>
+          <Field
+            label="신청자 안내"
+            hint="신청자에게 보여집니다."
+            htmlFor="decision-applicant-notice"
+          >
+            <textarea
+              id="decision-applicant-notice"
+              name="applicantNotice"
+            />
+          </Field>
+        </div>
+        <div className={styles.internalNoticeField}>
+          <Field
+            label="검토자 내부 메모"
+            hint="내부 전용 · 신청자 비공개"
+            htmlFor="decision-review-summary"
+          >
+            <textarea
+              id="decision-review-summary"
+              name="reviewSummary"
+            />
+          </Field>
+        </div>
+      </div>
+
+      <Button
+        tone={selectedConfig.tone}
         type="submit"
         disabled={busy}
       >
-        {busy ? "처리 중" : submitLabel}
-      </button>
+        {busy ? "처리 중" : selectedConfig.submitLabel}
+      </Button>
     </form>
   );
 }
@@ -326,26 +377,27 @@ export default function ReviewDetailPage() {
   if (permissionDenied) {
     return (
       <main className="page-main narrow-main">
-        <section className={styles.permissionState} role="alert">
-          <h1>권한이 없습니다</h1>
-          <p>검토자 또는 관리자 계정으로 접근해 주세요.</p>
-        </section>
+        <div className={styles.permissionState} role="alert">
+          <EmptyState title="권한이 없습니다">
+            검토자 또는 관리자 계정으로 접근해 주세요.
+          </EmptyState>
+        </div>
       </main>
     );
   }
 
   return (
     <main className="page-main">
-      <header className={styles.detailHeader}>
-        <div className="page-heading">
-          <p className="eyebrow">Application review</p>
-          <h1>신청 상세</h1>
-          <p>{applicationId}</p>
-        </div>
-        <Link className={styles.backLink} href="/admin/applications">
-          대기열로 돌아가기
-        </Link>
-      </header>
+      <AppBar
+        eyebrow="Application review"
+        title="신청 상세"
+        description={applicationId}
+        action={(
+          <LinkButton tone="secondary" href="/admin/applications">
+            대기열로 돌아가기
+          </LinkButton>
+        )}
+      />
 
       {errorMessage ? (
         <p className="form-message" role="alert">{errorMessage}</p>
@@ -356,22 +408,25 @@ export default function ReviewDetailPage() {
       ) : null}
 
       {application === null && !errorMessage ? (
-        <section className={styles.emptyState}>
-          <h2>신청을 찾을 수 없습니다</h2>
-        </section>
+        <EmptyState title="신청을 찾을 수 없습니다">
+          대기열에서 다시 선택해 주세요.
+        </EmptyState>
       ) : null}
 
       {application ? (
         <div className={styles.detailGrid}>
-          <section className={styles.detailSection}>
-            <h2>신청 내용</h2>
+          <Section
+            className={styles.dossierSection}
+            title="심사 dossier"
+            description="심사에 필요한 신청 자료만 먼저 확인합니다."
+          >
             <dl className={styles.detailList}>
               <div>
                 <dt>상태</dt>
                 <dd>
-                  <span className="status-badge">
+                  <Badge tone="brand">
                     {statusLabel[application.status]}
-                  </span>
+                  </Badge>
                 </dd>
               </div>
               <div>
@@ -390,56 +445,18 @@ export default function ReviewDetailPage() {
                 <dt>추천 코드</dt>
                 <dd>{application.referralCode ?? "입력 없음"}</dd>
               </div>
-              <div>
-                <dt>신청자 안내</dt>
-                <dd>{application.applicantNotice ?? "입력 없음"}</dd>
-              </div>
-              <div className={styles.internalNote}>
-                <dt>검토자 내부 메모</dt>
-                <dd>{application.reviewSummary ?? "입력 없음"}</dd>
-              </div>
-            </dl>
-          </section>
-
-          <section className={styles.detailSection}>
-            <h2>검토 정보</h2>
-            <dl className={styles.detailList}>
-              <div>
-                <dt>검토자 ID</dt>
-                <dd>{application.reviewerId ?? "미배정"}</dd>
-              </div>
-              <div>
-                <dt>검토 시각</dt>
-                <dd>
-                  {application.reviewedAt
-                    ? formatDate(application.reviewedAt)
-                    : "미검토"}
-                </dd>
-              </div>
-              <div>
-                <dt>정책 버전</dt>
-                <dd>{application.policyVersion}</dd>
-              </div>
-              <div>
-                <dt>생성 시각</dt>
-                <dd>{formatDate(application.createdAt)}</dd>
-              </div>
-              <div>
-                <dt>갱신 시각</dt>
-                <dd>{formatDate(application.updatedAt)}</dd>
-              </div>
             </dl>
 
             {application.personaClipAssetId ? (
               <div className={styles.clipBlock}>
-                <button
-                  className="button-secondary"
+                <Button
+                  tone="secondary"
                   type="button"
                   disabled={busyAction === "clip"}
                   onClick={() => void loadClip()}
                 >
                   {busyAction === "clip" ? "불러오는 중" : "클립 재생"}
-                </button>
+                </Button>
                 {clipUrl ? (
                   <video
                     className={styles.clipVideo}
@@ -450,49 +467,100 @@ export default function ReviewDetailPage() {
                 ) : null}
               </div>
             ) : null}
-          </section>
+          </Section>
+
+          <div className={styles.sideColumn}>
+            <Section
+              className={styles.detailSection}
+              title="검토 정보"
+              description="심사 진행과 내부 기록입니다."
+            >
+              <dl className={styles.detailList}>
+                <div>
+                  <dt>검토자 ID</dt>
+                  <dd>{application.reviewerId ?? "미배정"}</dd>
+                </div>
+                <div>
+                  <dt>검토 시각</dt>
+                  <dd>
+                    {application.reviewedAt
+                      ? formatDate(application.reviewedAt)
+                      : "미검토"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>정책 버전</dt>
+                  <dd>{application.policyVersion}</dd>
+                </div>
+                <div>
+                  <dt>생성 시각</dt>
+                  <dd>{formatDate(application.createdAt)}</dd>
+                </div>
+                <div>
+                  <dt>갱신 시각</dt>
+                  <dd>{formatDate(application.updatedAt)}</dd>
+                </div>
+              </dl>
+            </Section>
+
+            <Section
+              className={styles.detailSection}
+              title="결정 기록"
+              description="신청자 노출 안내와 내부 전용 메모를 분리해 표시합니다."
+            >
+              <dl className={styles.detailList}>
+              <div>
+                <dt>신청자 안내</dt>
+                <dd>{application.applicantNotice ?? "입력 없음"}</dd>
+              </div>
+              <div className={styles.internalNote}>
+                <dt>검토자 내부 메모</dt>
+                <dd>{application.reviewSummary ?? "입력 없음"}</dd>
+              </div>
+            </dl>
+            </Section>
 
           {application.status === "submitted" ? (
-            <section className={styles.actionSection}>
-              <h2>검토 시작</h2>
+            <Section
+              className={styles.actionSection}
+              title="검토 시작"
+              description="제출된 신청을 검토 중 상태로 전환합니다."
+            >
               {actionMessage ? (
                 <p className={styles.actionMessage} role="status">
                   {actionMessage}
                 </p>
               ) : null}
-              <button
-                className="button"
+              <Button
                 type="button"
                 disabled={busyAction !== null}
                 onClick={() => void runAction("review", {})}
               >
                 {busyAction === "review" ? "처리 중" : "검토 시작"}
-              </button>
-            </section>
+              </Button>
+            </Section>
           ) : null}
 
           {application.status === "under_review" ? (
-            <section className={styles.actionSection}>
-              <h2>검토 결정</h2>
+            <Section
+              className={styles.actionSection}
+              title="검토 결정"
+              description="결정 종류를 고르면 가능한 사유 코드만 표시됩니다."
+            >
               {actionMessage ? (
                 <p className={styles.actionMessage} role="status">
                   {actionMessage}
                 </p>
               ) : null}
-              <div className={styles.decisionGrid}>
-                {decisionConfigs.map((config) => (
-                  <DecisionForm
-                    key={config.action}
-                    {...config}
-                    busy={busyAction !== null}
-                    onSubmit={async (action, input) => {
-                      await runAction(action, input);
-                    }}
-                  />
-                ))}
-              </div>
-            </section>
+              <DecisionPanel
+                busy={busyAction !== null}
+                onSubmit={async (action, input) => {
+                  await runAction(action, input);
+                }}
+              />
+            </Section>
           ) : null}
+          </div>
         </div>
       ) : null}
     </main>

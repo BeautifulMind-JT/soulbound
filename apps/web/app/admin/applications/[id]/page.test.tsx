@@ -56,6 +56,11 @@ function jsonResponse(value: unknown, status = 200): Response {
   });
 }
 
+function optionValues(select: HTMLElement): readonly string[] {
+  return within(select).getAllByRole("option")
+    .map((option) => (option as HTMLOptionElement).value);
+}
+
 describe("ReviewDetailPage", () => {
   const authedFetch = vi.fn();
 
@@ -128,18 +133,42 @@ describe("ReviewDetailPage", () => {
     });
   });
 
+  it("keeps decision reason options scoped to the selected action", async () => {
+    authedFetch.mockResolvedValueOnce(jsonResponse(application("under_review")));
+
+    render(<ReviewDetailPage />);
+
+    const reasonSelect = await screen.findByLabelText("사유 코드");
+    expect(optionValues(reasonSelect)).toEqual(["meets_phase1_policy"]);
+
+    fireEvent.click(screen.getByRole("radio", { name: "거절" }));
+    expect(optionValues(reasonSelect)).toEqual([
+      "mismatch_with_policy",
+      "insufficient_context",
+      "duplicate_identity_suspected",
+    ]);
+
+    fireEvent.click(screen.getByRole("radio", { name: "추가 정보 요청" }));
+    expect(optionValues(reasonSelect)).toEqual([
+      "needs_identity_clarification",
+      "insufficient_context",
+    ]);
+  });
+
   it.each([
-    ["승인", "approve", "meets_phase1_policy"],
-    ["거절", "reject", "mismatch_with_policy"],
+    ["승인", "approve", "meets_phase1_policy", "승인 확정"],
+    ["거절", "reject", "mismatch_with_policy", "거절 확정"],
     [
       "추가 정보 요청",
       "request-more-info",
       "needs_identity_clarification",
+      "요청 보내기",
     ],
   ])("posts the %s decision to the matching route", async (
     title,
     action,
     reasonCode,
+    submitLabel,
   ) => {
     authedFetch
       .mockResolvedValueOnce(jsonResponse(application("under_review")))
@@ -148,18 +177,22 @@ describe("ReviewDetailPage", () => {
 
     render(<ReviewDetailPage />);
 
-    const form = (await screen.findByRole("heading", { name: title }))
+    await screen.findByRole("heading", { name: "검토 결정" });
+    if (title !== "승인") {
+      fireEvent.click(screen.getByRole("radio", { name: title }));
+    }
+    const form = screen.getByRole("button", { name: submitLabel })
       .closest("form");
     if (!form) {
-      throw new Error(`Missing ${title} form`);
+      throw new Error(`Missing ${title} decision panel`);
     }
-    fireEvent.change(within(form).getByLabelText(`${title} 신청자 안내`), {
+    fireEvent.change(within(form).getByLabelText("신청자 안내"), {
       target: { value: "신청자 안내" },
     });
-    fireEvent.change(within(form).getByLabelText(`${title} 검토자 내부 메모`), {
+    fireEvent.change(within(form).getByLabelText("검토자 내부 메모"), {
       target: { value: "내부 메모" },
     });
-    fireEvent.click(within(form).getByRole("button"));
+    fireEvent.click(within(form).getByRole("button", { name: submitLabel }));
 
     await waitFor(() => expect(authedFetch).toHaveBeenCalledTimes(3));
     expect(authedFetch.mock.calls[1]?.[0]).toBe(

@@ -75,15 +75,17 @@ describe("ReviewQueuePage", () => {
 
     render(<ReviewQueuePage />);
 
-    expect(await screen.findByText("applicant-1")).toBeTruthy();
+    expect(await screen.findByTitle("applicant-1")).toBeTruthy();
+    expect(screen.getByRole("button", {
+      name: "신청자 ID applican... 복사",
+    })).toBeTruthy();
     expect(screen.getByText("클립 있음")).toBeTruthy();
+    expect(screen.getByText("제출됨 1건")).toBeTruthy();
     expect(authedFetch.mock.calls[0]?.[0]).toBe(
       "/api/admin/applications?limit=50&status=submitted",
     );
 
-    fireEvent.change(screen.getByLabelText("신청 상태"), {
-      target: { value: "all" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "전체" }));
 
     await waitFor(() => expect(authedFetch).toHaveBeenCalledTimes(2));
     expect(authedFetch.mock.calls[1]?.[0]).toBe(

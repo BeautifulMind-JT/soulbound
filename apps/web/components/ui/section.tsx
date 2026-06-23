@@ -5,6 +5,7 @@ interface SectionProps {
   readonly title: string;
   readonly description?: string;
   readonly action?: ReactNode;
+  readonly className?: string | undefined;
   readonly children: ReactNode;
 }
 
@@ -12,12 +13,16 @@ export function Section({
   title,
   description,
   action,
+  className,
   children,
 }: SectionProps) {
   const headingId = useId();
 
   return (
-    <section className={styles.section} aria-labelledby={headingId}>
+    <section
+      className={[styles.section, className].filter(Boolean).join(" ")}
+      aria-labelledby={headingId}
+    >
       <div className={styles.sectionHeader}>
         <div>
           <h2 id={headingId}>{title}</h2>

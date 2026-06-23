@@ -1,30 +1,14 @@
 .toolbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(190px, 0.28fr) minmax(0, 1fr) auto;
   align-items: end;
-  justify-content: space-between;
   gap: 18px;
   margin-bottom: 20px;
-  padding: 18px 20px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
 }
 
-.filterField {
-  display: grid;
-  gap: 7px;
-  min-width: 220px;
-}
-
-.filterField label {
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.filterField select,
-.decisionForm select,
-.decisionForm textarea {
+.selectInput,
+.decisionPanel select,
+.decisionPanel textarea {
   width: 100%;
   border: 1px solid var(--line-strong);
   border-radius: 10px;
@@ -33,10 +17,21 @@
   font: inherit;
 }
 
-.filterField select,
-.decisionForm select {
+.selectInput,
+.decisionPanel select {
   min-height: 42px;
   padding: 0 12px;
+}
+
+.quickFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filterChip {
+  min-height: 38px;
+  padding-inline: 12px;
 }
 
 .queueCount {
@@ -80,15 +75,31 @@
   background: var(--surface-sunken);
 }
 
-.queueTable :global(.status-badge) {
+.idCell {
+  display: flex;
+  max-width: 220px;
+  align-items: center;
+  gap: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+}
+
+.idCell span {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.idCell {
-  max-width: 260px;
-  overflow-wrap: anywhere;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 13px;
+.copyButton {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
 }
 
 .clipMarker {
@@ -97,63 +108,43 @@
   font-weight: 500;
 }
 
-.rowLink {
-  color: var(--accent-text);
-  font-weight: 500;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.emptyState,
-.permissionState {
-  padding: 30px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
+.rowLinkButton {
+  min-height: 34px;
+  padding-inline: 11px;
+  font-size: 13px;
 }
 
 .permissionState {
   border-left: 5px solid var(--danger);
 }
 
-.detailHeader {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 24px;
-}
-
-.backLink {
-  color: var(--accent-text);
-  font-size: 14px;
-  font-weight: 500;
-}
-
 .detailGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  grid-template-columns: minmax(0, 1.12fr) minmax(300px, 0.88fr);
   gap: 20px;
+  align-items: start;
 }
 
-.detailSection {
-  padding: 24px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+.sideColumn {
+  display: grid;
+  gap: 16px;
+}
+
+.dossierSection,
+.detailSection,
+.actionSection {
   background: var(--surface);
-}
-
-.detailSection h2,
-.actionSection h2 {
-  margin: 0 0 20px;
-  font-size: 21px;
-  font-weight: 600;
 }
 
 .detailList {
   display: grid;
   gap: 0;
   margin: 0;
+}
+
+.dossierSection .detailList,
+.detailSection .detailList {
+  padding: 16px 18px 18px;
 }
 
 .detailList div {
@@ -183,7 +174,6 @@
 }
 
 .internalNote {
-  padding: 14px;
   border-left: 4px solid var(--accent);
   background: var(--surface-oat);
 }
@@ -191,6 +181,8 @@
 .clipBlock {
   display: grid;
   gap: 14px;
+  padding: 16px 18px 18px;
+  border-top: 1px solid var(--line-soft);
 }
 
 .clipVideo {
@@ -201,44 +193,86 @@
 }
 
 .actionSection {
-  grid-column: 1 / -1;
-  padding: 24px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
   background: var(--surface-oat);
 }
 
-.decisionGrid {
+.decisionPanel {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 16px;
+  padding: 18px;
 }
 
-.decisionForm {
+.decisionSelector {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.decisionSelector legend {
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.decisionOptions {
   display: grid;
-  align-content: start;
-  gap: 14px;
-  padding: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.decisionOptions label {
+  display: grid;
+  cursor: pointer;
+}
+
+.decisionOptions input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.decisionOptions span {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.decisionOptions input:checked + span {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: white;
+}
+
+.noteGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.applicantNoticeField,
+.internalNoticeField {
+  padding: 12px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--surface);
 }
 
-.decisionForm h3 {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 600;
+.internalNoticeField {
+  border-color: rgba(217, 119, 87, 0.36);
+  background: var(--surface-oat);
 }
 
-.decisionForm label {
-  display: grid;
-  gap: 7px;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.decisionForm textarea {
+.decisionPanel textarea {
   min-height: 92px;
   resize: vertical;
   padding: 10px 12px;
@@ -253,28 +287,22 @@
 
 @media (max-width: 860px) {
   .detailGrid,
-  .decisionGrid {
+  .noteGrid {
     grid-template-columns: 1fr;
   }
 
-  .actionSection {
-    grid-column: auto;
+  .toolbar {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 620px) {
-  .toolbar,
-  .detailHeader {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .filterField {
-    min-width: 0;
-  }
-
   .detailList div {
     grid-template-columns: 1fr;
     gap: 6px;
+  }
+
+  .decisionOptions {
+    grid-template-columns: 1fr;
   }
 }
