@@ -17,10 +17,22 @@
 - **불변식 보존**: 어떤 `*.test.ts`도 약화·skip 금지. 3-client 경계(INV-17)·admission_events/audit_logs/reasonCode(HARD RULE 4) 의미 유지. builder≠approver.
 
 ## 2. STAGE-0a — audit hash chain 강제 (contained, 권장 먼저)
-- audit 기록 시 직전 행의 `hash`를 읽어 `previous_hash`로, 현재 행 정규화 payload와 결합해 `hash` 계산·저장(결정적·정규화된 직렬화; reasonCode/actor/entity/timestamp 포함, **평문/키 절대 미포함 — INV-16**).
-- 동시성: 같은 체인에 대한 append는 직렬화(per-chain 순서 보장; RPC 트랜잭션 내 or advisory lock). 멀티-체인 분할 여부는 Codex가 제안.
-- `auditHashChainEnabled` true. **검증 테스트(신규, 약화 아님)**: (1) 연속 기록의 hash 연결 정확 (2) 한 행 변조 시 체인 단절 탐지 (3) flag off→on 회귀 없음.
-- **frozen 주의**: audit 도메인/서비스가 CONTRACT-FROZEN이면 그 한정 unfreeze를 Step-2에서 명시·범위 최소화.
+**🔴 이중 writer 경로 (verified @ `92783ef` — Step-2 필수 인지):** audit_logs는 **두 경로**로 기록된다 —
+(1) app-layer adapter `supabase-audit-log-repository.ts:10-11` (`.from("audit_logs").insert`), (2) **`0004_rpc.sql` 내부
+security-definer transition RPC 6곳 직접 insert** (`submit`/`start_review`/`approve`×2/`reject`/`request_more_info`_tx,
+라인 97/195/343/366/496/624). **app-layer에만 hash chain을 배선하면 6개 RPC-기록 행(가장 보안 민감한 admission transition)이
+미체인 → 변조-증거에 구멍.** 따라서:
+- **DB-side 트리거 강제가 정답** (app-layer 계산 아님): `audit_logs`에 `BEFORE INSERT` 트리거 — 직전 chain head의
+  `hash`를 `previous_hash`로 읽고 `hash = H(정규화(NEW) ‖ previous_hash)` 계산·세팅. **모든 writer(adapter + 6 RPC + 미래)를
+  균일 체인**, 우회 불가(침해된 app도 미체인 행 못 씀 = app-layer보다 *더* tamper-evident).
+- **기존 writer 편집 최소**: 현재 flag off라 adapter/RPC 모두 `hash/previous_hash`를 *세팅하지 않음*(nullable) → 트리거가 소유.
+  adapter/RPC는 그 두 컬럼을 *공급하지 않게만* 보장(이미 대부분 그러함). 6 RPC 본문 로직은 거의/전혀 안 건드림.
+- **flag 의미 재정의**: `auditHashChainEnabled`는 *트리거/마이그레이션 활성* 게이트 + app-layer 검증 읽기 경로. 해시 계산은 DB가 소유.
+- **동시성**: 트리거가 chain head를 읽고 쓰므로 tail append 직렬화 필요(advisory lock 또는 단일 chain-head row) — **한 곳에서** 해결.
+  정규화 직렬화는 결정적, reasonCode/actor/entity/timestamp 포함, **평문/키 절대 미포함(INV-16)**.
+- **검증 테스트(신규·약화 아님)**: (1) adapter 경로 + **6 RPC 경로 둘 다** 기록 시 체인 연결 정확 (2) 한 행 변조 시 단절 탐지
+  (3) 동시 insert 경합에서 체인 무결 (4) flag off→on 회귀 없음.
+- **frozen 주의**: 트리거는 신규 마이그레이션(0009류). 6 RPC를 손대야 하면(예: hash 컬럼 공급 제거) 0004는 frozen → 한정 unfreeze를 Step-2에서 명시·최소 범위. audit 도메인 시그니처는 불변 목표.
 
 ## 3. STAGE-0b — service-role 구획화 (더 큰 작업, unfreeze 필수)
 - 목표: **단일 슈퍼키 제거** → 컨텍스트별 least-privilege 역할. 어떤 단일 자격도 전 테이블 읽기·전 특권행위 위조 불가.
