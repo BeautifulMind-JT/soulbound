@@ -49,7 +49,13 @@ export type {
 } from "./domain/membership/membership-service";
 
 // profile
-export type { Persona, UpdatePersonaInput } from "./domain/profile/types";
+export type {
+  ListActivePublicPersonasInput,
+  ListActivePublicPersonasResult,
+  Persona,
+  PublicPersona,
+  UpdatePersonaInput,
+} from "./domain/profile/types";
 export { DefaultProfileService } from "./domain/profile/profile-service";
 export type {
   ProfileService,

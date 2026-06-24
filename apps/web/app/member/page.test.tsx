@@ -72,16 +72,54 @@ describe("MemberPage", () => {
     }), {
       status: 200,
       headers: { "content-type": "application/json" },
+    })).mockResolvedValueOnce(new Response(JSON.stringify({
+      items: [
+        {
+          handle: "quiet_member",
+          displayName: "Quiet Member",
+          bio: "I prefer signal over spectacle.",
+          isMe: true,
+        },
+        {
+          handle: "other_member",
+          displayName: "Other Member",
+          bio: "A warm public intro.",
+          isMe: false,
+        },
+      ],
+      nextCursor: "other_member",
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
     }));
 
     render(<MemberPage />);
 
-    expect(await screen.findByText("Quiet Member")).toBeTruthy();
-    expect(screen.getByText("@quiet_member · I prefer signal over spectacle."))
+    expect(await screen.findAllByText("Quiet Member")).toHaveLength(2);
+    expect(
+      screen.getAllByText("@quiet_member · I prefer signal over spectacle."),
+    ).toHaveLength(2);
+    expect(await screen.findByText("Other Member")).toBeTruthy();
+    expect(screen.getByText("@other_member · A warm public intro."))
       .toBeTruthy();
-    expect(screen.getByText("New Members")).toBeTruthy();
-    expect(screen.getByText("Active Members")).toBeTruthy();
-    expect(screen.getByText("All Members")).toBeTruthy();
+    expect(screen.getByText("2+")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "더 보기" })).toBeTruthy();
+    authedFetch.mockResolvedValueOnce(new Response(JSON.stringify({
+      items: [
+        {
+          handle: "third_member",
+          displayName: "Third Member",
+          bio: null,
+          isMe: false,
+        },
+      ],
+      nextCursor: null,
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+    fireEvent.click(screen.getByRole("button", { name: "더 보기" }));
+    expect(await screen.findByText("Third Member")).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: "더보기" }));
     expect(screen.getAllByText("로그아웃").length).toBeGreaterThanOrEqual(1);
     [
@@ -112,6 +150,14 @@ describe("MemberPage", () => {
       "/api/profile/me",
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
+    expect(authedFetch).toHaveBeenCalledWith(
+      "/api/members?limit=50",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+    expect(authedFetch).toHaveBeenCalledWith(
+      "/api/members?limit=50&cursor=other_member",
+      expect.any(Object),
+    );
   });
 
   it("edits the active member persona", async () => {
@@ -129,6 +175,12 @@ describe("MemberPage", () => {
       handle: null,
       displayName: null,
       bio: null,
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    })).mockResolvedValueOnce(new Response(JSON.stringify({
+      items: [],
+      nextCursor: null,
     }), {
       status: 200,
       headers: { "content-type": "application/json" },

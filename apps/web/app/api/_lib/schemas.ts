@@ -115,3 +115,21 @@ export const profilePersonaPatchSchema = z.object({
 
 export type ProfilePersonaPatchBody =
   z.infer<typeof profilePersonaPatchSchema>;
+
+export const memberDirectoryQuerySchema = z.object({
+  limit: z.preprocess(
+    (value) => value === undefined || value === "" ? 50 : value,
+    z.coerce.number().int().min(1).max(50),
+  ),
+  cursor: optionalString,
+});
+
+export type MemberDirectoryQueryParams =
+  z.infer<typeof memberDirectoryQuerySchema>;
+
+export const memberHandleSchema = z.string()
+  .trim()
+  .min(3)
+  .max(24)
+  .regex(/^[A-Za-z0-9](?:[A-Za-z0-9_-]{1,22}[A-Za-z0-9])$/)
+  .transform((value) => value.toLowerCase());

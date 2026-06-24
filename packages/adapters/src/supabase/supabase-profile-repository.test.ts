@@ -2,22 +2,25 @@ import { AppError } from "@soulbound/core";
 import {
   profileSelect,
   profileUpdatePayload,
+  publicPersonaSelect,
 } from "./supabase-profile-repository";
 import { mapPostgresError } from "./errors";
 
 describe("SupabaseProfileRepository helpers", () => {
   it("selects only pseudonymous persona columns", () => {
-    expect(profileSelect.split(",")).toEqual([
-      "handle",
-      "display_name",
-      "bio",
-    ]);
-    expect(profileSelect).not.toContain("avatar_url");
-    expect(profileSelect).not.toContain("role");
-    expect(profileSelect).not.toContain("wallet");
-    expect(profileSelect).not.toContain("membership");
-    expect(profileSelect).not.toContain("email");
-    expect(profileSelect).not.toContain("id");
+    for (const select of [profileSelect, publicPersonaSelect]) {
+      expect(select.split(",")).toEqual([
+        "handle",
+        "display_name",
+        "bio",
+      ]);
+      expect(select).not.toContain("avatar_url");
+      expect(select).not.toContain("role");
+      expect(select).not.toContain("wallet");
+      expect(select).not.toContain("membership");
+      expect(select).not.toContain("email");
+      expect(select).not.toContain("id");
+    }
   });
 
   it("writes only provided persona keys for merge-style PATCH semantics", () => {

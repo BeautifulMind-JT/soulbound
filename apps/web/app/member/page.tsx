@@ -32,6 +32,16 @@ interface PersonaFormState {
   readonly bio: string;
 }
 
+interface PublicMemberPersona extends Persona {
+  readonly handle: string;
+  readonly isMe: boolean;
+}
+
+interface MemberDirectoryResponse {
+  readonly items: readonly PublicMemberPersona[];
+  readonly nextCursor: string | null;
+}
+
 function MembersIcon() {
   return (
     <svg fill="none" height="22" viewBox="0 0 24 24" width="22">
@@ -111,28 +121,6 @@ const tabs: readonly {
   { id: "more", label: "더보기", icon: <MoreIcon /> },
 ];
 
-const memberSections: readonly {
-  readonly id: string;
-  readonly title: string;
-  readonly description: string;
-}[] = [
-  {
-    id: "new-members",
-    title: "New Members",
-    description: "새 멤버가 표시될 자리입니다.",
-  },
-  {
-    id: "active-members",
-    title: "Active Members",
-    description: "활동 중인 멤버가 표시될 자리입니다.",
-  },
-  {
-    id: "all-members",
-    title: "All Members",
-    description: "전체 멤버 목록이 표시될 자리입니다.",
-  },
-];
-
 const disabledMoreGroups: readonly {
   readonly title: string;
   readonly rows: readonly {
@@ -153,9 +141,7 @@ const disabledMoreGroups: readonly {
   },
   {
     title: "커뮤니티",
-    rows: [
-      { label: "멤버 디렉터리", description: "멤버를 찾고 소개를 둘러보기" },
-    ],
+    rows: [],
   },
   {
     title: "신원 & 자산",
@@ -247,6 +233,14 @@ function personaDescription(persona: Persona | undefined): string {
   return `${handle} · ${bio}`;
 }
 
+function memberTitle(member: PublicMemberPersona): string {
+  return member.displayName ?? "익명 멤버";
+}
+
+function memberDescription(member: PublicMemberPersona): string {
+  return `@${member.handle}${member.bio ? ` · ${member.bio}` : ""}`;
+}
+
 function DisabledMoreRow({
   label,
   description,
@@ -281,6 +275,13 @@ export default function MemberPage() {
   const [personaSaving, setPersonaSaving] = useState(false);
   const [personaMessage, setPersonaMessage] = useState("");
   const [personaError, setPersonaError] = useState("");
+  const [members, setMembers] = useState<readonly PublicMemberPersona[]>([]);
+  const [membersNextCursor, setMembersNextCursor] = useState<string | null>(
+    null,
+  );
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersLoadingMore, setMembersLoadingMore] = useState(false);
+  const [membersError, setMembersError] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [signOutError, setSignOutError] = useState("");
   const [activeTab, setActiveTab] = useState<MemberTab>("members");
@@ -292,6 +293,62 @@ export default function MemberPage() {
       router.push("/");
     } catch {
       setSignOutError("로그아웃하지 못했습니다.");
+    }
+  }
+
+  async function loadMemberDirectory(
+    cursor: string | null = null,
+    signal?: AbortSignal,
+  ) {
+    const isFirstPage = cursor === null;
+    if (isFirstPage) {
+      setMembersLoading(true);
+    } else {
+      setMembersLoadingMore(true);
+    }
+    setMembersError("");
+
+    try {
+      const query = new URLSearchParams({ limit: "50" });
+      if (cursor) {
+        query.set("cursor", cursor);
+      }
+      const init: RequestInit = signal ? { signal } : {};
+      const response = await authedFetch(
+        `/api/members?${query.toString()}`,
+        init,
+      );
+      if (response.status === 401) {
+        router.replace("/login");
+        return;
+      }
+      if (response.status === 403) {
+        router.replace("/gate");
+        return;
+      }
+      if (!response.ok) {
+        throw new Error("Unable to load members");
+      }
+
+      const directory = await readJson<MemberDirectoryResponse>(response);
+      setMembers((current) =>
+        isFirstPage ? directory.items : [...current, ...directory.items]
+      );
+      setMembersNextCursor(directory.nextCursor);
+    } catch (error) {
+      if (error instanceof UnauthenticatedError) {
+        router.replace("/login");
+      } else if (
+        !(error instanceof DOMException && error.name === "AbortError")
+      ) {
+        setMembersError("멤버 목록을 불러오지 못했습니다.");
+      }
+    } finally {
+      if (isFirstPage) {
+        setMembersLoading(false);
+      } else {
+        setMembersLoadingMore(false);
+      }
     }
   }
 
@@ -406,6 +463,7 @@ export default function MemberPage() {
         const nextPersona = await readJson<Persona>(personaResponse);
         setPersona(nextPersona);
         setPersonaForm(formFromPersona(nextPersona));
+        await loadMemberDirectory(null, controller.signal);
       } catch (error) {
         if (error instanceof UnauthenticatedError) {
           router.replace("/login");
@@ -420,6 +478,10 @@ export default function MemberPage() {
     void loadMembership();
     return () => controller.abort();
   }, [authedFetch, loading, router, session]);
+
+  const memberCountLabel = membersNextCursor
+    ? `${members.length}+`
+    : String(members.length);
 
   return (
     <main className={`page-main ${styles.memberPage}`}>
@@ -565,15 +627,73 @@ export default function MemberPage() {
                     )}
                   </Section>
 
-                  {memberSections.map((section) => (
-                    <Section
-                      key={section.title}
-                      title={section.title}
-                      action={<Badge>0</Badge>}
-                    >
-                      <EmptyState>{section.description}</EmptyState>
-                    </Section>
-                  ))}
+                  <Section
+                    title="Members"
+                    description="활성 멤버의 공개 페르소나"
+                    action={<Badge>{memberCountLabel}</Badge>}
+                  >
+                    {membersLoading ? (
+                      <EmptyState>멤버를 불러오는 중입니다.</EmptyState>
+                    ) : null}
+                    {!membersLoading && membersError ? (
+                      <div className={styles.directoryState}>
+                        <p className="form-message" role="alert">
+                          {membersError}
+                        </p>
+                        <Button
+                          type="button"
+                          tone="secondary"
+                          onClick={() => void loadMemberDirectory()}
+                        >
+                          다시 시도
+                        </Button>
+                      </div>
+                    ) : null}
+                    {!membersLoading && !membersError && members.length === 0 ? (
+                      <EmptyState>표시할 멤버가 아직 없습니다.</EmptyState>
+                    ) : null}
+                    {!membersLoading && !membersError && members.length > 0 ? (
+                      <>
+                        <div className={styles.directoryList}>
+                          {members.map((member) => (
+                            <ListRow
+                              key={member.handle}
+                              title={memberTitle(member)}
+                              description={memberDescription(member)}
+                              meta={member.isMe ? "내 프로필" : undefined}
+                              trailing={
+                                member.isMe ? (
+                                  <Badge tone="success">나</Badge>
+                                ) : (
+                                  <Link
+                                    className={styles.rowAction}
+                                    href={`/member/${
+                                      encodeURIComponent(member.handle)
+                                    }`}
+                                  >
+                                    보기
+                                  </Link>
+                                )
+                              }
+                            />
+                          ))}
+                        </div>
+                        {membersNextCursor ? (
+                          <div className={styles.directoryActions}>
+                            <Button
+                              type="button"
+                              tone="secondary"
+                              onClick={() =>
+                                void loadMemberDirectory(membersNextCursor)}
+                              disabled={membersLoadingMore}
+                            >
+                              {membersLoadingMore ? "불러오는 중" : "더 보기"}
+                            </Button>
+                          </div>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </Section>
                 </div>
               ) : null}
 
@@ -642,6 +762,19 @@ export default function MemberPage() {
                           </button>
                         }
                       />
+                      <ListRow
+                        title="멤버 디렉터리"
+                        description="활성 멤버의 공개 프로필을 봅니다."
+                        trailing={
+                          <button
+                            className={styles.rowAction}
+                            type="button"
+                            onClick={() => setActiveTab("members")}
+                          >
+                            열기
+                          </button>
+                        }
+                      />
                     </div>
                     {signOutError ? (
                       <p className="form-message" role="alert">
@@ -650,7 +783,8 @@ export default function MemberPage() {
                     ) : null}
                   </Section>
 
-                  {disabledMoreGroups.map((group) => (
+                  {disabledMoreGroups.filter((group) => group.rows.length > 0)
+                    .map((group) => (
                     <Section key={group.title} title={group.title}>
                       <div className={styles.moreList}>
                         {group.rows.map((row) => (

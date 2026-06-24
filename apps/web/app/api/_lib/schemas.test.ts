@@ -1,6 +1,8 @@
 import {
   createPersonaClipSchema,
   deletePersonaClipQuerySchema,
+  memberDirectoryQuerySchema,
+  memberHandleSchema,
   profilePersonaPatchSchema,
   reviewDecisionSchema,
   reviewQueueQuerySchema,
@@ -106,6 +108,23 @@ describe("persona clip schemas", () => {
     expect(deletePersonaClipQuerySchema.safeParse({
       assetId: "not-a-uuid",
     }).success).toBe(false);
+  });
+});
+
+describe("member directory schemas", () => {
+  it("coerces bounded list query params and normalizes handles", () => {
+    expect(memberDirectoryQuerySchema.parse({})).toEqual({ limit: 50 });
+    expect(memberDirectoryQuerySchema.parse({
+      limit: "25",
+      cursor: "member_1",
+    })).toEqual({
+      limit: 25,
+      cursor: "member_1",
+    });
+    expect(memberDirectoryQuerySchema.safeParse({ limit: "51" }).success)
+      .toBe(false);
+    expect(memberHandleSchema.parse("  Member-1 ")).toBe("member-1");
+    expect(memberHandleSchema.safeParse("bad handle").success).toBe(false);
   });
 });
 

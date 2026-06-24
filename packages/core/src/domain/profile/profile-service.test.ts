@@ -16,10 +16,17 @@ function makeRepo(overrides: Partial<ProfileRepository> = {}) {
   return {
     getMyPersona: vi.fn().mockResolvedValue(emptyPersona),
     updateMyPersona: vi.fn().mockResolvedValue(emptyPersona),
+    listActivePublicPersonas: vi.fn().mockResolvedValue({
+      items: [],
+      nextCursor: null,
+    }),
+    getActivePublicPersonaByHandle: vi.fn().mockResolvedValue(null),
     ...overrides,
   } as unknown as {
     readonly getMyPersona: ReturnType<typeof vi.fn>;
     readonly updateMyPersona: ReturnType<typeof vi.fn>;
+    readonly listActivePublicPersonas: ReturnType<typeof vi.fn>;
+    readonly getActivePublicPersonaByHandle: ReturnType<typeof vi.fn>;
   } & ProfileRepository;
 }
 
@@ -140,6 +147,81 @@ describe("ProfileService", () => {
     expect(isErr(result)).toBe(true);
     if (isErr(result)) {
       expect(result.error.code).toBe("CONFLICT");
+    }
+  });
+
+  it("lists active public personas with a bounded cursor contract", async () => {
+    const repo = makeRepo({
+      listActivePublicPersonas: vi.fn().mockResolvedValue({
+        items: [
+          {
+            handle: "member_1",
+            displayName: "Member One",
+            bio: "Public intro.",
+          },
+        ],
+        nextCursor: "member_1",
+      }),
+    });
+    const svc = new DefaultProfileService({ profileRepo: repo });
+
+    const result = await svc.listActivePublicPersonas({
+      limit: 2,
+      cursor: "  MEMBER_0  ",
+    });
+
+    expect(isOk(result)).toBe(true);
+    expect(repo.listActivePublicPersonas).toHaveBeenCalledWith({
+      limit: 2,
+      cursor: "member_0",
+    });
+  });
+
+  it("rejects invalid member directory list parameters", async () => {
+    const repo = makeRepo();
+    const svc = new DefaultProfileService({ profileRepo: repo });
+
+    for (const input of [
+      { limit: 0 },
+      { limit: 51 },
+      { limit: 1.5 },
+      { cursor: "bad cursor" },
+    ]) {
+      const result = await svc.listActivePublicPersonas(input);
+      expect(isErr(result)).toBe(true);
+      if (isErr(result)) {
+        expect(result.error.code).toBe("VALIDATION");
+      }
+    }
+    expect(repo.listActivePublicPersonas).not.toHaveBeenCalled();
+  });
+
+  it("reads an active public persona by handle", async () => {
+    const repo = makeRepo({
+      getActivePublicPersonaByHandle: vi.fn().mockResolvedValue({
+        handle: "member_1",
+        displayName: "Member One",
+        bio: null,
+      }),
+    });
+    const svc = new DefaultProfileService({ profileRepo: repo });
+
+    const result = await svc.getActivePublicPersonaByHandle(" MEMBER_1 ");
+
+    expect(isOk(result)).toBe(true);
+    expect(repo.getActivePublicPersonaByHandle)
+      .toHaveBeenCalledWith("member_1");
+  });
+
+  it("maps a missing public persona to not found", async () => {
+    const repo = makeRepo();
+    const svc = new DefaultProfileService({ profileRepo: repo });
+
+    const result = await svc.getActivePublicPersonaByHandle("missing");
+
+    expect(isErr(result)).toBe(true);
+    if (isErr(result)) {
+      expect(result.error.code).toBe("NOT_FOUND");
     }
   });
 });
