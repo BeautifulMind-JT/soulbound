@@ -167,6 +167,21 @@ application/membership 정리 후 auth user 삭제). **Host binding gate**: `sup
 package-lock/core/adapters-src **0-diff**. Follow-up(non-blocking): 로컬 integration env/export 루프 스크립트화,
 adapters container 시드 의존 제거, backend reasonCode-per-action defense-in-depth, alpha admin SQL.
 
+추가 갱신(2026-06-24, Operator Hardening STAGE-0a — audit hash chain): `df1f6e9`(feat(db): enforce audit hash chain)
+= **Cowork Step-5 FINAL PASS**. 설계 brief `docs/OPERATOR_HARDENING_STAGE0_BRIEF.md` §2 → Codex Step-2 계획 →
+Cowork Step-3 조건부 승인(C1–C7) + JT 한정 unfreeze(feature-flags `auditHashChainEnabled` 1리터럴만) → Codex Step-4 빌드
+→ Cowork Step-5 독립 감사. builder≠approver 유지. **DB-side `BEFORE INSERT` 트리거(0009)가 `audit_logs.hash/previous_hash`
+유일 작성자** — **adapter + `0004_rpc.sql` 6개 audit insert(approve의 tx당 2건 포함) 전부 트리거로 묶음**. canonical
+단일 함수(트리거·backfill·verify 공유, UTC µs·metadata jsonb·평문 제외), genesis 64-zero sentinel + previous_hash/hash
+partial unique index(fork 차단), singleton `FOR UPDATE` 직렬화, verifier는 링크 추적(tamper→false 검증). **harness
+`deleteFixtureUsers`의 `audit_logs` mutation 제거 + audit-참조 user는 db reset 위임**(c465677 무손상). **경계 0-diff**:
+`0003_rls.sql`·`0004_rpc.sql`·core domain/ports·package/lock. Host: supabase test db 90, web 6/6·adapters 5/5,
+**SECURITY 5x+reset GREEN**. ⚠️ **범위 뉘앙스**: STAGE-0a는 **tamper-evidence 확보**이지 tamper-proof 아님 —
+**full-control DB owner/service-role급 적이 체인 전체 + state row를 재계산하면 막지 못함**(앵커 없는 해시체인의 본질 한계,
+brief가 scope한 "변조-증거"에 정확히 부합). 그래도 현 범위 목표(양 writer 트리거 통합 + cleanup mutation 제거 + 5x green)
+**달성**. **후속 하드닝**: 외부 앵커링(head hash를 운영자가 못 고치는 외부 witness에 주기 발행) + **STAGE-0b service-role
+분할**(한 키가 audit_logs와 state를 둘 다 못 쓰게). tag/RC/alpha 보류.
+
 ---
 
 ## 0. 한 줄 요약
