@@ -318,6 +318,22 @@ export async function deleteFixtureUsers(
     return;
   }
 
+  const { data: auditActorRows, error: auditActorError } =
+    await serviceRoleClient
+      .from("audit_logs")
+      .select("actor_id")
+      .in("actor_id", ids);
+  if (auditActorError) {
+    throw auditActorError;
+  }
+
+  const auditActorIds = new Set(
+    (auditActorRows ?? [])
+      .map((row) => row.actor_id)
+      .filter((id): id is string => typeof id === "string"),
+  );
+  const deletableUserIds = ids.filter((id) => !auditActorIds.has(id));
+
   const { data: applicantApplications, error: applicantAppsError } =
     await serviceRoleClient
       .from("admission_applications")
@@ -349,14 +365,6 @@ export async function deleteFixtureUsers(
     .in("actor_id", ids);
   if (clearEventActorError) {
     throw clearEventActorError;
-  }
-
-  const { error: clearAuditActorError } = await serviceRoleClient
-    .from("audit_logs")
-    .update({ actor_id: null })
-    .in("actor_id", ids);
-  if (clearAuditActorError) {
-    throw clearAuditActorError;
   }
 
   const { error: clearReviewerError } = await serviceRoleClient
@@ -394,7 +402,7 @@ export async function deleteFixtureUsers(
     throw deleteMembershipsByUserError;
   }
 
-  for (const id of ids) {
+  for (const id of deletableUserIds) {
     const { error } = await serviceRoleClient.auth.admin.deleteUser(id);
     if (error) {
       throw error;
