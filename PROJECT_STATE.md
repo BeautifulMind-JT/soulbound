@@ -182,6 +182,22 @@ brief가 scope한 "변조-증거"에 정확히 부합). 그래도 현 범위 목
 **달성**. **후속 하드닝**: 외부 앵커링(head hash를 운영자가 못 고치는 외부 witness에 주기 발행) + **STAGE-0b service-role
 분할**(한 키가 audit_logs와 state를 둘 다 못 쓰게). tag/RC/alpha 보류.
 
+추가 갱신(2026-06-24, Member Directory — **P0 이후 두 번째 northstar 기능**): `cb05f68`(feat(web): add active member
+directory) = **Cowork Step-5 FINAL PASS**. 설계 brief `docs/MEMBER_DIRECTORY_BRIEF.md` → Codex Step-2 계획 → Cowork
+Step-3 조건부 승인(R1 silent-cap 금지·R2 honest count·R3 grep 범위) → Codex Step-4 빌드 → Cowork Step-5 독립 감사.
+builder≠approver. **unfreeze 불필요**(profile 도메인 CONTRACT-FROZEN 아님, additive only; RLS/RPC·frozen 포트 0-diff).
+profile/persona(6a32dd2)의 형제 — 내 persona *쓰기* → 남의 공개 persona *보기*. `GET /api/members`(+`/[handle]`) 신설,
+`/member` placeholder 섹션 → 실 Members 리스트 + `/member/[handle]` 상세. **no-leak 4중**(`publicPersonaSelect=
+"handle,display_name,bio"` SQL projection + 라우트 응답 `{handle,displayName,bio,isMe}` 명시 projection + 테스트
+forbidden-keys/dossier-keys absent + grep 게이트), **persona⟂dossier**(dossier 필드 0), **no-photo**(avatar 미선택,
+상세는 텍스트 모노그램), **active 이중방어**(라우트 401/403 + RLS `using(membership_status='active' AND
+is_active_member(auth.uid()))` = row-active+viewer-active), **user-JWT**(`makeUserScopedProfileRepository`, service-role 0),
+keyset 페이지네이션(handle.asc + cursor) + "더 보기"(silent-cap 0), isMe=handle 비교(id 누출 0). **경계 0-diff**:
+migrations·0003·0004·frozen core 포트·admission/apply/persona-clip·auth-provider·PWA·package-lock. 신규 dep 0. **Host**:
+core 31/31·adapters 27/27·web 88/88·build·audit.sh, web/adapters `test:integration` **5x+reset GREEN, flake 0**(새
+`member-directory-routes.integration.test.ts` 포함). 범위 밖(후속): 대화/DM/presence(HARD RULE 9 Northstar) · 추천코드
+제거 + admin raw-email 식별(anti-bias/가명-리뷰어 **불변식 의도적 완화** 기록 동반) = 별도 Round 2 surface. tag/RC/alpha 보류.
+
 ---
 
 ## 0. 한 줄 요약
