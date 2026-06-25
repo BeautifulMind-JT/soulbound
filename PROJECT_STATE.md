@@ -198,6 +198,25 @@ core 31/31·adapters 27/27·web 88/88·build·audit.sh, web/adapters `test:integ
 `member-directory-routes.integration.test.ts` 포함). 범위 밖(후속): 대화/DM/presence(HARD RULE 9 Northstar) · 추천코드
 제거 + admin raw-email 식별(anti-bias/가명-리뷰어 **불변식 의도적 완화** 기록 동반) = 별도 Round 2 surface. tag/RC/alpha 보류.
 
+추가 갱신(2026-06-25, Anonymous Identity v2 — 급진적 익명성 신원 개편): `4392115`(feat: implement anonymous identity v2)
+= **Cowork Step-5 FINAL PASS**. 설계 brief `docs/ANON_IDENTITY_BRIEF.md` → Codex Step-2 → Cowork Step-3 조건부(C1 frozen
+테스트 green·C2 nullable·C3 clip orphan 0) → Codex Step-4 → Cowork Step-5 독립 감사. builder≠approver. **위협모델**: CR 대상=
+국가공권력만, 운영자(JT)=max 권한("거부"가 아니라 *안 쥠*이 구조적 방어). **변경**: ① **이메일 제거 → self-chosen username 로그인**
+(synthetic 내부 email `username@soulbound.internal`로 **AuthPort frozen 0-diff 보존**, unfreeze 0) ② **member-N(`soulbound-member-N`
+순차)**=멤버끼리 보이는 유일 표시(승인 시 발급, 익명) ③ **persona(6a32dd2) 통째 폐기**(service/repo/route/`/api/profile/me`/상세
+페이지 제거, profiles handle/display_name/bio/avatar_url dormant) — **Persona-Clip 입장 아티팩트는 보존**(0008 0-diff) ④ **디렉터리
+→ member-N 명부**(persona 표시 0) ⑤ **dossier 축소**(motivation/referral UI 제거, statement+선택 clip만) + **terminal 파쇄**
+(승인/거부 시 statement/motivation/referral/clip refs·hash null + clip asset reaper 예약; 결정 audit/reasonCode만 잔존) ⑥ **복구 0**
+(분실=영구상실, "저장 안 해서 복구 불가" 안내) ⑦ admin은 username 봄(서버 service-role, requireReviewer 뒤), 멤버-facing엔 username/
+email/uuid/persona 0. **0010_anonymous_identity.sql**(additive): username/member_number 컬럼·`grant select(member_number) to
+authenticated`만(**username 미부여=no-leak**)·format check·sequence+결정적 backfill·handle_new_user/approve/reject create-or-replace
+(0004/0007 **파일 0-diff**, 행위 진화). **경계 0-diff**: auth-port·0001-0009·frozen core·persona-clip storage/reaper·PWA·package-lock.
+신규 dep 0. **Host**: core 20/20(31→20=persona 테스트 제거, frozen 무손상)·adapters 23/23·web 73/73·build·audit.sh, web/adapters
+`test:integration` **5x+reset GREEN, flake 0**. **churn(정직)**: cb05f68 디렉터리 + 98e54ed-C admin-email을 forward-supersede(persona/
+이메일 폐기로 무효화 — 빠른 방향전환이 통과작 일부 무효화, JT product 콜). **남는 한계(완전익명 아님)**: IP 로깅(Supabase auth, 검찰 IP
+소환→ISP→실신원 = 최대 잔여) · username 실명선택 시 admin 가시 · clip 심사중 얼굴/음성 → IP 비로깅/Tor·clip 익명화·ICP II는 Northstar.
+tag/RC/alpha 보류.
+
 ---
 
 ## 0. 한 줄 요약
