@@ -217,6 +217,25 @@ authenticated`만(**username 미부여=no-leak**)·format check·sequence+결정
 소환→ISP→실신원 = 최대 잔여) · username 실명선택 시 admin 가시 · clip 심사중 얼굴/음성 → IP 비로깅/Tor·clip 익명화·ICP II는 Northstar.
 tag/RC/alpha 보류.
 
+추가 갱신(2026-06-25, Member Board 게시판 — Round 3 · **메신저 Northstar 1번 벽돌**): `c696953`(feat(web): add member board)
+= **Cowork Step-5 FINAL PASS**. 설계 brief `docs/MEMBER_BOARD_BRIEF.md` → Codex Step-2 → Cowork Step-3 → Step-4 → Step-5
+독립 감사. builder≠approver. **JT가 HARD RULE 9를 "단일 공용 멤버 게시판"에 한해 unfreeze**(1:1 DM/inbox·realtime·presence는
+계속 금지, `direct_messages`/HR7 보존, `realtimeChatEnabled` false 유지). 디씨인사이드식 async 게시판 — active 멤버가 글/댓글,
+**작성자 표시 = `soulbound-member-N`(익명)**. **변경**: ① 새 라우트 `/api/board`(목록/상세/댓글)·`/api/board/[id]` author own-delete·
+`/api/admin/board/*` admin hard-delete ② **새 migration 0011_board.sql**(additive): board_posts/board_comments(+content_hash·
+previous_hash dormant·storage_provider/ref·deleted_at) ③ "대화"(chats) 탭 → **게시판** 탭, 더보기 "소통" 제거. **🔴 no-leak 4층**:
+(a) `author_id`를 authenticated SELECT grant에서 **제외** (b) **SECURITY DEFINER projection 함수**(list/get_board_posts·comments)가
+author_id 내부 join→`member_number`만 반환 (c) repository가 `.rpc()` 호출→`{memberNumber,label,isMe}` 매핑(author_id 없음)
+(d) RLS active-only select·author-own insert/delete. **권한**: 모더레이션 = **admin 전용**(`actor.role==="admin"`, reviewer 거부);
+author 자기글 삭제. **CR seam**(검열저항 "연결 가능성"): `BoardRepository`를 **web/app-layer local port**로(core 0-diff) — 알파
+SupabaseBoardRepository plaintext, 미래 CR 어댑터(ICP/Filecoin/Arweave)=옵션 브랜치; `content_hash`(per-row 트리거, canonical
+author_id/body/created_at[+post_id], sha256 = 안티-조작 seed) + storage_*/previous_hash dormant. main에 chain/탈중앙저장 SDK 0(HR9).
+**경계 0-diff**: direct_messages·0001-0010·0003·0004·frozen core·auth-provider·디렉터리 라우트·PWA·package-lock. 신규 dep 0.
+**Host**: core 20/20·adapters 23/23·web 75/75·build·audit.sh·supabase test db 104/104, **5x+reset GREEN**(매회 pgTAP 104/104·
+web integration 8/8·adapters 5/5). 수정된 기존 pgTAP/test는 0010 username-required 트리거 적응(role-forgery 차단 단언 보존). **nit(비차단)**:
+0011 board_posts/comments에 컬럼-무지정 `grant insert`가 컬럼별 grant 중복(dormant 컬럼 세팅 가능하나 content_hash는 트리거가 덮고
+나머지 dormant·RLS 행게이트라 익스플로잇 0) — 다음에 `grant insert (author_id, body)`로 정리 권장. tag/RC/alpha 보류.
+
 ---
 
 ## 0. 한 줄 요약
