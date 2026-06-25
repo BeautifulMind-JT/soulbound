@@ -29,7 +29,7 @@ values
     'authenticated',
     '00000000-0000-0000-0000-000000000000',
     '{"provider":"email","providers":["email"]}'::jsonb,
-    '{}'::jsonb,
+    '{"username":"admin"}'::jsonb,
     now(),
     now()
   ),
@@ -46,7 +46,7 @@ values
     'authenticated',
     '00000000-0000-0000-0000-000000000000',
     '{"provider":"email","providers":["email"]}'::jsonb,
-    '{}'::jsonb,
+    '{"username":"reviewer"}'::jsonb,
     now(),
     now()
   ),
@@ -63,7 +63,7 @@ values
     'authenticated',
     '00000000-0000-0000-0000-000000000000',
     '{"provider":"email","providers":["email"]}'::jsonb,
-    '{}'::jsonb,
+    '{"username":"applicant"}'::jsonb,
     now(),
     now()
   )
@@ -117,6 +117,8 @@ insert into public.profiles (
   handle,
   display_name,
   bio,
+  username,
+  member_number,
   role,
   membership_status
 )
@@ -127,6 +129,8 @@ values
     'Admin User',
     'System administrator',
     'admin',
+    1,
+    'admin',
     'active'
   ),
   (
@@ -134,6 +138,8 @@ values
     'reviewer',
     'Reviewer User',
     'Application reviewer',
+    'reviewer',
+    2,
     'reviewer',
     'active'
   ),
@@ -143,11 +149,20 @@ values
     'Applicant User',
     'Membership applicant',
     'applicant',
+    null,
+    'applicant',
     'none'
   )
 on conflict (id) do update set
   handle = excluded.handle,
   display_name = excluded.display_name,
   bio = excluded.bio,
+  username = excluded.username,
+  member_number = excluded.member_number,
   role = excluded.role,
   membership_status = excluded.membership_status;
+
+select setval(
+  'public.member_numbers_seq',
+  (select coalesce(max(member_number), 1) from public.profiles)
+);

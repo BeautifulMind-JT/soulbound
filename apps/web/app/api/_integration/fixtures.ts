@@ -16,7 +16,7 @@ export interface IntegrationConfig {
 export interface TestSession {
   readonly id: string;
   readonly email: string;
-  readonly handle: string;
+  readonly username: string;
   readonly password: string;
   readonly accessToken: string;
 }
@@ -36,11 +36,11 @@ interface CreateActorOptions {
   readonly role: "admin" | "applicant" | "member" | "reviewer";
   readonly purpose: string;
   readonly prefix: string;
-  readonly handlePrefix: string;
+  readonly usernamePrefix: string;
   readonly profile?: Record<string, unknown>;
   readonly membership?: {
     readonly status: "active" | "none" | "suspended";
-    readonly tier?: "basic" | "founding" | "guardian";
+    readonly tier?: "basic" | "trusted" | "founding" | "admin";
   };
 }
 
@@ -150,7 +150,7 @@ export async function signInFixture(
   config: IntegrationConfig,
   email: string,
   password: string,
-): Promise<Omit<TestSession, "handle">> {
+): Promise<Omit<TestSession, "username">> {
   const anonClient = createAnonSupabaseClient({
     url: config.url,
     anonKey: config.anonKey,
@@ -184,6 +184,23 @@ export async function signInFixture(
   };
 }
 
+function usernameFromParts(prefix: string, purpose: string, suffix: string) {
+  const normalizedPurpose = purpose
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return `${prefix}_${normalizedPurpose}_${suffix.replace(/[^a-z0-9]/g, "")}`
+    .slice(0, 24);
+}
+
+function syntheticEmail(username: string): string {
+  return `${username}@soulbound.internal`;
+}
+
+function fixtureMemberNumber(): number {
+  return Date.now() * 1000 + Math.floor(Math.random() * 1000);
+}
+
 async function createActor(
   config: IntegrationConfig,
   options: CreateActorOptions,
@@ -193,16 +210,20 @@ async function createActor(
     serviceRoleKey: config.serviceRoleKey,
   });
   const suffix = uniqueSuffix();
-  const email = `${options.prefix}-${options.purpose}-${suffix}@soulbound.local`;
+  const username = usernameFromParts(
+    options.usernamePrefix,
+    options.purpose,
+    suffix,
+  );
+  const email = syntheticEmail(username);
   const password = `${options.prefix}-${suffix}!`;
-  const handle = `${options.handlePrefix}-${options.purpose}-${suffix}`.slice(0, 48);
 
   const { data: created, error: createError } =
     await serviceRoleClient.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
-      user_metadata: {},
+      user_metadata: { username },
       app_metadata: {},
     });
   if (createError) {
@@ -219,9 +240,12 @@ async function createActor(
     .upsert(
       {
         id,
-        handle,
         role: options.role,
         membership_status: options.membership?.status ?? "none",
+        username,
+        ...(options.membership?.status === "active"
+          ? { member_number: fixtureMemberNumber() }
+          : {}),
         ...options.profile,
       },
       { onConflict: "id" },
@@ -246,7 +270,7 @@ async function createActor(
   const session = await signInFixture(config, email, password);
   return {
     ...session,
-    handle,
+    username,
   };
 }
 
@@ -258,7 +282,7 @@ export function createApplicant(
     role: "applicant",
     purpose,
     prefix: "applicant",
-    handlePrefix: "applicant",
+    usernamePrefix: "applicant",
   });
 }
 
@@ -270,7 +294,7 @@ export function createReviewer(
     role: "reviewer",
     purpose,
     prefix: "reviewer",
-    handlePrefix: "reviewer",
+    usernamePrefix: "reviewer",
   });
 }
 
@@ -282,7 +306,7 @@ export function createAdmin(
     role: "admin",
     purpose,
     prefix: "admin",
-    handlePrefix: "admin",
+    usernamePrefix: "admin",
   });
 }
 
@@ -295,7 +319,7 @@ export function createActiveMember(
     role: "member",
     purpose,
     prefix: "member",
-    handlePrefix: "member",
+    usernamePrefix: "member",
     profile,
     membership: {
       status: "active",

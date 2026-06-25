@@ -3,14 +3,12 @@ import {
   mapApproveOutcomeRow,
   mapMembershipRow,
   mapOutboxEventRow,
-  mapProfileRow,
 } from "./mappers";
 import type {
   AdmissionApplicationRow,
   ApproveOutcomeRow,
   MembershipRow,
   OutboxEventRow,
-  ProfileRow,
 } from "./mappers";
 
 const now = "2026-06-02T00:00:00.000Z";
@@ -67,28 +65,6 @@ describe("Supabase mappers", () => {
       tier: "basic",
       sourceApplicationId: "app-1",
       issuedAt: now,
-    });
-  });
-
-  it("maps profile rows to persona-only data", () => {
-    const row: ProfileRow = {
-      handle: "member",
-      display_name: "Member",
-      bio: "Quiet signal.",
-    };
-
-    expect(mapProfileRow(row)).toEqual({
-      handle: "member",
-      displayName: "Member",
-      bio: "Quiet signal.",
-    });
-  });
-
-  it("maps empty profile columns to null persona fields", () => {
-    expect(mapProfileRow({})).toEqual({
-      handle: null,
-      displayName: null,
-      bio: null,
     });
   });
 

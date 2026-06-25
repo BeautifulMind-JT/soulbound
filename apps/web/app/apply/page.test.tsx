@@ -102,13 +102,10 @@ describe("ApplyPage", () => {
     render(<ApplyPage />);
 
     expect(screen.queryByLabelText("추천 코드")).toBeNull();
+    expect(screen.queryByLabelText("이 공간에 들어오려는 이유")).toBeNull();
     fireEvent.change(
       screen.getByLabelText("나를 설명하는 한 문장"),
       { target: { value: "신뢰를 지키는 사람" } },
-    );
-    fireEvent.change(
-      screen.getByLabelText("이 공간에 들어오려는 이유"),
-      { target: { value: "작은 공동체를 만들고 싶습니다" } },
     );
     fireEvent.click(screen.getByRole("button", { name: "complete clip" }));
     fireEvent.click(screen.getByRole("button", { name: "입장 신청" }));
@@ -120,7 +117,6 @@ describe("ApplyPage", () => {
     expect(JSON.parse(String(init.body))).toEqual({
       idempotencyKey: "idempotency-key",
       applicantStatement: "신뢰를 지키는 사람",
-      motivation: "작은 공동체를 만들고 싶습니다",
       personaClipAssetId: "clip-asset",
       personaClipHash: "clip-hash",
     });

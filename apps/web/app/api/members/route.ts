@@ -1,34 +1,40 @@
 import {
-  DefaultProfileService,
   forbidden,
-  type ListActivePublicPersonasResult,
-  type PublicPersona,
 } from "@soulbound/core";
 import {
+  type ListActiveMembersResult,
   makeSupabaseMembershipRepository,
-  makeUserScopedProfileRepository,
+  makeUserScopedMemberDirectoryRepository,
 } from "@soulbound/adapters";
 import { resolveUserContext } from "../_lib/auth";
 import {
   appErrorResponse,
   dependencyFailure,
   jsonResponse,
-  resultToResponse,
   unauthorized,
   validationError,
 } from "../_lib/http";
 import { memberDirectoryQuerySchema } from "../_lib/schemas";
 
-interface PublicPersonaResponse extends PublicPersona {
+interface MemberDirectoryItem {
+  readonly memberNumber: number;
+  readonly label: string;
+  readonly createdAt: string;
   readonly isMe: boolean;
 }
 
 interface MemberDirectoryResponse {
-  readonly items: readonly PublicPersonaResponse[];
-  readonly nextCursor: string | null;
+  readonly myMemberNumber: number | null;
+  readonly myLabel: string | null;
+  readonly items: readonly MemberDirectoryItem[];
+  readonly nextCursor: number | null;
 }
 
-async function requireActiveProfileService(request: Request) {
+function memberLabel(memberNumber: number): string {
+  return `soulbound-member-${memberNumber}`;
+}
+
+async function requireActiveMemberDirectory(request: Request) {
   const context = await resolveUserContext(request);
   if (!context) {
     return { response: unauthorized() } as const;
@@ -45,22 +51,25 @@ async function requireActiveProfileService(request: Request) {
 
   return {
     userId: context.userId,
-    profileService: new DefaultProfileService({
-      profileRepo: makeUserScopedProfileRepository(context.client),
-    }),
+    memberDirectoryRepo: makeUserScopedMemberDirectoryRepository(
+      context.client,
+    ),
   } as const;
 }
 
 function attachIsMe(
-  result: ListActivePublicPersonasResult,
-  myHandle: string | null,
+  result: ListActiveMembersResult,
+  myMemberNumber: number | null,
 ): MemberDirectoryResponse {
   return {
-    items: result.items.map((persona) => ({
-      handle: persona.handle,
-      displayName: persona.displayName,
-      bio: persona.bio,
-      isMe: myHandle !== null && persona.handle === myHandle,
+    myMemberNumber,
+    myLabel: myMemberNumber === null ? null : memberLabel(myMemberNumber),
+    items: result.items.map((member) => ({
+      memberNumber: member.memberNumber,
+      label: member.label,
+      createdAt: member.createdAt,
+      isMe: myMemberNumber !== null
+        && member.memberNumber === myMemberNumber,
     })),
     nextCursor: result.nextCursor,
   };
@@ -68,7 +77,7 @@ function attachIsMe(
 
 export async function GET(request: Request): Promise<Response> {
   try {
-    const authorized = await requireActiveProfileService(request);
+    const authorized = await requireActiveMemberDirectory(request);
     if ("response" in authorized) {
       return authorized.response;
     }
@@ -80,21 +89,15 @@ export async function GET(request: Request): Promise<Response> {
       return validationError(query.error.message);
     }
 
-    const [myPersona, directory] = await Promise.all([
-      authorized.profileService.getMyPersona(authorized.userId),
-      authorized.profileService.listActivePublicPersonas({
+    const [myMemberNumber, directory] = await Promise.all([
+      authorized.memberDirectoryRepo.getMyMemberNumber(authorized.userId),
+      authorized.memberDirectoryRepo.listActiveMembers({
         limit: query.data.limit,
-        cursor: query.data.cursor ?? null,
+        cursor: query.data.cursor,
       }),
     ]);
-    if (!myPersona.ok) {
-      return resultToResponse(myPersona);
-    }
-    if (!directory.ok) {
-      return resultToResponse(directory);
-    }
 
-    return jsonResponse(attachIsMe(directory.value, myPersona.value.handle));
+    return jsonResponse(attachIsMe(directory, myMemberNumber));
   } catch (error) {
     return dependencyFailure(error);
   }

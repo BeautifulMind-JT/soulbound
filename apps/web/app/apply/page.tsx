@@ -47,13 +47,11 @@ export default function ApplyPage() {
 
     const form = new FormData(event.currentTarget);
     const applicantStatement = optionalText(form, "applicantStatement");
-    const motivation = optionalText(form, "motivation");
     idempotencyKeyRef.current ??= crypto.randomUUID();
 
     const body = {
       idempotencyKey: idempotencyKeyRef.current,
       ...(applicantStatement ? { applicantStatement } : {}),
-      ...(motivation ? { motivation } : {}),
       ...(clip
         ? {
             personaClipAssetId: clip.assetId,
@@ -98,7 +96,10 @@ export default function ApplyPage() {
       <header className="page-heading">
         <p className="eyebrow">Apply</p>
         <h1>입장 신청</h1>
-        <p>필요한 만큼만 적어 주세요. Persona Clip은 선택 사항입니다.</p>
+        <p>
+          제출 정보는 심사 동안만 보관하고, 승인 또는 거부 즉시 파쇄합니다.
+          Persona Clip은 선택 사항입니다.
+        </p>
       </header>
 
       <form className="form-panel form-grid" onSubmit={handleSubmit}>
@@ -110,11 +111,6 @@ export default function ApplyPage() {
             maxLength={1200}
           />
         </div>
-        <div className="field">
-          <label htmlFor="motivation">이 공간에 들어오려는 이유</label>
-          <textarea id="motivation" name="motivation" maxLength={2400} />
-        </div>
-
         <div className="recorder-section">
           <PersonaClipRecorder
             authedFetch={authedFetch}

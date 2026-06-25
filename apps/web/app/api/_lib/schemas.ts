@@ -39,12 +39,10 @@ const admissionReasonCodeValues = [
 
 export const submitApplicationSchema = z.object({
   applicantStatement: optionalString,
-  motivation: optionalString,
-  referralCode: optionalString,
   personaClipAssetId: optionalNullableString,
   personaClipHash: optionalNullableString,
   idempotencyKey: z.string().trim().min(1),
-});
+}).strict();
 
 export type SubmitApplicationBody =
   z.infer<typeof submitApplicationSchema>;
@@ -96,40 +94,16 @@ export const deletePersonaClipQuerySchema = z.object({
 export type DeletePersonaClipQuery =
   z.infer<typeof deletePersonaClipQuerySchema>;
 
-const profileString = z.string().transform((value) => value.trim());
-const nullableProfileString = profileString.transform((value) =>
-  value.length > 0 ? value : null
-);
-
-export const profilePersonaPatchSchema = z.object({
-  handle: nullableProfileString.optional(),
-  displayName: nullableProfileString.optional(),
-  bio: nullableProfileString.optional(),
-}).strict().refine(
-  (value) =>
-    Object.prototype.hasOwnProperty.call(value, "handle")
-    || Object.prototype.hasOwnProperty.call(value, "displayName")
-    || Object.prototype.hasOwnProperty.call(value, "bio"),
-  { message: "at least one persona field is required" },
-);
-
-export type ProfilePersonaPatchBody =
-  z.infer<typeof profilePersonaPatchSchema>;
-
 export const memberDirectoryQuerySchema = z.object({
   limit: z.preprocess(
     (value) => value === undefined || value === "" ? 50 : value,
     z.coerce.number().int().min(1).max(50),
   ),
-  cursor: optionalString,
+  cursor: z.preprocess(
+    (value) => value === undefined || value === "" ? null : value,
+    z.coerce.number().int().min(1).nullable(),
+  ),
 });
 
 export type MemberDirectoryQueryParams =
   z.infer<typeof memberDirectoryQuerySchema>;
-
-export const memberHandleSchema = z.string()
-  .trim()
-  .min(3)
-  .max(24)
-  .regex(/^[A-Za-z0-9](?:[A-Za-z0-9_-]{1,22}[A-Za-z0-9])$/)
-  .transform((value) => value.toLowerCase());

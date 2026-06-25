@@ -45,10 +45,18 @@ function AuthProbe() {
       <button
         type="button"
         onClick={() => {
-          void auth.signIn("reviewer@soulbound.local", "password123");
+          void auth.signIn("reviewer", "password123");
         }}
       >
         sign in
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          void auth.signUp("new_member", "password123");
+        }}
+      >
+        sign up
       </button>
       <button
         type="button"
@@ -88,7 +96,10 @@ describe("AuthProvider", () => {
     data: { session, user: session.user },
     error: null,
   }));
-  const signUp = vi.fn();
+  const signUp = vi.fn(async () => ({
+    data: { session, user: session.user },
+    error: null,
+  }));
   const signOut = vi.fn(async () => ({ error: null }));
   const onAuthStateChange = vi.fn(() => ({
     data: { subscription: { unsubscribe } },
@@ -144,7 +155,7 @@ describe("AuthProvider", () => {
     );
     expect(screen.getByTestId("role").textContent).toBe("reviewer");
     expect(signInWithPassword).toHaveBeenCalledWith({
-      email: "reviewer@soulbound.local",
+      email: "reviewer@soulbound.internal",
       password: "password123",
     });
     expect(rpc).toHaveBeenCalledWith("current_user_role");
@@ -173,5 +184,29 @@ describe("AuthProvider", () => {
       expect(screen.getByTestId("message").textContent).toBe("unauthenticated")
     );
     expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("uses synthetic email plus username metadata for sign-up", async () => {
+    render(
+      <AuthProvider>
+        <AuthProbe />
+      </AuthProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("loading").textContent).toBe("false")
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "sign up" }));
+
+    await waitFor(() => expect(signUp).toHaveBeenCalledWith({
+      email: "new_member@soulbound.internal",
+      password: "password123",
+      options: {
+        data: {
+          username: "new_member",
+        },
+      },
+    }));
   });
 });

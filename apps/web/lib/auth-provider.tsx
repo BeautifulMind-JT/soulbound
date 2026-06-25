@@ -30,7 +30,6 @@ export interface SignInResult {
 }
 
 export interface SignUpResult {
-  readonly requiresEmailConfirmation: boolean;
   readonly session: BrowserSession | null;
 }
 
@@ -39,8 +38,8 @@ interface AuthContextValue {
   readonly accessToken: string | null;
   readonly role: UserRole;
   readonly loading: boolean;
-  readonly signUp: (email: string, password: string) => Promise<SignUpResult>;
-  readonly signIn: (email: string, password: string) => Promise<SignInResult>;
+  readonly signUp: (username: string, password: string) => Promise<SignUpResult>;
+  readonly signIn: (username: string, password: string) => Promise<SignInResult>;
   readonly signOut: () => Promise<void>;
   readonly authedFetch: AuthedFetch;
 }
@@ -79,6 +78,21 @@ function getBrowserClient(): BrowserClient {
     });
   }
   return browserClient;
+}
+
+const usernamePattern = /^[a-z0-9][a-z0-9_-]{2,23}$/;
+
+export function normalizeUsername(username: string): string {
+  return username.trim().toLowerCase();
+}
+
+export function usernameToSyntheticEmail(username: string): string {
+  const normalized = normalizeUsername(username);
+  if (!usernamePattern.test(normalized)) {
+    throw new Error("Invalid username");
+  }
+
+  return `${normalized}@soulbound.internal`;
 }
 
 async function resolveCurrentRole(
@@ -191,9 +205,10 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
   }, [applySession, clearSession]);
 
   const signIn = useCallback(async (
-    email: string,
+    username: string,
     password: string,
   ): Promise<SignInResult> => {
+    const email = usernameToSyntheticEmail(username);
     const { data, error } = await getBrowserClient().auth.signInWithPassword({
       email,
       password,
@@ -207,28 +222,32 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
   }, [applySession]);
 
   const signUp = useCallback(async (
-    email: string,
+    username: string,
     password: string,
   ): Promise<SignUpResult> => {
+    const normalizedUsername = normalizeUsername(username);
+    const email = usernameToSyntheticEmail(normalizedUsername);
     const { data, error } = await getBrowserClient().auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/login`,
+        data: {
+          username: normalizedUsername,
+        },
       },
     });
     if (error) {
       throw error;
     }
 
-    if (data.session) {
-      await applySession(data.session);
-    } else {
+    if (!data.session) {
       clearSession();
+      throw new Error("Sign-up did not return a session; email confirmation must be disabled");
     }
 
+    await applySession(data.session);
+
     return {
-      requiresEmailConfirmation: data.session === null,
       session: data.session,
     };
   }, [applySession, clearSession]);

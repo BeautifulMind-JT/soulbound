@@ -25,7 +25,7 @@ import styles from "./admin.module.css";
 const QUEUE_LIMIT = 50;
 
 interface AdminQueueApplication extends AdmissionApplication {
-  readonly applicantEmail?: string | null;
+  readonly applicantUsername?: string | null;
 }
 
 const statusOptions: readonly {
@@ -89,7 +89,7 @@ function shortId(value: string): string {
 }
 
 function applicantLabel(application: AdminQueueApplication): string {
-  return application.applicantEmail ?? shortId(application.applicantId);
+  return application.applicantUsername ?? shortId(application.applicantId);
 }
 
 export default function ReviewQueuePage() {

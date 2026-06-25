@@ -50,8 +50,8 @@ const reasonLabel: Record<AdmissionReasonCode, string> = {
 };
 
 interface AdminApplication extends AdmissionApplication {
-  readonly applicantEmail?: string | null;
-  readonly reviewerEmail?: string | null;
+  readonly applicantUsername?: string | null;
+  readonly reviewerUsername?: string | null;
 }
 
 const decisionConfigs = [
@@ -435,8 +435,8 @@ export default function ReviewDetailPage() {
                 </dd>
               </div>
               <div>
-                <dt>신청자 이메일</dt>
-                <dd>{application.applicantEmail ?? "확인 불가"}</dd>
+                <dt>신청자 username</dt>
+                <dd>{application.applicantUsername ?? "확인 불가"}</dd>
               </div>
               <div>
                 <dt>신청자 ID</dt>
@@ -445,10 +445,6 @@ export default function ReviewDetailPage() {
               <div>
                 <dt>한 문장 소개</dt>
                 <dd>{application.applicantStatement ?? "입력 없음"}</dd>
-              </div>
-              <div>
-                <dt>신청 동기</dt>
-                <dd>{application.motivation ?? "입력 없음"}</dd>
               </div>
             </dl>
 
@@ -487,8 +483,8 @@ export default function ReviewDetailPage() {
                 </div>
                 {application.reviewerId ? (
                   <div>
-                    <dt>검토자 이메일</dt>
-                    <dd>{application.reviewerEmail ?? "확인 불가"}</dd>
+                    <dt>검토자 username</dt>
+                    <dd>{application.reviewerUsername ?? "확인 불가"}</dd>
                   </div>
                 ) : null}
                 <div>

@@ -19,19 +19,15 @@ export default function SignupPage() {
     setIsError(false);
 
     const form = new FormData(event.currentTarget);
-    const email = String(form.get("email") ?? "").trim();
+    const username = String(form.get("username") ?? "").trim();
     const password = String(form.get("password") ?? "");
 
     try {
-      const result = await signUp(email, password);
-      if (result.requiresEmailConfirmation) {
-        setMessage("메일을 확인해 주세요. 링크를 연 뒤 로그인할 수 있습니다.");
-      } else {
-        router.push("/gate");
-      }
+      await signUp(username, password);
+      router.push("/gate");
     } catch {
       setIsError(true);
-      setMessage("계정을 만들지 못했습니다. 입력 내용을 확인해 주세요.");
+      setMessage("username 또는 비밀번호를 확인해 주세요.");
     } finally {
       setSubmitting(false);
     }
@@ -41,15 +37,16 @@ export default function SignupPage() {
     <main className="page-main narrow-main">
       <section className="auth-panel" aria-labelledby="signup-title">
         <h1 id="signup-title">가입하기</h1>
-        <p>계정을 만들고 입장 신청을 시작하세요.</p>
+        <p>username과 비밀번호를 저장해 주세요. 복구는 제공하지 않습니다.</p>
         <form className="form-grid" onSubmit={handleSubmit}>
           <div className="field">
-            <label htmlFor="signup-email">이메일</label>
+            <label htmlFor="signup-username">username</label>
             <input
-              id="signup-email"
-              name="email"
-              type="email"
-              autoComplete="email"
+              id="signup-username"
+              name="username"
+              type="text"
+              autoComplete="username"
+              pattern="[a-z0-9][a-z0-9_-]{2,23}"
               required
             />
           </div>

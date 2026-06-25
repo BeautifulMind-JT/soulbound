@@ -65,13 +65,15 @@ async function createThrowawayUser(
   const suffix = uniqueSuffix();
   const email = `task5-${role}-${suffix}@soulbound.local`;
   const password = `Task5-${suffix}!`;
+  const username = `task5_${role}_${suffix.replace(/[^a-z0-9]/g, "")}`
+    .slice(0, 24);
 
   const { data: created, error: createError } =
     await serviceRoleClient.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
-      user_metadata: {},
+      user_metadata: { username },
       app_metadata: {},
     });
 
@@ -90,8 +92,12 @@ async function createThrowawayUser(
       {
         id: userId,
         handle: `task5-${role}-${suffix}`,
+        username,
         role,
         membership_status: role === "reviewer" ? "active" : "none",
+        ...(role === "reviewer"
+          ? { member_number: Date.now() * 1000 + Math.floor(Math.random() * 1000) }
+          : {}),
       },
       { onConflict: "id" },
     );

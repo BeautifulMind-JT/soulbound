@@ -72,7 +72,7 @@ async function submitApplication(
     applicant.accessToken,
     "/api/admission/applications",
     {
-      motivation: "Task 7a persona clip flow.",
+      applicantStatement: "Task 7a persona clip flow.",
       idempotencyKey: `task7a-submit-${uniqueSuffix()}`,
       ...body,
     },
@@ -363,7 +363,7 @@ describe("persona clip route handlers", () => {
     expect(bytesEqual(await readResponse.arrayBuffer(), uploadBody)).toBe(true);
 
     const noClipApplication = await submitApplication(noClipApplicant, {
-      motivation: "No persona clip should still submit.",
+      applicantStatement: "No persona clip should still submit.",
     });
     expect(noClipApplication.status).toBe("submitted");
     expect(noClipApplication.personaClipAssetId ?? null).toBeNull();
@@ -397,6 +397,21 @@ describe("persona clip route handlers", () => {
     expect((terminalClip as { delete_after?: string }).delete_after)
       .toBeTruthy();
 
+    const { data: terminalApplication, error: terminalApplicationError } =
+      await serviceRoleClient
+        .from("admission_applications")
+        .select("applicant_statement,motivation,referral_code,persona_clip_asset_id,persona_clip_hash")
+        .eq("id", applicationId)
+        .single();
+    expect(terminalApplicationError).toBeNull();
+    expect(terminalApplication).toMatchObject({
+      applicant_statement: null,
+      motivation: null,
+      referral_code: null,
+      persona_clip_asset_id: null,
+      persona_clip_hash: null,
+    });
+
     const { data: auditRows, error: auditError } = await serviceRoleClient
       .from("audit_logs")
       .select("metadata");
@@ -408,7 +423,7 @@ describe("persona clip route handlers", () => {
     const { data: applicationRows, error: applicationRowsError } =
       await serviceRoleClient
         .from("admission_applications")
-        .select("applicant_statement,motivation,referral_code,review_summary,applicant_notice,policy_snapshot_hash,ledger_ticket_ref,ledger_tx_ref,persona_clip_hash");
+        .select("applicant_statement,motivation,referral_code,review_summary,applicant_notice,policy_snapshot_hash,ledger_ticket_ref,ledger_tx_ref,persona_clip_asset_id,persona_clip_hash");
     expect(applicationRowsError).toBeNull();
     const { data: clipNonPathRows, error: clipNonPathRowsError } =
       await serviceRoleClient

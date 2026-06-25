@@ -20,11 +20,11 @@ export default function LoginPage() {
     setErrorMessage("");
 
     const form = new FormData(event.currentTarget);
-    const email = String(form.get("email") ?? "").trim();
+    const username = String(form.get("username") ?? "").trim();
     const password = String(form.get("password") ?? "");
 
     try {
-      const auth = await signIn(email, password);
+      const auth = await signIn(username, password);
       const [applicationResponse, membershipResponse] = await Promise.all([
         authedFetch("/api/admission/applications/me"),
         authedFetch("/api/membership/me"),
@@ -49,7 +49,7 @@ export default function LoginPage() {
         router.push("/gate");
       }
     } catch {
-      setErrorMessage("이메일 또는 비밀번호를 확인해 주세요.");
+      setErrorMessage("username 또는 비밀번호를 확인해 주세요.");
     } finally {
       setSubmitting(false);
     }
@@ -59,15 +59,16 @@ export default function LoginPage() {
     <main className="page-main narrow-main">
       <section className="auth-panel" aria-labelledby="login-title">
         <h1 id="login-title">로그인</h1>
-        <p>계정으로 돌아와 입장 상태를 확인합니다.</p>
+        <p>username과 비밀번호로 돌아옵니다. 복구는 제공하지 않습니다.</p>
         <form className="form-grid" onSubmit={handleSubmit}>
           <div className="field">
-            <label htmlFor="login-email">이메일</label>
+            <label htmlFor="login-username">username</label>
             <input
-              id="login-email"
-              name="email"
-              type="email"
-              autoComplete="email"
+              id="login-username"
+              name="username"
+              type="text"
+              autoComplete="username"
+              pattern="[a-z0-9][a-z0-9_-]{2,23}"
               required
             />
           </div>

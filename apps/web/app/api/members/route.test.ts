@@ -9,14 +9,12 @@ const adapterMocks = vi.hoisted(() => ({
   membershipRepo: {
     findByUserId: vi.fn(),
   },
-  profileRepo: {
-    getMyPersona: vi.fn(),
-    updateMyPersona: vi.fn(),
-    listActivePublicPersonas: vi.fn(),
-    getActivePublicPersonaByHandle: vi.fn(),
+  memberDirectoryRepo: {
+    getMyMemberNumber: vi.fn(),
+    listActiveMembers: vi.fn(),
   },
   makeSupabaseMembershipRepository: vi.fn(),
-  makeUserScopedProfileRepository: vi.fn(),
+  makeUserScopedMemberDirectoryRepository: vi.fn(),
 }));
 
 vi.mock("../_lib/auth", () => ({
@@ -26,7 +24,8 @@ vi.mock("../_lib/auth", () => ({
 vi.mock("@soulbound/adapters", () => ({
   makeSupabaseMembershipRepository:
     adapterMocks.makeSupabaseMembershipRepository,
-  makeUserScopedProfileRepository: adapterMocks.makeUserScopedProfileRepository,
+  makeUserScopedMemberDirectoryRepository:
+    adapterMocks.makeUserScopedMemberDirectoryRepository,
 }));
 
 function request(path = "/api/members"): Request {
@@ -45,14 +44,12 @@ describe("/api/members", () => {
   beforeEach(() => {
     authMocks.resolveUserContext.mockReset();
     adapterMocks.membershipRepo.findByUserId.mockReset();
-    adapterMocks.profileRepo.getMyPersona.mockReset();
-    adapterMocks.profileRepo.updateMyPersona.mockReset();
-    adapterMocks.profileRepo.listActivePublicPersonas.mockReset();
-    adapterMocks.profileRepo.getActivePublicPersonaByHandle.mockReset();
+    adapterMocks.memberDirectoryRepo.getMyMemberNumber.mockReset();
+    adapterMocks.memberDirectoryRepo.listActiveMembers.mockReset();
     adapterMocks.makeSupabaseMembershipRepository.mockReset()
       .mockReturnValue(adapterMocks.membershipRepo);
-    adapterMocks.makeUserScopedProfileRepository.mockReset()
-      .mockReturnValue(adapterMocks.profileRepo);
+    adapterMocks.makeUserScopedMemberDirectoryRepository.mockReset()
+      .mockReturnValue(adapterMocks.memberDirectoryRepo);
     authMocks.resolveUserContext.mockResolvedValue({
       userId: "user-1",
       client: {},
@@ -64,25 +61,21 @@ describe("/api/members", () => {
       tier: "basic",
       issuedAt: "2026-06-20T00:00:00.000Z",
     });
-    adapterMocks.profileRepo.getMyPersona.mockResolvedValue({
-      handle: "quiet_member",
-      displayName: "Quiet Member",
-      bio: "Signal.",
-    });
-    adapterMocks.profileRepo.listActivePublicPersonas.mockResolvedValue({
+    adapterMocks.memberDirectoryRepo.getMyMemberNumber.mockResolvedValue(7);
+    adapterMocks.memberDirectoryRepo.listActiveMembers.mockResolvedValue({
       items: [
         {
-          handle: "quiet_member",
-          displayName: "Quiet Member",
-          bio: "Signal.",
+          memberNumber: 7,
+          label: "soulbound-member-7",
+          createdAt: "2026-06-20T00:00:00.000Z",
         },
         {
-          handle: "other_member",
-          displayName: "Other Member",
-          bio: "Warm intro.",
+          memberNumber: 8,
+          label: "soulbound-member-8",
+          createdAt: "2026-06-21T00:00:00.000Z",
         },
       ],
-      nextCursor: "other_member",
+      nextCursor: 8,
     });
   });
 
@@ -102,46 +95,57 @@ describe("/api/members", () => {
     expect(response.status).toBe(403);
   });
 
-  it("returns persona-only active member rows with isMe and cursor", async () => {
+  it("returns member-number-only active rows with isMe and cursor", async () => {
     const response = await GET(request("/api/members?limit=50"));
     const body = await json(response);
 
     expect(response.status).toBe(200);
-    expect(Object.keys(body).sort()).toEqual(["items", "nextCursor"]);
-    expect(body.nextCursor).toBe("other_member");
-    expect(adapterMocks.profileRepo.listActivePublicPersonas)
+    expect(Object.keys(body).sort()).toEqual([
+      "items",
+      "myLabel",
+      "myMemberNumber",
+      "nextCursor",
+    ]);
+    expect(body.myMemberNumber).toBe(7);
+    expect(body.myLabel).toBe("soulbound-member-7");
+    expect(body.nextCursor).toBe(8);
+    expect(adapterMocks.memberDirectoryRepo.listActiveMembers)
       .toHaveBeenCalledWith({ limit: 50, cursor: null });
 
     const items = body.items as Record<string, unknown>[];
     expect(items).toHaveLength(2);
     expect(Object.keys(items[0] ?? {}).sort()).toEqual([
-      "bio",
-      "displayName",
-      "handle",
+      "createdAt",
       "isMe",
+      "label",
+      "memberNumber",
     ]);
     expect(items[0]).toEqual({
-      handle: "quiet_member",
-      displayName: "Quiet Member",
-      bio: "Signal.",
+      memberNumber: 7,
+      label: "soulbound-member-7",
+      createdAt: "2026-06-20T00:00:00.000Z",
       isMe: true,
     });
-    expect(items[1]).toEqual({
-      handle: "other_member",
-      displayName: "Other Member",
-      bio: "Warm intro.",
+    expect(items[1]).toMatchObject({
+      memberNumber: 8,
+      label: "soulbound-member-8",
       isMe: false,
     });
     for (const item of items) {
       for (const key of [
         "id",
+        "userId",
+        "applicantId",
         "role",
         "email",
+        "username",
         "wallet_address",
         "membership_status",
         "membership",
-        "userId",
         "avatar_url",
+        "handle",
+        "displayName",
+        "bio",
         "statement",
         "motivation",
         "referralCode",
@@ -152,11 +156,19 @@ describe("/api/members", () => {
     }
   });
 
+  it("passes numeric pagination cursors to the repository", async () => {
+    const response = await GET(request("/api/members?limit=25&cursor=8"));
+
+    expect(response.status).toBe(200);
+    expect(adapterMocks.memberDirectoryRepo.listActiveMembers)
+      .toHaveBeenCalledWith({ limit: 25, cursor: 8 });
+  });
+
   it("rejects invalid pagination params", async () => {
     const response = await GET(request("/api/members?limit=51"));
 
     expect(response.status).toBe(422);
-    expect(adapterMocks.profileRepo.listActivePublicPersonas)
+    expect(adapterMocks.memberDirectoryRepo.listActiveMembers)
       .not.toHaveBeenCalled();
   });
 });

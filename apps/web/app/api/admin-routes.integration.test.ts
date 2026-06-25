@@ -57,13 +57,13 @@ function routeContext(id: string): RouteContext {
 
 async function submitApplication(
   applicant: TestSession,
-  motivation: string,
+  applicantStatement: string,
 ): Promise<Record<string, unknown>> {
   const response = await postApplication(jsonRequest(
     applicant.accessToken,
     "/api/admission/applications",
     {
-      motivation,
+      applicantStatement,
       idempotencyKey: `task6b-submit-${uniqueSuffix()}`,
     },
   ));
@@ -137,7 +137,7 @@ describe("admin route handlers", () => {
     expect(
       queue.find((item) => item.id === approveApplicationId),
     ).toMatchObject({
-      applicantEmail: approveApplicant.email,
+      applicantUsername: approveApplicant.username,
     });
 
     const applicantAdminQueueResponse = await getAdminApplications(
@@ -218,8 +218,11 @@ describe("admin route handlers", () => {
     const reviewerDetail =
       await reviewerDetailResponse.json() as Record<string, unknown>;
     expect(reviewerDetail.reviewSummary).toBe(reviewSummary);
-    expect(reviewerDetail.applicantEmail).toBe(approveApplicant.email);
-    expect(reviewerDetail.reviewerEmail).toBe(reviewer.email);
+    expect(reviewerDetail.applicantUsername).toBe(approveApplicant.username);
+    expect(reviewerDetail.reviewerUsername).toBe(reviewer.username);
+    expect(reviewerDetail).not.toHaveProperty("applicantStatement");
+    expect(reviewerDetail).not.toHaveProperty("motivation");
+    expect(reviewerDetail).not.toHaveProperty("referralCode");
 
     const applicantOwnDetailResponse = await getApplicantApplicationById(
       authedRequest(
@@ -235,7 +238,12 @@ describe("admin route handlers", () => {
     expect(applicantOwnDetail).not.toHaveProperty("reviewSummary");
     expect(applicantOwnDetail).not.toHaveProperty("applicantEmail");
     expect(applicantOwnDetail).not.toHaveProperty("reviewerEmail");
+    expect(applicantOwnDetail).not.toHaveProperty("applicantUsername");
+    expect(applicantOwnDetail).not.toHaveProperty("reviewerUsername");
     expect(applicantOwnDetail).not.toHaveProperty("email");
+    expect(applicantOwnDetail).not.toHaveProperty("applicantStatement");
+    expect(applicantOwnDetail).not.toHaveProperty("motivation");
+    expect(applicantOwnDetail).not.toHaveProperty("referralCode");
 
     const rejectApplication = await submitApplication(
       rejectApplicant,
@@ -269,9 +277,12 @@ describe("admin route handlers", () => {
       routeContext(rejectApplicationId),
     );
     expect(rejectedDetailResponse.status).toBe(200);
-    await expect(rejectedDetailResponse.json()).resolves.toMatchObject({
-      reviewSummary: rejectReviewSummary,
-    });
+    const rejectedDetail =
+      await rejectedDetailResponse.json() as Record<string, unknown>;
+    expect(rejectedDetail.reviewSummary).toBe(rejectReviewSummary);
+    expect(rejectedDetail).not.toHaveProperty("applicantStatement");
+    expect(rejectedDetail).not.toHaveProperty("motivation");
+    expect(rejectedDetail).not.toHaveProperty("referralCode");
 
     const moreInfoApplication = await submitApplication(
       moreInfoApplicant,

@@ -54,40 +54,35 @@ describe("MemberPage", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders the member home for an active membership", async () => {
+  it("renders the member-number directory for an active membership", async () => {
     authedFetch.mockResolvedValueOnce(new Response(JSON.stringify({
       id: "membership-1",
       userId: "member-1",
       status: "active",
-      tier: "member",
+      tier: "basic",
       issuedAt: "2026-06-08T00:00:00.000Z",
       revokedAt: null,
     }), {
       status: 200,
       headers: { "content-type": "application/json" },
     })).mockResolvedValueOnce(new Response(JSON.stringify({
-      handle: "quiet_member",
-      displayName: "Quiet Member",
-      bio: "I prefer signal over spectacle.",
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    })).mockResolvedValueOnce(new Response(JSON.stringify({
+      myMemberNumber: 7,
+      myLabel: "soulbound-member-7",
       items: [
         {
-          handle: "quiet_member",
-          displayName: "Quiet Member",
-          bio: "I prefer signal over spectacle.",
+          memberNumber: 7,
+          label: "soulbound-member-7",
+          createdAt: "2026-06-08T00:00:00.000Z",
           isMe: true,
         },
         {
-          handle: "other_member",
-          displayName: "Other Member",
-          bio: "A warm public intro.",
+          memberNumber: 8,
+          label: "soulbound-member-8",
+          createdAt: "2026-06-09T00:00:00.000Z",
           isMe: false,
         },
       ],
-      nextCursor: "other_member",
+      nextCursor: 8,
     }), {
       status: 200,
       headers: { "content-type": "application/json" },
@@ -95,21 +90,25 @@ describe("MemberPage", () => {
 
     render(<MemberPage />);
 
-    expect(await screen.findAllByText("Quiet Member")).toHaveLength(2);
-    expect(
-      screen.getAllByText("@quiet_member · I prefer signal over spectacle."),
-    ).toHaveLength(2);
-    expect(await screen.findByText("Other Member")).toBeTruthy();
-    expect(screen.getByText("@other_member · A warm public intro."))
-      .toBeTruthy();
-    expect(screen.getByText("2+")).toBeTruthy();
+    expect(await screen.findAllByText("soulbound-member-7"))
+      .toHaveLength(2);
+    expect(screen.getByText("soulbound-member-8")).toBeTruthy();
+    expect(screen.getByText("50+")).toBeTruthy();
+    expect(screen.queryByText("My Persona")).toBeNull();
+    expect(screen.queryByText("내 프로필 (페르소나)")).toBeNull();
+    expect(screen.queryByText(/@/)).toBeNull();
+    expect(screen.queryByText("username")).toBeNull();
+    expect(screen.queryByText("이메일")).toBeNull();
     expect(screen.getByRole("button", { name: "더 보기" })).toBeTruthy();
+
     authedFetch.mockResolvedValueOnce(new Response(JSON.stringify({
+      myMemberNumber: 7,
+      myLabel: "soulbound-member-7",
       items: [
         {
-          handle: "third_member",
-          displayName: "Third Member",
-          bio: null,
+          memberNumber: 9,
+          label: "soulbound-member-9",
+          createdAt: "2026-06-10T00:00:00.000Z",
           isMe: false,
         },
       ],
@@ -119,16 +118,14 @@ describe("MemberPage", () => {
       headers: { "content-type": "application/json" },
     }));
     fireEvent.click(screen.getByRole("button", { name: "더 보기" }));
-    expect(await screen.findByText("Third Member")).toBeTruthy();
+    expect(await screen.findByText("soulbound-member-9")).toBeTruthy();
+
     fireEvent.click(screen.getByRole("tab", { name: "더보기" }));
-    expect(screen.getAllByText("로그아웃").length).toBeGreaterThanOrEqual(1);
     [
       "입장 현황",
       "내 멤버십",
-      "내 프로필 (페르소나)",
       "대화 / 다이렉트 메시지 (E2EE)",
       "알림",
-      "멤버 디렉터리",
       "소울바운드 신원 / 온체인 크리덴셜",
       "SOUL 잔액 · 스테이킹 · 원장",
       "지갑 연결",
@@ -146,83 +143,10 @@ describe("MemberPage", () => {
       "/api/membership/me",
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
+    expect(authedFetch).toHaveBeenCalledWith("/api/members?limit=50");
     expect(authedFetch).toHaveBeenCalledWith(
-      "/api/profile/me",
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      "/api/members?limit=50&cursor=8",
     );
-    expect(authedFetch).toHaveBeenCalledWith(
-      "/api/members?limit=50",
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
-    expect(authedFetch).toHaveBeenCalledWith(
-      "/api/members?limit=50&cursor=other_member",
-      expect.any(Object),
-    );
-  });
-
-  it("edits the active member persona", async () => {
-    authedFetch.mockResolvedValueOnce(new Response(JSON.stringify({
-      id: "membership-1",
-      userId: "member-1",
-      status: "active",
-      tier: "member",
-      issuedAt: "2026-06-08T00:00:00.000Z",
-      revokedAt: null,
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    })).mockResolvedValueOnce(new Response(JSON.stringify({
-      handle: null,
-      displayName: null,
-      bio: null,
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    })).mockResolvedValueOnce(new Response(JSON.stringify({
-      items: [],
-      nextCursor: null,
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    })).mockResolvedValueOnce(new Response(JSON.stringify({
-      handle: "new_member",
-      displayName: "New Member",
-      bio: "Self-authored intro.",
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    }));
-
-    render(<MemberPage />);
-
-    expect(await screen.findByText("익명 멤버")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "편집" }));
-    fireEvent.change(screen.getByLabelText("핸들"), {
-      target: { value: "new_member" },
-    });
-    fireEvent.change(screen.getByLabelText("표시 이름"), {
-      target: { value: "New Member" },
-    });
-    fireEvent.change(screen.getByLabelText("소개"), {
-      target: { value: "Self-authored intro." },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "저장" }));
-
-    await waitFor(() =>
-      expect(authedFetch).toHaveBeenCalledWith(
-        "/api/profile/me",
-        expect.objectContaining({
-          method: "PATCH",
-          body: JSON.stringify({
-            handle: "new_member",
-            displayName: "New Member",
-            bio: "Self-authored intro.",
-          }),
-        }),
-      )
-    );
-    expect(await screen.findByText("New Member")).toBeTruthy();
-    expect(screen.queryByRole("img")).toBeNull();
   });
 
   it("returns a non-member to the gate", async () => {
@@ -233,7 +157,6 @@ describe("MemberPage", () => {
 
     render(<MemberPage />);
 
-    expect(await screen.findByText("아직 멤버가 아닙니다")).toBeTruthy();
     await waitFor(() =>
       expect(routerMocks.replace).toHaveBeenCalledWith("/gate")
     );

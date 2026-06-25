@@ -64,12 +64,20 @@ describe("applicant route handlers", () => {
       {
         applicantId: otherApplicant.id,
         applicantStatement: "Task 6a applicant statement.",
-        motivation: "Prove route handlers with real auth.",
         idempotencyKey: `task6a-submit-${uniqueSuffix()}`,
       },
     );
-    expect(maliciousSubmitResponse.status).toBe(201);
-    const application = await maliciousSubmitResponse.json();
+    expect(maliciousSubmitResponse.status).toBe(422);
+
+    const submitResponse = await submitApplication(
+      applicant.accessToken,
+      {
+        applicantStatement: "Task 6a applicant statement.",
+        idempotencyKey: `task6a-submit-${uniqueSuffix()}`,
+      },
+    );
+    expect(submitResponse.status).toBe(201);
+    const application = await submitResponse.json();
     expect(application.status).toBe("submitted");
     expect(application.applicantId).toBe(applicant.id);
     expect(application.applicantId).not.toBe(otherApplicant.id);
@@ -83,6 +91,9 @@ describe("applicant route handlers", () => {
     expect(activeApplication).not.toHaveProperty("applicantEmail");
     expect(activeApplication).not.toHaveProperty("reviewerEmail");
     expect(activeApplication).not.toHaveProperty("email");
+    expect(activeApplication).not.toHaveProperty("applicantUsername");
+    expect(activeApplication).not.toHaveProperty("reviewerUsername");
+    expect(activeApplication).not.toHaveProperty("username");
     expect(activeApplication).not.toHaveProperty("reviewSummary");
 
     const ownResponse = await getApplicationById(
@@ -101,7 +112,7 @@ describe("applicant route handlers", () => {
     const otherSubmitResponse = await submitApplication(
       otherApplicant.accessToken,
       {
-        motivation: "Other applicant application.",
+        applicantStatement: "Other applicant application.",
         idempotencyKey: `task6a-other-submit-${uniqueSuffix()}`,
       },
     );
@@ -129,7 +140,7 @@ describe("applicant route handlers", () => {
       new Request("http://localhost/api/admission/applications", {
         method: "POST",
         body: JSON.stringify({
-          motivation: "No auth.",
+          applicantStatement: "No auth.",
           idempotencyKey: "no-auth",
         }),
       }),

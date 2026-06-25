@@ -18,12 +18,6 @@ function optionalProps(
     ...(body.applicantStatement !== undefined
       ? { applicantStatement: body.applicantStatement }
       : {}),
-    ...(body.motivation !== undefined
-      ? { motivation: body.motivation }
-      : {}),
-    ...(body.referralCode !== undefined
-      ? { referralCode: body.referralCode }
-      : {}),
     ...(body.personaClipAssetId !== undefined
       ? { personaClipAssetId: body.personaClipAssetId }
       : {}),

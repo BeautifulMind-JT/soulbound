@@ -13,8 +13,8 @@ import { jsonResponse } from "./http";
 import type { ReviewDecisionBody } from "./schemas";
 
 export interface AdminApplication extends AdmissionApplication {
-  readonly applicantEmail: string | null;
-  readonly reviewerEmail?: string | null;
+  readonly applicantUsername: string | null;
+  readonly reviewerUsername?: string | null;
 }
 
 export function requireReviewer(actor: Actor): Response | null {
@@ -42,43 +42,47 @@ export function serviceRoleAdmissionRepo(): AdmissionRepository {
   return makeServiceRoleAdmissionRepository(serviceRoleClient());
 }
 
-async function authUserEmail(
+async function profileUsername(
   client: ReturnType<typeof createServiceRoleSupabaseClient>,
   userId: string,
 ): Promise<string | null> {
-  const { data, error } = await client.auth.admin.getUserById(userId);
+  const { data, error } = await client
+    .from("profiles")
+    .select("username")
+    .eq("id", userId)
+    .maybeSingle();
   if (error) {
     throw error;
   }
 
-  return data.user?.email ?? null;
+  return (data as { readonly username?: string | null } | null)?.username ?? null;
 }
 
-export async function enrichAdminApplicationEmails(
+export async function enrichAdminApplicationUsernames(
   application: AdmissionApplication,
 ): Promise<AdminApplication> {
   const client = serviceRoleClient();
-  const [applicantEmail, reviewerEmail] = await Promise.all([
-    authUserEmail(client, application.applicantId),
+  const [applicantUsername, reviewerUsername] = await Promise.all([
+    profileUsername(client, application.applicantId),
     application.reviewerId
-      ? authUserEmail(client, application.reviewerId)
+      ? profileUsername(client, application.reviewerId)
       : Promise.resolve(null),
   ]);
 
   return {
     ...application,
-    applicantEmail,
-    ...(application.reviewerId ? { reviewerEmail } : {}),
+    applicantUsername,
+    ...(application.reviewerId ? { reviewerUsername } : {}),
   };
 }
 
-export async function enrichAdminQueueEmails(
+export async function enrichAdminQueueUsernames(
   applications: readonly AdmissionApplication[],
 ): Promise<readonly AdminApplication[]> {
   const client = serviceRoleClient();
   return await Promise.all(applications.map(async (application) => ({
     ...application,
-    applicantEmail: await authUserEmail(client, application.applicantId),
+    applicantUsername: await profileUsername(client, application.applicantId),
   })));
 }
 

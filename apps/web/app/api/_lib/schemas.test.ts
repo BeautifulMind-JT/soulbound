@@ -2,8 +2,6 @@ import {
   createPersonaClipSchema,
   deletePersonaClipQuerySchema,
   memberDirectoryQuerySchema,
-  memberHandleSchema,
-  profilePersonaPatchSchema,
   reviewDecisionSchema,
   reviewQueueQuerySchema,
   startReviewSchema,
@@ -13,21 +11,30 @@ import {
 describe("submitApplicationSchema", () => {
   it("requires an idempotency key", () => {
     const parsed = submitApplicationSchema.safeParse({
-      motivation: "hello",
+      applicantStatement: "hello",
     });
 
     expect(parsed.success).toBe(false);
   });
 
-  it("strips caller-supplied applicantId so routes use the actor", () => {
+  it("rejects actor and dormant dossier fields from callers", () => {
     const parsed = submitApplicationSchema.parse({
-      applicantId: "not-the-actor",
       idempotencyKey: "idem",
-      motivation: "hello",
     });
 
-    expect("applicantId" in parsed).toBe(false);
     expect(parsed.idempotencyKey).toBe("idem");
+    expect(submitApplicationSchema.safeParse({
+      applicantId: "not-the-actor",
+      idempotencyKey: "idem",
+    }).success).toBe(false);
+    expect(submitApplicationSchema.safeParse({
+      motivation: "hello",
+      idempotencyKey: "idem",
+    }).success).toBe(false);
+    expect(submitApplicationSchema.safeParse({
+      referralCode: "REF",
+      idempotencyKey: "idem",
+    }).success).toBe(false);
   });
 });
 
@@ -112,44 +119,21 @@ describe("persona clip schemas", () => {
 });
 
 describe("member directory schemas", () => {
-  it("coerces bounded list query params and normalizes handles", () => {
-    expect(memberDirectoryQuerySchema.parse({})).toEqual({ limit: 50 });
+  it("coerces bounded list query params and numeric cursors", () => {
+    expect(memberDirectoryQuerySchema.parse({})).toEqual({
+      limit: 50,
+      cursor: null,
+    });
     expect(memberDirectoryQuerySchema.parse({
       limit: "25",
-      cursor: "member_1",
+      cursor: "12",
     })).toEqual({
       limit: 25,
-      cursor: "member_1",
+      cursor: 12,
     });
     expect(memberDirectoryQuerySchema.safeParse({ limit: "51" }).success)
       .toBe(false);
-    expect(memberHandleSchema.parse("  Member-1 ")).toBe("member-1");
-    expect(memberHandleSchema.safeParse("bad handle").success).toBe(false);
-  });
-});
-
-describe("profile persona schema", () => {
-  it("accepts partial persona patches and normalizes empty strings to null", () => {
-    expect(profilePersonaPatchSchema.parse({
-      handle: "  Member_1 ",
-      bio: "   ",
-    })).toEqual({
-      handle: "Member_1",
-      bio: null,
-    });
-  });
-
-  it("rejects empty patches and non-persona fields", () => {
-    expect(profilePersonaPatchSchema.safeParse({}).success).toBe(false);
-    expect(profilePersonaPatchSchema.safeParse({
-      avatar_url: "https://example.com/avatar.png",
-    }).success).toBe(false);
-    expect(profilePersonaPatchSchema.safeParse({
-      display_name: "snake case is not the API",
-    }).success).toBe(false);
-    expect(profilePersonaPatchSchema.safeParse({
-      role: "admin",
-      displayName: "Member",
-    }).success).toBe(false);
+    expect(memberDirectoryQuerySchema.safeParse({ cursor: "member_1" }).success)
+      .toBe(false);
   });
 });

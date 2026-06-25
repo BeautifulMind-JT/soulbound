@@ -1,7 +1,6 @@
 "use client";
 
-import type { Membership, Persona } from "@soulbound/core";
-import Link from "next/link";
+import type { Membership } from "@soulbound/core";
 import { useRouter } from "next/navigation";
 import React, { type ReactNode, useEffect, useState } from "react";
 import { InstallPrompt } from "../../components/pwa/install-prompt";
@@ -10,7 +9,6 @@ import {
   Badge,
   Button,
   EmptyState,
-  Field,
   ListRow,
   Section,
   TabBar,
@@ -23,23 +21,20 @@ import { readJson } from "../../lib/api-response";
 import styles from "./page.module.css";
 
 type MembershipState = Membership | null | undefined;
-type PersonaState = Persona | undefined;
 type MemberTab = "members" | "chats" | "more";
 
-interface PersonaFormState {
-  readonly handle: string;
-  readonly displayName: string;
-  readonly bio: string;
-}
-
-interface PublicMemberPersona extends Persona {
-  readonly handle: string;
+interface MemberDirectoryItem {
+  readonly memberNumber: number;
+  readonly label: string;
+  readonly createdAt: string;
   readonly isMe: boolean;
 }
 
 interface MemberDirectoryResponse {
-  readonly items: readonly PublicMemberPersona[];
-  readonly nextCursor: string | null;
+  readonly myMemberNumber: number | null;
+  readonly myLabel: string | null;
+  readonly items: readonly MemberDirectoryItem[];
+  readonly nextCursor: number | null;
 }
 
 function MembersIcon() {
@@ -140,10 +135,6 @@ const disabledMoreGroups: readonly {
     ],
   },
   {
-    title: "커뮤니티",
-    rows: [],
-  },
-  {
     title: "신원 & 자산",
     rows: [
       {
@@ -203,42 +194,8 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
-function formFromPersona(persona: Persona | undefined): PersonaFormState {
-  return {
-    handle: persona?.handle ?? "",
-    displayName: persona?.displayName ?? "",
-    bio: persona?.bio ?? "",
-  };
-}
-
-function personaMark(persona: Persona | undefined): string {
-  const source = persona?.displayName ?? persona?.handle ?? "";
-  const letters = Array.from(source.replace(/[^\p{L}\p{N}]/gu, ""));
-  return letters.slice(0, 2).join("").toUpperCase() || "ME";
-}
-
-function personaTitle(persona: Persona | undefined): string {
-  if (persona === undefined) {
-    return "프로필을 불러오는 중입니다.";
-  }
-  return persona.displayName ?? "익명 멤버";
-}
-
-function personaDescription(persona: Persona | undefined): string {
-  if (persona === undefined) {
-    return "잠시만 기다려 주세요.";
-  }
-  const handle = persona.handle ? `@${persona.handle}` : "handle 설정 전";
-  const bio = persona.bio ?? "아직 소개가 없습니다.";
-  return `${handle} · ${bio}`;
-}
-
-function memberTitle(member: PublicMemberPersona): string {
-  return member.displayName ?? "익명 멤버";
-}
-
-function memberDescription(member: PublicMemberPersona): string {
-  return `@${member.handle}${member.bio ? ` · ${member.bio}` : ""}`;
+function memberMark(memberNumber: number | null): string {
+  return memberNumber === null ? "N" : String(memberNumber);
 }
 
 function DisabledMoreRow({
@@ -265,59 +222,38 @@ export default function MemberPage() {
   const router = useRouter();
   const { session, loading, authedFetch, signOut } = useAuth();
   const [membership, setMembership] = useState<MembershipState>(undefined);
-  const [persona, setPersona] = useState<PersonaState>(undefined);
-  const [personaForm, setPersonaForm] = useState<PersonaFormState>({
-    handle: "",
-    displayName: "",
-    bio: "",
-  });
-  const [isEditingPersona, setIsEditingPersona] = useState(false);
-  const [personaSaving, setPersonaSaving] = useState(false);
-  const [personaMessage, setPersonaMessage] = useState("");
-  const [personaError, setPersonaError] = useState("");
-  const [members, setMembers] = useState<readonly PublicMemberPersona[]>([]);
-  const [membersNextCursor, setMembersNextCursor] = useState<string | null>(
-    null,
-  );
-  const [membersLoading, setMembersLoading] = useState(false);
-  const [membersLoadingMore, setMembersLoadingMore] = useState(false);
-  const [membersError, setMembersError] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-  const [signOutError, setSignOutError] = useState("");
   const [activeTab, setActiveTab] = useState<MemberTab>("members");
+  const [directory, setDirectory] =
+    useState<MemberDirectoryResponse | null>(null);
+  const [directoryLoading, setDirectoryLoading] = useState(false);
+  const [directoryError, setDirectoryError] = useState("");
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [signOutError, setSignOutError] = useState("");
 
   async function handleSignOut() {
     setSignOutError("");
     try {
       await signOut();
-      router.push("/");
+      router.push("/login");
     } catch {
-      setSignOutError("로그아웃하지 못했습니다.");
+      setSignOutError("로그아웃하지 못했습니다. 잠시 후 다시 시도해 주세요.");
     }
   }
 
-  async function loadMemberDirectory(
-    cursor: string | null = null,
-    signal?: AbortSignal,
-  ) {
-    const isFirstPage = cursor === null;
-    if (isFirstPage) {
-      setMembersLoading(true);
+  async function loadDirectory(cursor: number | null = null) {
+    if (cursor === null) {
+      setDirectoryLoading(true);
     } else {
-      setMembersLoadingMore(true);
+      setLoadingMore(true);
     }
-    setMembersError("");
+    setDirectoryError("");
 
     try {
-      const query = new URLSearchParams({ limit: "50" });
-      if (cursor) {
-        query.set("cursor", cursor);
+      const params = new URLSearchParams({ limit: "50" });
+      if (cursor !== null) {
+        params.set("cursor", String(cursor));
       }
-      const init: RequestInit = signal ? { signal } : {};
-      const response = await authedFetch(
-        `/api/members?${query.toString()}`,
-        init,
-      );
+      const response = await authedFetch(`/api/members?${params.toString()}`);
       if (response.status === 401) {
         router.replace("/login");
         return;
@@ -330,86 +266,26 @@ export default function MemberPage() {
         throw new Error("Unable to load members");
       }
 
-      const directory = await readJson<MemberDirectoryResponse>(response);
-      setMembers((current) =>
-        isFirstPage ? directory.items : [...current, ...directory.items]
-      );
-      setMembersNextCursor(directory.nextCursor);
-    } catch (error) {
-      if (error instanceof UnauthenticatedError) {
-        router.replace("/login");
-      } else if (
-        !(error instanceof DOMException && error.name === "AbortError")
-      ) {
-        setMembersError("멤버 목록을 불러오지 못했습니다.");
-      }
-    } finally {
-      if (isFirstPage) {
-        setMembersLoading(false);
-      } else {
-        setMembersLoadingMore(false);
-      }
-    }
-  }
+      const nextDirectory = await readJson<MemberDirectoryResponse>(response);
+      setDirectory((current) => {
+        if (cursor === null || !current) {
+          return nextDirectory;
+        }
 
-  function openPersonaEditor() {
-    setPersonaError("");
-    setPersonaMessage("");
-    setPersonaForm(formFromPersona(persona));
-    setActiveTab("members");
-    setIsEditingPersona(true);
-  }
-
-  function closePersonaEditor() {
-    setPersonaError("");
-    setPersonaMessage("");
-    setPersonaForm(formFromPersona(persona));
-    setIsEditingPersona(false);
-  }
-
-  async function handlePersonaSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setPersonaSaving(true);
-    setPersonaError("");
-    setPersonaMessage("");
-    try {
-      const response = await authedFetch("/api/profile/me", {
-        method: "PATCH",
-        body: JSON.stringify(personaForm),
+        return {
+          ...nextDirectory,
+          items: [...current.items, ...nextDirectory.items],
+        };
       });
-      if (response.status === 401) {
-        router.replace("/login");
-        return;
-      }
-      if (response.status === 403) {
-        router.replace("/gate");
-        return;
-      }
-      if (response.status === 409) {
-        setPersonaError("이미 사용 중인 handle입니다.");
-        return;
-      }
-      if (response.status === 422) {
-        setPersonaError("프로필 내용을 확인해 주세요.");
-        return;
-      }
-      if (!response.ok) {
-        throw new Error("Unable to update persona");
-      }
-
-      const nextPersona = await readJson<Persona>(response);
-      setPersona(nextPersona);
-      setPersonaForm(formFromPersona(nextPersona));
-      setIsEditingPersona(false);
-      setPersonaMessage("프로필을 저장했습니다.");
     } catch (error) {
       if (error instanceof UnauthenticatedError) {
         router.replace("/login");
       } else {
-        setPersonaError("프로필을 저장하지 못했습니다.");
+        setDirectoryError("멤버 명부를 불러오지 못했습니다.");
       }
     } finally {
-      setPersonaSaving(false);
+      setDirectoryLoading(false);
+      setLoadingMore(false);
     }
   }
 
@@ -437,40 +313,20 @@ export default function MemberPage() {
         }
 
         const nextMembership = await readJson<Membership | null>(response);
-        setMembership(nextMembership);
         if (nextMembership?.status !== "active") {
           router.replace("/gate");
-          setPersona(undefined);
-          setIsEditingPersona(false);
           return;
         }
 
-        const personaResponse = await authedFetch("/api/profile/me", {
-          signal: controller.signal,
-        });
-        if (personaResponse.status === 401) {
-          router.replace("/login");
-          return;
-        }
-        if (personaResponse.status === 403) {
-          router.replace("/gate");
-          return;
-        }
-        if (!personaResponse.ok) {
-          throw new Error("Unable to load persona");
-        }
-
-        const nextPersona = await readJson<Persona>(personaResponse);
-        setPersona(nextPersona);
-        setPersonaForm(formFromPersona(nextPersona));
-        await loadMemberDirectory(null, controller.signal);
+        setMembership(nextMembership);
+        void loadDirectory();
       } catch (error) {
         if (error instanceof UnauthenticatedError) {
           router.replace("/login");
         } else if (
           !(error instanceof DOMException && error.name === "AbortError")
         ) {
-          setErrorMessage("멤버십 또는 프로필 정보를 불러오지 못했습니다.");
+          setMembership(null);
         }
       }
     };
@@ -479,363 +335,193 @@ export default function MemberPage() {
     return () => controller.abort();
   }, [authedFetch, loading, router, session]);
 
-  const memberCountLabel = membersNextCursor
-    ? `${members.length}+`
-    : String(members.length);
+  if (loading || membership === undefined) {
+    return (
+      <main className="page-main narrow-main">
+        <div className={styles.notMember}>
+          <h2>멤버십을 확인하는 중입니다.</h2>
+          <p>잠시만 기다려 주세요.</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!membership || membership.status !== "active") {
+    return (
+      <main className="page-main narrow-main">
+        <div className={styles.notMember}>
+          <h2>멤버 전용 공간입니다.</h2>
+          <p>입장이 확인되면 멤버 명부와 대화를 사용할 수 있습니다.</p>
+        </div>
+      </main>
+    );
+  }
+
+  const myMemberNumber = directory?.myMemberNumber ?? null;
+  const myLabel = directory?.myLabel ?? "승인 번호를 불러오는 중입니다.";
 
   return (
     <main className={`page-main ${styles.memberPage}`}>
-      {errorMessage ? (
-        <p className="form-message" role="alert">{errorMessage}</p>
-      ) : null}
+      <div className={styles.appShell}>
+        <header className={styles.phoneTop}>
+          <span>soulbound</span>
+          <Badge tone="success">입장 완료</Badge>
+        </header>
 
-      <div className={styles.memberShell} aria-live="polite">
-        {membership === undefined && !errorMessage ? (
-          <p className="loading-line">멤버십을 확인하는 중입니다.</p>
-        ) : null}
+        <div className={styles.tabPanels}>
+          {activeTab === "members" ? (
+            <div className={styles.tabPanel}>
+              <Section
+                title="내 멤버 번호"
+                description="멤버끼리는 이 번호로만 보입니다."
+                action={<Badge tone="success">활성</Badge>}
+              >
+                <ListRow
+                  leading={<Avatar label={memberMark(myMemberNumber)} />}
+                  title={myLabel}
+                  description="복구 가능한 실명·이메일·프로필을 보관하지 않습니다."
+                  meta={`입장일 ${formatDate(membership.issuedAt)}`}
+                />
+              </Section>
 
-        {membership?.status === "active" ? (
-          <section className={styles.appShell} aria-label="멤버 홈">
-            <div className={styles.phoneTop}>
-              <span>SoulBound</span>
-              <Badge tone="success">멤버</Badge>
-            </div>
-            <div className={styles.tabPanels}>
-              {activeTab === "members" ? (
-                <div
-                  aria-labelledby="members-tab"
-                  className={styles.tabPanel}
-                  id="members-panel"
-                  role="tabpanel"
-                >
-                  <Section
-                    title="My Persona"
-                    description="내가 이 공간에서 보이는 첫 모습"
-                    action={
-                      isEditingPersona ? (
-                        <Button
-                          type="button"
-                          tone="ghost"
-                          onClick={closePersonaEditor}
-                        >
-                          취소
-                        </Button>
-                      ) : (
-                        <Button
-                          type="button"
-                          tone="secondary"
-                          onClick={openPersonaEditor}
-                          disabled={persona === undefined}
-                        >
-                          편집
-                        </Button>
-                      )
-                    }
-                  >
-                    {isEditingPersona ? (
-                      <form
-                        className={styles.personaForm}
-                        onSubmit={(event) => void handlePersonaSubmit(event)}
-                      >
-                        <Field
-                          label="핸들"
-                          htmlFor="persona-handle"
-                          hint="3-24자, 영문 소문자·숫자·_·-"
-                        >
-                          <input
-                            id="persona-handle"
-                            maxLength={24}
-                            value={personaForm.handle}
-                            onChange={(event) =>
-                              setPersonaForm((current) => ({
-                                ...current,
-                                handle: event.target.value,
-                              }))
-                            }
-                          />
-                        </Field>
-                        <Field
-                          label="표시 이름"
-                          htmlFor="persona-display-name"
-                          hint="40자 이내"
-                        >
-                          <input
-                            id="persona-display-name"
-                            maxLength={40}
-                            value={personaForm.displayName}
-                            onChange={(event) =>
-                              setPersonaForm((current) => ({
-                                ...current,
-                                displayName: event.target.value,
-                              }))
-                            }
-                          />
-                        </Field>
-                        <Field
-                          label="소개"
-                          htmlFor="persona-bio"
-                          hint="160자 이내, 본인이 직접 쓴 짧은 소개"
-                        >
-                          <textarea
-                            id="persona-bio"
-                            maxLength={160}
-                            value={personaForm.bio}
-                            onChange={(event) =>
-                              setPersonaForm((current) => ({
-                                ...current,
-                                bio: event.target.value,
-                              }))
-                            }
-                          />
-                        </Field>
-                        <div className={styles.personaActions}>
-                          <Button type="submit" disabled={personaSaving}>
-                            {personaSaving ? "저장 중" : "저장"}
-                          </Button>
-                          <Button
-                            type="button"
-                            tone="ghost"
-                            onClick={closePersonaEditor}
-                            disabled={personaSaving}
-                          >
-                            취소
-                          </Button>
-                        </div>
-                        {personaError ? (
-                          <p className="form-message" role="alert">
-                            {personaError}
-                          </p>
-                        ) : null}
-                      </form>
-                    ) : (
-                      <>
-                        <ListRow
-                          leading={<Avatar label={personaMark(persona)} />}
-                          title={personaTitle(persona)}
-                          description={personaDescription(persona)}
-                          meta={`시작일 ${formatDate(membership.issuedAt)}`}
-                        />
-                        {personaMessage ? (
-                          <p
-                            className="form-message success-message"
-                            role="status"
-                          >
-                            {personaMessage}
-                          </p>
-                        ) : null}
-                      </>
-                    )}
-                  </Section>
-
-                  <Section
-                    title="Members"
-                    description="활성 멤버의 공개 페르소나"
-                    action={<Badge>{memberCountLabel}</Badge>}
-                  >
-                    {membersLoading ? (
-                      <EmptyState>멤버를 불러오는 중입니다.</EmptyState>
-                    ) : null}
-                    {!membersLoading && membersError ? (
-                      <div className={styles.directoryState}>
-                        <p className="form-message" role="alert">
-                          {membersError}
-                        </p>
-                        <Button
-                          type="button"
-                          tone="secondary"
-                          onClick={() => void loadMemberDirectory()}
-                        >
-                          다시 시도
-                        </Button>
-                      </div>
-                    ) : null}
-                    {!membersLoading && !membersError && members.length === 0 ? (
-                      <EmptyState>표시할 멤버가 아직 없습니다.</EmptyState>
-                    ) : null}
-                    {!membersLoading && !membersError && members.length > 0 ? (
-                      <>
-                        <div className={styles.directoryList}>
-                          {members.map((member) => (
-                            <ListRow
-                              key={member.handle}
-                              title={memberTitle(member)}
-                              description={memberDescription(member)}
-                              meta={member.isMe ? "내 프로필" : undefined}
-                              trailing={
-                                member.isMe ? (
-                                  <Badge tone="success">나</Badge>
-                                ) : (
-                                  <Link
-                                    className={styles.rowAction}
-                                    href={`/member/${
-                                      encodeURIComponent(member.handle)
-                                    }`}
-                                  >
-                                    보기
-                                  </Link>
-                                )
-                              }
-                            />
-                          ))}
-                        </div>
-                        {membersNextCursor ? (
-                          <div className={styles.directoryActions}>
-                            <Button
-                              type="button"
-                              tone="secondary"
-                              onClick={() =>
-                                void loadMemberDirectory(membersNextCursor)}
-                              disabled={membersLoadingMore}
-                            >
-                              {membersLoadingMore ? "불러오는 중" : "더 보기"}
-                            </Button>
-                          </div>
-                        ) : null}
-                      </>
-                    ) : null}
-                  </Section>
-                </div>
-              ) : null}
-
-              {activeTab === "chats" ? (
-                <section
-                  aria-labelledby="chats-tab"
-                  className={styles.quietPanel}
-                  id="chats-panel"
-                  role="tabpanel"
-                >
-                  <Section title="대화">
-                    <EmptyState>아직 열린 대화가 없습니다.</EmptyState>
-                  </Section>
-                </section>
-              ) : null}
-
-              {activeTab === "more" ? (
-                <section
-                  aria-labelledby="more-tab"
-                  className={styles.morePanel}
-                  id="more-panel"
-                  role="tabpanel"
-                >
-                  <Section title="더보기">
-                    <div className={styles.moreList}>
-                      <ListRow
-                        title="로그아웃"
-                        description="이 기기에서 계정을 닫습니다."
-                        trailing={
-                          <button
-                            className={styles.rowAction}
-                            type="button"
-                            onClick={() => void handleSignOut()}
-                          >
-                            로그아웃
-                          </button>
-                        }
-                      />
-                      <ListRow
-                        title="입장 현황"
-                        description="신청 상태와 다음 단계를 확인합니다."
-                        trailing={
-                          <Link className={styles.rowAction} href="/gate">
-                            열기
-                          </Link>
-                        }
-                      />
-                      <ListRow
-                        title="내 멤버십"
-                        description={`활성 · ${membership.tier} · 시작일 ${
-                          formatDate(membership.issuedAt)
-                        }`}
-                        trailing={<Badge tone="success">활성</Badge>}
-                      />
-                      <ListRow
-                        title="내 프로필 (페르소나)"
-                        description="내 소개와 공개 범위"
-                        trailing={
-                          <button
-                            className={styles.rowAction}
-                            type="button"
-                            onClick={openPersonaEditor}
-                            disabled={persona === undefined}
-                          >
-                            편집
-                          </button>
-                        }
-                      />
-                      <ListRow
-                        title="멤버 디렉터리"
-                        description="활성 멤버의 공개 프로필을 봅니다."
-                        trailing={
-                          <button
-                            className={styles.rowAction}
-                            type="button"
-                            onClick={() => setActiveTab("members")}
-                          >
-                            열기
-                          </button>
-                        }
-                      />
+              <Section
+                title="멤버 명부"
+                description="입장한 멤버의 익명 번호 목록"
+                action={directory?.nextCursor ? <Badge>50+</Badge> : null}
+              >
+                {directoryLoading ? (
+                  <EmptyState>멤버 명부를 불러오는 중입니다.</EmptyState>
+                ) : null}
+                {!directoryLoading && directoryError ? (
+                  <div className={styles.directoryState}>
+                    <EmptyState>{directoryError}</EmptyState>
+                  </div>
+                ) : null}
+                {!directoryLoading && !directoryError && directory
+                  && directory.items.length === 0 ? (
+                    <div className={styles.directoryState}>
+                      <EmptyState>아직 표시할 멤버가 없습니다.</EmptyState>
                     </div>
-                    {signOutError ? (
-                      <p className="form-message" role="alert">
-                        {signOutError}
-                      </p>
-                    ) : null}
-                  </Section>
-
-                  {disabledMoreGroups.filter((group) => group.rows.length > 0)
-                    .map((group) => (
-                    <Section key={group.title} title={group.title}>
-                      <div className={styles.moreList}>
-                        {group.rows.map((row) => (
-                          <DisabledMoreRow
-                            key={row.label}
-                            label={row.label}
-                            description={row.description}
-                            {...(row.badge ? { badge: row.badge } : {})}
-                          />
-                        ))}
-                      </div>
-                    </Section>
-                  ))}
-
-                  <Section title="앱">
-                    <div className={styles.moreList}>
-                      <ListRow
-                        title="앱 설치"
-                        description="홈 화면에 SoulBound를 추가합니다."
-                        trailing={<InstallPrompt />}
-                      />
-                      {appInfo.map((item) => (
+                  ) : null}
+                {!directoryLoading && !directoryError && directory
+                  && directory.items.length > 0 ? (
+                    <div className={styles.directoryList}>
+                      {directory.items.map((member) => (
                         <ListRow
-                          key={item.label}
-                          title={item.label}
-                          description={item.description}
-                          trailing={<Badge>{item.badge}</Badge>}
+                          key={member.memberNumber}
+                          leading={<Avatar label={memberMark(member.memberNumber)} />}
+                          title={member.label}
+                          description="익명 멤버"
+                          meta={`기록일 ${formatDate(member.createdAt)}`}
+                          trailing={member.isMe ? (
+                            <Badge tone="success">나</Badge>
+                          ) : null}
                         />
                       ))}
                     </div>
-                  </Section>
-                </section>
-              ) : null}
+                  ) : null}
+                {directory?.nextCursor ? (
+                  <div className={styles.directoryActions}>
+                    <Button
+                      disabled={loadingMore}
+                      onClick={() => void loadDirectory(directory.nextCursor)}
+                      tone="secondary"
+                      type="button"
+                    >
+                      {loadingMore ? "불러오는 중" : "더 보기"}
+                    </Button>
+                  </div>
+                ) : null}
+              </Section>
             </div>
+          ) : null}
 
-            <TabBar
-              activeId={activeTab}
-              items={tabs}
-              label="멤버 탐색"
-              onChange={setActiveTab}
-            />
-          </section>
-        ) : null}
+          {activeTab === "chats" ? (
+            <div className={styles.quietPanel}>
+              <Section
+                title="대화"
+                description="멤버 대화는 다음 라운드에서 열립니다."
+              >
+                <EmptyState>아직 열리지 않았습니다.</EmptyState>
+              </Section>
+            </div>
+          ) : null}
 
-        {membership !== undefined && membership?.status !== "active" ? (
-          <section className={styles.notMember}>
-            <h2>아직 멤버가 아닙니다</h2>
-            <p>입장 절차에서 신청 상태와 다음 단계를 확인해 주세요.</p>
-            <Link className="button" href="/gate">입장 절차로</Link>
-          </section>
-        ) : null}
+          {activeTab === "more" ? (
+            <div className={styles.morePanel}>
+              <Section title="내 계정">
+                <div className={styles.moreList}>
+                  <ListRow
+                    title="내 멤버십"
+                    description={myLabel}
+                    trailing={<Badge tone="success">활성</Badge>}
+                  />
+                  <ListRow
+                    title="입장 현황"
+                    description="현재 멤버로 입장했습니다."
+                    trailing={<Badge tone="success">완료</Badge>}
+                  />
+                  <ListRow
+                    title="로그아웃"
+                    description="이 기기에서 나갑니다."
+                    trailing={(
+                      <button
+                        className={styles.rowAction}
+                        onClick={() => void handleSignOut()}
+                        type="button"
+                      >
+                        로그아웃
+                      </button>
+                    )}
+                  />
+                </div>
+                {signOutError ? (
+                  <p className="form-message" role="alert">{signOutError}</p>
+                ) : null}
+              </Section>
+
+              {disabledMoreGroups.map((group) => (
+                <Section key={group.title} title={group.title}>
+                  <div className={styles.moreList}>
+                    {group.rows.map((row) => (
+                      <DisabledMoreRow
+                        description={row.description}
+                        key={row.label}
+                        label={row.label}
+                        {...(row.badge ? { badge: row.badge } : {})}
+                      />
+                    ))}
+                  </div>
+                </Section>
+              ))}
+
+              <Section title="앱">
+                <div className={styles.moreList}>
+                  <ListRow
+                    title="앱 설치"
+                    description="홈 화면에서 바로 열기"
+                    trailing={<InstallPrompt />}
+                  />
+                  {appInfo.map((item) => (
+                    <DisabledMoreRow
+                      badge={item.badge}
+                      description={item.description}
+                      key={item.label}
+                      label={item.label}
+                    />
+                  ))}
+                </div>
+              </Section>
+            </div>
+          ) : null}
+        </div>
+
+        <TabBar
+          activeId={activeTab}
+          items={tabs}
+          label="멤버 영역"
+          onChange={setActiveTab}
+        />
       </div>
     </main>
   );

@@ -1,5 +1,5 @@
 import {
-  enrichAdminApplicationEmails,
+  enrichAdminApplicationUsernames,
   requireReviewer,
   serviceRoleAdmissionRepo,
 } from "../../../_lib/admin";
@@ -38,7 +38,7 @@ export async function GET(
       return notFound();
     }
 
-    return jsonResponse(await enrichAdminApplicationEmails(application));
+    return jsonResponse(await enrichAdminApplicationUsernames(application));
   } catch (error) {
     return dependencyFailure(error);
   }

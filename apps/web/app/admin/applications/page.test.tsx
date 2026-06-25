@@ -30,11 +30,9 @@ vi.mock("next/navigation", () => ({
 const queueApplication = {
   id: "application-1",
   applicantId: "applicant-1",
-  applicantEmail: "applicant@example.com",
+  applicantUsername: "applicant_one",
   status: "submitted",
   applicantStatement: "신뢰를 지키는 사람",
-  motivation: "함께 배우고 싶습니다",
-  referralCode: null,
   reviewerId: null,
   reviewedAt: null,
   reviewSummary: null,
@@ -76,7 +74,7 @@ describe("ReviewQueuePage", () => {
 
     render(<ReviewQueuePage />);
 
-    expect(await screen.findByText("applicant@example.com")).toBeTruthy();
+    expect(await screen.findByText("applicant_one")).toBeTruthy();
     expect(screen.getByTitle("applicant-1")).toBeTruthy();
     expect(screen.getByRole("button", {
       name: "신청자 ID applican... 복사",
