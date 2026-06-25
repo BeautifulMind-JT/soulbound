@@ -44,7 +44,7 @@ begin
     'authenticated',
     '00000000-0000-0000-0000-000000000000',
     '{"provider":"email","providers":["email"]}'::jsonb,
-    '{}'::jsonb,
+    jsonb_build_object('username', replace(p_handle, '-', '_')),
     now(),
     now()
   )
@@ -55,6 +55,7 @@ begin
     handle,
     display_name,
     bio,
+    username,
     role,
     membership_status
   )
@@ -63,6 +64,7 @@ begin
     p_handle,
     p_handle,
     'audit hash chain test user',
+    replace(p_handle, '-', '_'),
     'applicant',
     'none'
   )
@@ -70,6 +72,7 @@ begin
     handle = excluded.handle,
     display_name = excluded.display_name,
     bio = excluded.bio,
+    username = excluded.username,
     role = excluded.role,
     membership_status = excluded.membership_status;
 end;

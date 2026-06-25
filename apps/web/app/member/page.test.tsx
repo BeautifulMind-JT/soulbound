@@ -120,12 +120,55 @@ describe("MemberPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "더 보기" }));
     expect(await screen.findByText("soulbound-member-9")).toBeTruthy();
 
+    authedFetch.mockResolvedValueOnce(new Response(JSON.stringify({
+      items: [
+        {
+          id: "post-1",
+          body: "첫 게시글입니다.",
+          createdAt: "2026-06-11T00:00:00.000Z",
+          author: {
+            memberNumber: 8,
+            label: "soulbound-member-8",
+            isMe: false,
+          },
+        },
+      ],
+      nextCursor: null,
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+    fireEvent.click(screen.getByRole("tab", { name: "게시판" }));
+    expect(await screen.findByText("첫 게시글입니다.")).toBeTruthy();
+    expect(screen.getByText(/멤버 번호만 보이는 공용 게시판/)).toBeTruthy();
+    expect(screen.queryByText("username")).toBeNull();
+    expect(screen.queryByText("이메일")).toBeNull();
+
+    authedFetch.mockResolvedValueOnce(new Response(JSON.stringify({
+      post: {
+        id: "post-1",
+        body: "첫 게시글입니다.",
+        createdAt: "2026-06-11T00:00:00.000Z",
+        author: {
+          memberNumber: 8,
+          label: "soulbound-member-8",
+          isMe: false,
+        },
+      },
+      comments: [],
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+    const postButton = screen.getByText("첫 게시글입니다.").closest("button");
+    expect(postButton).toBeTruthy();
+    fireEvent.click(postButton as HTMLButtonElement);
+    expect(await screen.findByText("아직 댓글이 없습니다.")).toBeTruthy();
+
     fireEvent.click(screen.getByRole("tab", { name: "더보기" }));
     [
       "입장 현황",
       "내 멤버십",
-      "대화 / 다이렉트 메시지 (E2EE)",
-      "알림",
       "소울바운드 신원 / 온체인 크리덴셜",
       "SOUL 잔액 · 스테이킹 · 원장",
       "지갑 연결",
@@ -138,6 +181,8 @@ describe("MemberPage", () => {
       "앱 설치",
       "앱 정보 / 버전",
     ].forEach((label) => expect(screen.getByText(label)).toBeTruthy());
+    expect(screen.queryByText("대화 / 다이렉트 메시지 (E2EE)")).toBeNull();
+    expect(screen.queryByText("알림")).toBeNull();
     expect(screen.getByText("자격 획득 필요")).toBeTruthy();
     expect(authedFetch).toHaveBeenCalledWith(
       "/api/membership/me",
@@ -147,6 +192,8 @@ describe("MemberPage", () => {
     expect(authedFetch).toHaveBeenCalledWith(
       "/api/members?limit=50&cursor=8",
     );
+    expect(authedFetch).toHaveBeenCalledWith("/api/board?limit=20");
+    expect(authedFetch).toHaveBeenCalledWith("/api/board/post-1");
   });
 
   it("returns a non-member to the gate", async () => {

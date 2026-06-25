@@ -2,6 +2,9 @@ import {
   createPersonaClipSchema,
   deletePersonaClipQuerySchema,
   memberDirectoryQuerySchema,
+  boardListQuerySchema,
+  createBoardCommentSchema,
+  createBoardPostSchema,
   reviewDecisionSchema,
   reviewQueueQuerySchema,
   startReviewSchema,
@@ -34,6 +37,38 @@ describe("submitApplicationSchema", () => {
     expect(submitApplicationSchema.safeParse({
       referralCode: "REF",
       idempotencyKey: "idem",
+    }).success).toBe(false);
+  });
+});
+
+describe("board schemas", () => {
+  it("coerces bounded board list query params", () => {
+    expect(boardListQuerySchema.parse({})).toEqual({
+      limit: 20,
+      cursor: null,
+    });
+    expect(boardListQuerySchema.parse({
+      limit: "10",
+      cursor: "2026-06-25T00%3A00%3A00.000Z_11111111-1111-4111-8111-111111111111",
+    })).toEqual({
+      limit: 10,
+      cursor: "2026-06-25T00%3A00%3A00.000Z_11111111-1111-4111-8111-111111111111",
+    });
+    expect(boardListQuerySchema.safeParse({ limit: "51" }).success)
+      .toBe(false);
+  });
+
+  it("validates board post and comment bodies", () => {
+    expect(createBoardPostSchema.parse({ body: " hello " }))
+      .toEqual({ body: "hello" });
+    expect(createBoardCommentSchema.parse({ body: " reply " }))
+      .toEqual({ body: "reply" });
+    expect(createBoardPostSchema.safeParse({
+      body: "",
+    }).success).toBe(false);
+    expect(createBoardCommentSchema.safeParse({
+      body: "",
+      authorId: "not-allowed",
     }).success).toBe(false);
   });
 });

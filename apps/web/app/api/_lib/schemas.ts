@@ -107,3 +107,29 @@ export const memberDirectoryQuerySchema = z.object({
 
 export type MemberDirectoryQueryParams =
   z.infer<typeof memberDirectoryQuerySchema>;
+
+export const boardListQuerySchema = z.object({
+  limit: z.preprocess(
+    (value) => value === undefined || value === "" ? 20 : value,
+    z.coerce.number().int().min(1).max(50),
+  ),
+  cursor: z.preprocess(
+    (value) => value === undefined || value === "" ? null : value,
+    z.string().trim().min(1).nullable(),
+  ),
+});
+
+export type BoardListQueryParams = z.infer<typeof boardListQuerySchema>;
+
+export const createBoardPostSchema = z.object({
+  body: z.string().trim().min(1).max(2000),
+}).strict();
+
+export type CreateBoardPostBody = z.infer<typeof createBoardPostSchema>;
+
+export const createBoardCommentSchema = z.object({
+  body: z.string().trim().min(1).max(1200),
+}).strict();
+
+export type CreateBoardCommentBody =
+  z.infer<typeof createBoardCommentSchema>;

@@ -34,7 +34,7 @@ values (
   'authenticated',
   '00000000-0000-0000-0000-000000000000',
   '{"provider":"email","providers":["email"]}'::jsonb,
-  '{}'::jsonb,
+    '{"username":"provisioning_test"}'::jsonb,
   now(),
   now()
 );
@@ -99,7 +99,7 @@ values (
   'authenticated',
   '00000000-0000-0000-0000-000000000000',
   '{"provider":"email","providers":["email"]}'::jsonb,
-  '{"role":"admin"}'::jsonb,
+    '{"username":"forged_role_test","role":"admin"}'::jsonb,
   now(),
   now()
 );

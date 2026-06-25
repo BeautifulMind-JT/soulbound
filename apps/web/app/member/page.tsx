@@ -21,7 +21,7 @@ import { readJson } from "../../lib/api-response";
 import styles from "./page.module.css";
 
 type MembershipState = Membership | null | undefined;
-type MemberTab = "members" | "chats" | "more";
+type MemberTab = "members" | "board" | "more";
 
 interface MemberDirectoryItem {
   readonly memberNumber: number;
@@ -35,6 +35,37 @@ interface MemberDirectoryResponse {
   readonly myLabel: string | null;
   readonly items: readonly MemberDirectoryItem[];
   readonly nextCursor: number | null;
+}
+
+interface BoardAuthor {
+  readonly memberNumber: number;
+  readonly label: string;
+  readonly isMe: boolean;
+}
+
+interface BoardPost {
+  readonly id: string;
+  readonly body: string;
+  readonly createdAt: string;
+  readonly author: BoardAuthor;
+}
+
+interface BoardComment {
+  readonly id: string;
+  readonly postId: string;
+  readonly body: string;
+  readonly createdAt: string;
+  readonly author: BoardAuthor;
+}
+
+interface BoardListResponse {
+  readonly items: readonly BoardPost[];
+  readonly nextCursor: string | null;
+}
+
+interface BoardPostDetail {
+  readonly post: BoardPost;
+  readonly comments: readonly BoardComment[];
 }
 
 function MembersIcon() {
@@ -112,7 +143,7 @@ const tabs: readonly {
   readonly icon: ReactNode;
 }[] = [
   { id: "members", label: "멤버", icon: <MembersIcon /> },
-  { id: "chats", label: "대화", icon: <ChatsIcon /> },
+  { id: "board", label: "게시판", icon: <ChatsIcon /> },
   { id: "more", label: "더보기", icon: <MoreIcon /> },
 ];
 
@@ -124,16 +155,6 @@ const disabledMoreGroups: readonly {
     readonly badge?: string;
   }[];
 }[] = [
-  {
-    title: "소통",
-    rows: [
-      {
-        label: "대화 / 다이렉트 메시지 (E2EE)",
-        description: "멤버와 안전하게 이야기하는 공간",
-      },
-      { label: "알림", description: "새 대화와 멤버 소식" },
-    ],
-  },
   {
     title: "신원 & 자산",
     rows: [
@@ -228,6 +249,18 @@ export default function MemberPage() {
   const [directoryLoading, setDirectoryLoading] = useState(false);
   const [directoryError, setDirectoryError] = useState("");
   const [loadingMore, setLoadingMore] = useState(false);
+  const [board, setBoard] = useState<BoardListResponse | null>(null);
+  const [boardLoading, setBoardLoading] = useState(false);
+  const [boardError, setBoardError] = useState("");
+  const [boardLoadingMore, setBoardLoadingMore] = useState(false);
+  const [postBody, setPostBody] = useState("");
+  const [postSubmitting, setPostSubmitting] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [postDetail, setPostDetail] = useState<BoardPostDetail | null>(null);
+  const [postDetailLoading, setPostDetailLoading] = useState(false);
+  const [commentBody, setCommentBody] = useState("");
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [boardActionError, setBoardActionError] = useState("");
   const [signOutError, setSignOutError] = useState("");
 
   async function handleSignOut() {
@@ -289,6 +322,221 @@ export default function MemberPage() {
     }
   }
 
+  async function loadBoard(cursor: string | null = null) {
+    if (cursor === null) {
+      setBoardLoading(true);
+    } else {
+      setBoardLoadingMore(true);
+    }
+    setBoardError("");
+
+    try {
+      const params = new URLSearchParams({ limit: "20" });
+      if (cursor !== null) {
+        params.set("cursor", cursor);
+      }
+      const response = await authedFetch(`/api/board?${params.toString()}`);
+      if (response.status === 401) {
+        router.replace("/login");
+        return;
+      }
+      if (response.status === 403) {
+        router.replace("/gate");
+        return;
+      }
+      if (!response.ok) {
+        throw new Error("Unable to load board");
+      }
+
+      const nextBoard = await readJson<BoardListResponse>(response);
+      setBoard((current) => {
+        if (cursor === null || !current) {
+          return nextBoard;
+        }
+
+        return {
+          ...nextBoard,
+          items: [...current.items, ...nextBoard.items],
+        };
+      });
+    } catch (error) {
+      if (error instanceof UnauthenticatedError) {
+        router.replace("/login");
+      } else {
+        setBoardError("게시글을 불러오지 못했습니다.");
+      }
+    } finally {
+      setBoardLoading(false);
+      setBoardLoadingMore(false);
+    }
+  }
+
+  async function loadPostDetail(postId: string) {
+    setSelectedPostId(postId);
+    setPostDetailLoading(true);
+    setBoardActionError("");
+
+    try {
+      const response = await authedFetch(`/api/board/${postId}`);
+      if (response.status === 401) {
+        router.replace("/login");
+        return;
+      }
+      if (response.status === 403) {
+        router.replace("/gate");
+        return;
+      }
+      if (!response.ok) {
+        throw new Error("Unable to load post");
+      }
+
+      setPostDetail(await readJson<BoardPostDetail>(response));
+    } catch (error) {
+      if (error instanceof UnauthenticatedError) {
+        router.replace("/login");
+      } else {
+        setBoardActionError("게시글 상세를 불러오지 못했습니다.");
+      }
+    } finally {
+      setPostDetailLoading(false);
+    }
+  }
+
+  async function submitPost(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!postBody.trim()) {
+      return;
+    }
+
+    setPostSubmitting(true);
+    setBoardActionError("");
+    try {
+      const response = await authedFetch("/api/board", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ body: postBody }),
+      });
+      if (response.status === 401) {
+        router.replace("/login");
+        return;
+      }
+      if (response.status === 403) {
+        router.replace("/gate");
+        return;
+      }
+      if (!response.ok) {
+        throw new Error("Unable to submit post");
+      }
+
+      const nextPost = await readJson<BoardPost>(response);
+      setBoard((current) => ({
+        items: [nextPost, ...(current?.items ?? [])],
+        nextCursor: current?.nextCursor ?? null,
+      }));
+      setPostBody("");
+      setSelectedPostId(nextPost.id);
+      setPostDetail({ post: nextPost, comments: [] });
+    } catch (error) {
+      if (error instanceof UnauthenticatedError) {
+        router.replace("/login");
+      } else {
+        setBoardActionError("게시글을 올리지 못했습니다.");
+      }
+    } finally {
+      setPostSubmitting(false);
+    }
+  }
+
+  async function submitComment(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!commentBody.trim() || !postDetail) {
+      return;
+    }
+
+    setCommentSubmitting(true);
+    setBoardActionError("");
+    try {
+      const response = await authedFetch(
+        `/api/board/${postDetail.post.id}/comments`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ body: commentBody }),
+        },
+      );
+      if (response.status === 401) {
+        router.replace("/login");
+        return;
+      }
+      if (response.status === 403) {
+        router.replace("/gate");
+        return;
+      }
+      if (!response.ok) {
+        throw new Error("Unable to submit comment");
+      }
+
+      const nextComment = await readJson<BoardComment>(response);
+      setPostDetail((current) => current
+        ? { ...current, comments: [...current.comments, nextComment] }
+        : current);
+      setCommentBody("");
+    } catch (error) {
+      if (error instanceof UnauthenticatedError) {
+        router.replace("/login");
+      } else {
+        setBoardActionError("댓글을 올리지 못했습니다.");
+      }
+    } finally {
+      setCommentSubmitting(false);
+    }
+  }
+
+  async function deletePost(postId: string) {
+    setBoardActionError("");
+    try {
+      const response = await authedFetch(`/api/board/${postId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error("Unable to delete post");
+      }
+      setBoard((current) => current
+        ? {
+          ...current,
+          items: current.items.filter((item) => item.id !== postId),
+        }
+        : current);
+      if (selectedPostId === postId) {
+        setSelectedPostId(null);
+        setPostDetail(null);
+      }
+    } catch {
+      setBoardActionError("게시글을 삭제하지 못했습니다.");
+    }
+  }
+
+  async function deleteComment(commentId: string) {
+    setBoardActionError("");
+    try {
+      const response = await authedFetch(
+        `/api/board/${postDetail?.post.id}/comments/${commentId}`,
+        { method: "DELETE" },
+      );
+      if (!response.ok) {
+        throw new Error("Unable to delete comment");
+      }
+      setPostDetail((current) => current
+        ? {
+          ...current,
+          comments: current.comments.filter((item) => item.id !== commentId),
+        }
+        : current);
+    } catch {
+      setBoardActionError("댓글을 삭제하지 못했습니다.");
+    }
+  }
+
   useEffect(() => {
     if (loading) {
       return;
@@ -334,6 +582,19 @@ export default function MemberPage() {
     void loadMembership();
     return () => controller.abort();
   }, [authedFetch, loading, router, session]);
+
+  useEffect(() => {
+    if (
+      activeTab !== "board"
+      || membership?.status !== "active"
+      || board
+      || boardLoading
+    ) {
+      return;
+    }
+
+    void loadBoard();
+  }, [activeTab, board, boardLoading, membership?.status]);
 
   if (loading || membership === undefined) {
     return (
@@ -436,14 +697,168 @@ export default function MemberPage() {
             </div>
           ) : null}
 
-          {activeTab === "chats" ? (
+          {activeTab === "board" ? (
             <div className={styles.quietPanel}>
               <Section
-                title="대화"
-                description="멤버 대화는 다음 라운드에서 열립니다."
+                title="게시판"
+                description="멤버 번호만 보이는 공용 게시판"
+                action={board?.nextCursor ? <Badge>20+</Badge> : null}
               >
-                <EmptyState>아직 열리지 않았습니다.</EmptyState>
+                <form className={styles.boardComposer} onSubmit={submitPost}>
+                  <textarea
+                    aria-label="게시글 내용"
+                    className={styles.boardTextarea}
+                    maxLength={2000}
+                    onChange={(event) => setPostBody(event.target.value)}
+                    placeholder="멤버들에게 남길 말을 적어 주세요."
+                    rows={4}
+                    value={postBody}
+                  />
+                  <div className={styles.boardActions}>
+                    <span>{myLabel}</span>
+                    <Button
+                      disabled={postSubmitting || !postBody.trim()}
+                      type="submit"
+                    >
+                      {postSubmitting ? "올리는 중" : "올리기"}
+                    </Button>
+                  </div>
+                </form>
               </Section>
+
+              <Section title="글 목록">
+                {boardLoading ? (
+                  <EmptyState>게시글을 불러오는 중입니다.</EmptyState>
+                ) : null}
+                {!boardLoading && boardError ? (
+                  <div className={styles.directoryState}>
+                    <EmptyState>{boardError}</EmptyState>
+                  </div>
+                ) : null}
+                {!boardLoading && !boardError && board
+                  && board.items.length === 0 ? (
+                    <div className={styles.directoryState}>
+                      <EmptyState>아직 게시글이 없습니다.</EmptyState>
+                    </div>
+                  ) : null}
+                {!boardLoading && !boardError && board
+                  && board.items.length > 0 ? (
+                    <div className={styles.boardList}>
+                      {board.items.map((post) => (
+                        <button
+                          className={`${styles.boardPostButton} ${
+                            selectedPostId === post.id
+                              ? styles.boardPostButtonActive
+                              : ""
+                          }`}
+                          key={post.id}
+                          onClick={() => void loadPostDetail(post.id)}
+                          type="button"
+                        >
+                          <span className={styles.boardPostMeta}>
+                            {post.author.label} · {formatDate(post.createdAt)}
+                          </span>
+                          <span className={styles.boardPostBody}>
+                            {post.body}
+                          </span>
+                          {post.author.isMe ? <Badge tone="success">나</Badge> : null}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                {board?.nextCursor ? (
+                  <div className={styles.directoryActions}>
+                    <Button
+                      disabled={boardLoadingMore}
+                      onClick={() => void loadBoard(board.nextCursor)}
+                      tone="secondary"
+                      type="button"
+                    >
+                      {boardLoadingMore ? "불러오는 중" : "더 보기"}
+                    </Button>
+                  </div>
+                ) : null}
+              </Section>
+
+              {boardActionError ? (
+                <p className="form-message" role="alert">{boardActionError}</p>
+              ) : null}
+
+              {selectedPostId ? (
+                <Section title="게시글">
+                  {postDetailLoading ? (
+                    <EmptyState>게시글을 여는 중입니다.</EmptyState>
+                  ) : null}
+                  {!postDetailLoading && postDetail ? (
+                    <div className={styles.boardDetail}>
+                      <div className={styles.boardDetailHeader}>
+                        <div>
+                          <p>{postDetail.post.author.label}</p>
+                          <span>{formatDate(postDetail.post.createdAt)}</span>
+                        </div>
+                        {postDetail.post.author.isMe ? (
+                          <button
+                            className={styles.rowAction}
+                            onClick={() => void deletePost(postDetail.post.id)}
+                            type="button"
+                          >
+                            삭제
+                          </button>
+                        ) : null}
+                      </div>
+                      <p className={styles.boardDetailBody}>
+                        {postDetail.post.body}
+                      </p>
+
+                      <div className={styles.commentList}>
+                        {postDetail.comments.length === 0 ? (
+                          <EmptyState>아직 댓글이 없습니다.</EmptyState>
+                        ) : null}
+                        {postDetail.comments.map((comment) => (
+                          <div className={styles.commentItem} key={comment.id}>
+                            <div>
+                              <p>{comment.author.label}</p>
+                              <span>{formatDate(comment.createdAt)}</span>
+                            </div>
+                            <p>{comment.body}</p>
+                            {comment.author.isMe ? (
+                              <button
+                                className={styles.rowAction}
+                                onClick={() => void deleteComment(comment.id)}
+                                type="button"
+                              >
+                                삭제
+                              </button>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+
+                      <form
+                        className={styles.commentComposer}
+                        onSubmit={submitComment}
+                      >
+                        <textarea
+                          aria-label="댓글 내용"
+                          className={styles.boardTextarea}
+                          maxLength={1200}
+                          onChange={(event) =>
+                            setCommentBody(event.target.value)}
+                          placeholder="댓글을 적어 주세요."
+                          rows={3}
+                          value={commentBody}
+                        />
+                        <Button
+                          disabled={commentSubmitting || !commentBody.trim()}
+                          type="submit"
+                        >
+                          {commentSubmitting ? "올리는 중" : "댓글 달기"}
+                        </Button>
+                      </form>
+                    </div>
+                  ) : null}
+                </Section>
+              ) : null}
             </div>
           ) : null}
 

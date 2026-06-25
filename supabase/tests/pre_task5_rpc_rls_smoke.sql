@@ -35,7 +35,7 @@ values (
   now(),
   'authenticated',
   '{"provider":"email","providers":["email"]}'::jsonb,
-  '{}'::jsonb
+  '{"username":"smoke_other_applicant"}'::jsonb
 )
 on conflict (id) do nothing;
 
@@ -44,6 +44,7 @@ insert into public.profiles (
   handle,
   display_name,
   bio,
+  username,
   role,
   membership_status
 )
@@ -52,10 +53,17 @@ values (
   'other-applicant',
   'Other Applicant',
   'RLS smoke-test applicant',
+  'smoke_other_applicant',
   'applicant',
   'none'
 )
-on conflict (id) do nothing;
+on conflict (id) do update
+  set handle = excluded.handle,
+      display_name = excluded.display_name,
+      bio = excluded.bio,
+      username = excluded.username,
+      role = excluded.role,
+      membership_status = excluded.membership_status;
 
 create temp table smoke_ids (
   key text primary key,
