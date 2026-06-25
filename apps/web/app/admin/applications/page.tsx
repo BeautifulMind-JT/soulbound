@@ -24,6 +24,10 @@ import styles from "./admin.module.css";
 
 const QUEUE_LIMIT = 50;
 
+interface AdminQueueApplication extends AdmissionApplication {
+  readonly applicantEmail?: string | null;
+}
+
 const statusOptions: readonly {
   readonly value: AdmissionStatus | "all";
   readonly label: string;
@@ -84,12 +88,16 @@ function shortId(value: string): string {
   return value.length > 8 ? `${value.slice(0, 8)}...` : value;
 }
 
+function applicantLabel(application: AdminQueueApplication): string {
+  return application.applicantEmail ?? shortId(application.applicantId);
+}
+
 export default function ReviewQueuePage() {
   const router = useRouter();
   const { session, loading, authedFetch } = useAuth();
   const [status, setStatus] = useState<AdmissionStatus | "all">("submitted");
   const [applications, setApplications] =
-    useState<readonly AdmissionApplication[] | null>(null);
+    useState<readonly AdminQueueApplication[] | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [copiedId, setCopiedId] = useState("");
@@ -124,7 +132,7 @@ export default function ReviewQueuePage() {
       }
 
       setApplications(
-        await readJson<readonly AdmissionApplication[]>(response),
+        await readJson<readonly AdminQueueApplication[]>(response),
       );
     } catch (error) {
       if (error instanceof UnauthenticatedError) {
@@ -233,7 +241,7 @@ export default function ReviewQueuePage() {
           <table className={styles.queueTable}>
             <thead>
               <tr>
-                <th>신청자 ID</th>
+                <th>신청자</th>
                 <th>상태</th>
                 <th>제출 시각</th>
                 <th>Persona Clip</th>
@@ -245,7 +253,7 @@ export default function ReviewQueuePage() {
                 <tr key={application.id}>
                   <td className={styles.idCell}>
                     <span title={application.applicantId}>
-                      {shortId(application.applicantId)}
+                      {applicantLabel(application)}
                     </span>
                     <button
                       className={styles.copyButton}

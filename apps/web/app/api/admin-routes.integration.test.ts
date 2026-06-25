@@ -134,6 +134,11 @@ describe("admin route handlers", () => {
     expect(queueResponse.status).toBe(200);
     const queue = await queueResponse.json() as Array<Record<string, unknown>>;
     expect(queue.some((item) => item.id === approveApplicationId)).toBe(true);
+    expect(
+      queue.find((item) => item.id === approveApplicationId),
+    ).toMatchObject({
+      applicantEmail: approveApplicant.email,
+    });
 
     const applicantAdminQueueResponse = await getAdminApplications(
       authedRequest(
@@ -213,6 +218,8 @@ describe("admin route handlers", () => {
     const reviewerDetail =
       await reviewerDetailResponse.json() as Record<string, unknown>;
     expect(reviewerDetail.reviewSummary).toBe(reviewSummary);
+    expect(reviewerDetail.applicantEmail).toBe(approveApplicant.email);
+    expect(reviewerDetail.reviewerEmail).toBe(reviewer.email);
 
     const applicantOwnDetailResponse = await getApplicantApplicationById(
       authedRequest(
@@ -226,6 +233,9 @@ describe("admin route handlers", () => {
       await applicantOwnDetailResponse.json() as Record<string, unknown>;
     expect(applicantOwnDetail.id).toBe(approveApplicationId);
     expect(applicantOwnDetail).not.toHaveProperty("reviewSummary");
+    expect(applicantOwnDetail).not.toHaveProperty("applicantEmail");
+    expect(applicantOwnDetail).not.toHaveProperty("reviewerEmail");
+    expect(applicantOwnDetail).not.toHaveProperty("email");
 
     const rejectApplication = await submitApplication(
       rejectApplicant,

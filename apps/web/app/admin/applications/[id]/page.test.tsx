@@ -33,11 +33,13 @@ function application(status: string, withClip = true) {
   return {
     id: "application-1",
     applicantId: "applicant-1",
+    applicantEmail: "applicant@example.com",
     status,
     applicantStatement: "신뢰를 지키는 사람",
     motivation: "함께 배우고 싶습니다",
     referralCode: "REF-1",
     reviewerId: "reviewer-1",
+    reviewerEmail: "reviewer@example.com",
     reviewedAt: "2026-06-08T01:00:00.000Z",
     reviewSummary: "검토자만 보는 내부 메모",
     applicantNotice: "신청자에게 보이는 안내",
@@ -94,6 +96,9 @@ describe("ReviewDetailPage", () => {
     expect(
       await screen.findByText("검토자만 보는 내부 메모"),
     ).toBeTruthy();
+    expect(screen.getByText("applicant@example.com")).toBeTruthy();
+    expect(screen.getByText("reviewer@example.com")).toBeTruthy();
+    expect(screen.queryByText("추천 코드")).toBeNull();
     expect(screen.getByText("신청자에게 보이는 안내")).toBeTruthy();
     expect(container.querySelector("video")).toBeNull();
 

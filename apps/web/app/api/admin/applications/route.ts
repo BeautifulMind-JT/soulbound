@@ -1,5 +1,6 @@
 import type { ReviewQueueQuery } from "@soulbound/core";
 import {
+  enrichAdminQueueEmails,
   requireReviewer,
   serviceRoleAdmissionRepo,
 } from "../../_lib/admin";
@@ -44,7 +45,7 @@ export async function GET(request: Request): Promise<Response> {
     const applications = await serviceRoleAdmissionRepo().listReviewQueue(
       queryFromParams(parsed.data),
     );
-    return jsonResponse(applications);
+    return jsonResponse(await enrichAdminQueueEmails(applications));
   } catch (error) {
     return dependencyFailure(error);
   }

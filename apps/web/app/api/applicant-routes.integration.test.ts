@@ -80,6 +80,10 @@ describe("applicant route handlers", () => {
     expect(meResponse.status).toBe(200);
     const activeApplication = await meResponse.json();
     expect(activeApplication.id).toBe(application.id);
+    expect(activeApplication).not.toHaveProperty("applicantEmail");
+    expect(activeApplication).not.toHaveProperty("reviewerEmail");
+    expect(activeApplication).not.toHaveProperty("email");
+    expect(activeApplication).not.toHaveProperty("reviewSummary");
 
     const ownResponse = await getApplicationById(
       authedRequest(

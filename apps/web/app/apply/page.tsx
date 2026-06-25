@@ -48,14 +48,12 @@ export default function ApplyPage() {
     const form = new FormData(event.currentTarget);
     const applicantStatement = optionalText(form, "applicantStatement");
     const motivation = optionalText(form, "motivation");
-    const referralCode = optionalText(form, "referralCode");
     idempotencyKeyRef.current ??= crypto.randomUUID();
 
     const body = {
       idempotencyKey: idempotencyKeyRef.current,
       ...(applicantStatement ? { applicantStatement } : {}),
       ...(motivation ? { motivation } : {}),
-      ...(referralCode ? { referralCode } : {}),
       ...(clip
         ? {
             personaClipAssetId: clip.assetId,
@@ -115,16 +113,6 @@ export default function ApplyPage() {
         <div className="field">
           <label htmlFor="motivation">이 공간에 들어오려는 이유</label>
           <textarea id="motivation" name="motivation" maxLength={2400} />
-        </div>
-        <div className="field">
-          <label htmlFor="referral-code">추천 코드</label>
-          <input
-            id="referral-code"
-            name="referralCode"
-            type="text"
-            autoComplete="off"
-            maxLength={120}
-          />
         </div>
 
         <div className="recorder-section">

@@ -49,6 +49,11 @@ const reasonLabel: Record<AdmissionReasonCode, string> = {
   application_expired: "신청 만료",
 };
 
+interface AdminApplication extends AdmissionApplication {
+  readonly applicantEmail?: string | null;
+  readonly reviewerEmail?: string | null;
+}
+
 const decisionConfigs = [
   {
     action: "approve",
@@ -230,7 +235,7 @@ export default function ReviewDetailPage() {
   const router = useRouter();
   const { session, loading, authedFetch } = useAuth();
   const [application, setApplication] =
-    useState<AdmissionApplication | null | undefined>(undefined);
+    useState<AdminApplication | null | undefined>(undefined);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [actionMessage, setActionMessage] = useState("");
@@ -262,7 +267,7 @@ export default function ReviewDetailPage() {
       }
 
       setPermissionDenied(false);
-      setApplication(await readJson<AdmissionApplication>(response));
+      setApplication(await readJson<AdminApplication>(response));
     } catch (error) {
       if (error instanceof UnauthenticatedError) {
         router.replace("/login");
@@ -430,6 +435,10 @@ export default function ReviewDetailPage() {
                 </dd>
               </div>
               <div>
+                <dt>신청자 이메일</dt>
+                <dd>{application.applicantEmail ?? "확인 불가"}</dd>
+              </div>
+              <div>
                 <dt>신청자 ID</dt>
                 <dd>{application.applicantId}</dd>
               </div>
@@ -440,10 +449,6 @@ export default function ReviewDetailPage() {
               <div>
                 <dt>신청 동기</dt>
                 <dd>{application.motivation ?? "입력 없음"}</dd>
-              </div>
-              <div>
-                <dt>추천 코드</dt>
-                <dd>{application.referralCode ?? "입력 없음"}</dd>
               </div>
             </dl>
 
@@ -480,6 +485,12 @@ export default function ReviewDetailPage() {
                   <dt>검토자 ID</dt>
                   <dd>{application.reviewerId ?? "미배정"}</dd>
                 </div>
+                {application.reviewerId ? (
+                  <div>
+                    <dt>검토자 이메일</dt>
+                    <dd>{application.reviewerEmail ?? "확인 불가"}</dd>
+                  </div>
+                ) : null}
                 <div>
                   <dt>검토 시각</dt>
                   <dd>

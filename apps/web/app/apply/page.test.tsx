@@ -101,6 +101,7 @@ describe("ApplyPage", () => {
     }));
     render(<ApplyPage />);
 
+    expect(screen.queryByLabelText("추천 코드")).toBeNull();
     fireEvent.change(
       screen.getByLabelText("나를 설명하는 한 문장"),
       { target: { value: "신뢰를 지키는 사람" } },
