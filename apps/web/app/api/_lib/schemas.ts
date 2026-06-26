@@ -121,6 +121,48 @@ export const boardListQuerySchema = z.object({
 
 export type BoardListQueryParams = z.infer<typeof boardListQuerySchema>;
 
+export const voteListQuerySchema = z.object({
+  limit: z.preprocess(
+    (value) => value === undefined || value === "" ? 20 : value,
+    z.coerce.number().int().min(1).max(50),
+  ),
+  cursor: z.preprocess(
+    (value) => value === undefined || value === "" ? null : value,
+    z.string().trim().min(1).nullable(),
+  ),
+});
+
+export type VoteListQueryParams = z.infer<typeof voteListQuerySchema>;
+
+export const castVoteSchema = z.object({
+  choice: z.enum(["yes", "no"]),
+}).strict();
+
+export type CastVoteBody = z.infer<typeof castVoteSchema>;
+
+export const openAdmissionVoteSchema = z.object({
+  idempotencyKey: z.string().trim().min(1),
+  windowHours: z.number().int().min(1).max(168).optional(),
+}).strict();
+
+export type OpenAdmissionVoteBody =
+  z.infer<typeof openAdmissionVoteSchema>;
+
+export const finalizeAdmissionVoteSchema = z.object({
+  idempotencyKey: z.string().trim().min(1),
+}).strict();
+
+export type FinalizeAdmissionVoteBody =
+  z.infer<typeof finalizeAdmissionVoteSchema>;
+
+export const overrideAdmissionVoteSchema = z.object({
+  decision: z.enum(["approved", "rejected"]),
+  idempotencyKey: z.string().trim().min(1),
+}).strict();
+
+export type OverrideAdmissionVoteBody =
+  z.infer<typeof overrideAdmissionVoteSchema>;
+
 export const createBoardPostSchema = z.object({
   body: z.string().trim().min(1).max(2000),
 }).strict();

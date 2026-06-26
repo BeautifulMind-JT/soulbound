@@ -64,14 +64,22 @@ const statusLabel: Record<AdmissionStatus, string> = {
   expired: "만료됨",
 };
 
-function statusTone(status: AdmissionStatus): "brand" | "success" | "muted" | "danger" {
+function applicationStatusLabel(status: string): string {
+  if (status === "in_vote") {
+    return "멤버 투표 중";
+  }
+
+  return statusLabel[status as AdmissionStatus] ?? "검토 중";
+}
+
+function statusTone(status: string): "brand" | "success" | "muted" | "danger" {
   if (status === "approved") {
     return "success";
   }
   if (status === "rejected" || status === "expired" || status === "withdrawn") {
     return "danger";
   }
-  if (status === "submitted" || status === "under_review") {
+  if (status === "submitted" || status === "under_review" || status === "in_vote") {
     return "brand";
   }
   return "muted";
@@ -173,7 +181,9 @@ export default function ReviewQueuePage() {
     setStatus(nextStatus);
   }
 
-  const selectedStatusLabel = status === "all" ? "전체" : statusLabel[status];
+  const selectedStatusLabel = status === "all"
+    ? "전체"
+    : applicationStatusLabel(status);
   const countLabel = applications === null
     ? "불러오는 중"
     : `${selectedStatusLabel} ${applications.length}${applications.length >= QUEUE_LIMIT ? "+" : ""}건`;
@@ -266,7 +276,7 @@ export default function ReviewQueuePage() {
                   </td>
                   <td>
                     <Badge tone={statusTone(application.status)}>
-                      {statusLabel[application.status]}
+                      {applicationStatusLabel(application.status)}
                     </Badge>
                   </td>
                   <td>{formatDate(application.createdAt)}</td>

@@ -27,6 +27,14 @@ const statusLabel: Record<AdmissionStatus, string> = {
 
 type ApplicantApplicationView = AdmissionApplication;
 
+function applicantStatusLabel(status: string): string {
+  if (status === "in_vote") {
+    return "검토 중";
+  }
+
+  return statusLabel[status as AdmissionStatus] ?? "검토 중";
+}
+
 export default function ApplicationStatusPage() {
   const router = useRouter();
   const { session, loading, authedFetch } = useAuth();
@@ -120,12 +128,12 @@ export default function ApplicationStatusPage() {
         {application ? (
           <>
             <span className="status-badge">
-              {statusLabel[application.status]}
+              {applicantStatusLabel(application.status)}
             </span>
             <dl className="status-details">
               <div>
                 <dt>신청 상태</dt>
-                <dd>{statusLabel[application.status]}</dd>
+                <dd>{applicantStatusLabel(application.status)}</dd>
               </div>
               {application.applicantNotice ? (
                 <div>

@@ -196,6 +196,13 @@
   background: var(--surface-oat);
 }
 
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 18px;
+}
+
 .decisionPanel {
   display: grid;
   gap: 16px;

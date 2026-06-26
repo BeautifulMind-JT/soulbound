@@ -123,6 +123,18 @@
   white-space: nowrap;
 }
 
+.clipBlock {
+  display: grid;
+  gap: 12px;
+}
+
+.clipVideo {
+  display: block;
+  width: 100%;
+  max-height: 320px;
+  background: #101418;
+}
+
 .boardList {
   display: grid;
   overflow: hidden;

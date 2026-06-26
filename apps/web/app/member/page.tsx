@@ -21,7 +21,7 @@ import { readJson } from "../../lib/api-response";
 import styles from "./page.module.css";
 
 type MembershipState = Membership | null | undefined;
-type MemberTab = "members" | "board" | "more";
+type MemberTab = "members" | "votes" | "board" | "more";
 
 interface MemberDirectoryItem {
   readonly memberNumber: number;
@@ -66,6 +66,29 @@ interface BoardListResponse {
 interface BoardPostDetail {
   readonly post: BoardPost;
   readonly comments: readonly BoardComment[];
+}
+
+interface AdmissionVote {
+  readonly id: string;
+  readonly candidateToken: string;
+  readonly applicantStatement: string | null;
+  readonly hasClip: boolean;
+  readonly windowEndsAt: string;
+  readonly openedAt: string;
+  readonly hasVoted: boolean;
+}
+
+interface AdmissionVoteDetail extends AdmissionVote {
+  readonly status: "open" | "closed" | "overridden";
+  readonly outcome: "approved" | "rejected" | null;
+  readonly yesCount: number;
+  readonly noCount: number;
+  readonly turnoutCount: number;
+}
+
+interface VoteListResponse {
+  readonly items: readonly AdmissionVote[];
+  readonly nextCursor: string | null;
 }
 
 function MembersIcon() {
@@ -123,6 +146,26 @@ function ChatsIcon() {
   );
 }
 
+function VoteIcon() {
+  return (
+    <svg fill="none" height="22" viewBox="0 0 24 24" width="22">
+      <path
+        d="M7 11.5 10.25 15 17.5 7.5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M5.25 4.75h13.5v14.5H5.25z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.7"
+      />
+    </svg>
+  );
+}
+
 function MoreIcon() {
   return (
     <svg fill="none" height="22" viewBox="0 0 24 24" width="22">
@@ -143,6 +186,7 @@ const tabs: readonly {
   readonly icon: ReactNode;
 }[] = [
   { id: "members", label: "멤버", icon: <MembersIcon /> },
+  { id: "votes", label: "투표", icon: <VoteIcon /> },
   { id: "board", label: "게시판", icon: <ChatsIcon /> },
   { id: "more", label: "더보기", icon: <MoreIcon /> },
 ];
@@ -249,6 +293,16 @@ export default function MemberPage() {
   const [directoryLoading, setDirectoryLoading] = useState(false);
   const [directoryError, setDirectoryError] = useState("");
   const [loadingMore, setLoadingMore] = useState(false);
+  const [votes, setVotes] = useState<VoteListResponse | null>(null);
+  const [votesLoading, setVotesLoading] = useState(false);
+  const [votesError, setVotesError] = useState("");
+  const [votesLoadingMore, setVotesLoadingMore] = useState(false);
+  const [selectedVoteId, setSelectedVoteId] = useState<string | null>(null);
+  const [voteDetail, setVoteDetail] = useState<AdmissionVoteDetail | null>(null);
+  const [voteDetailLoading, setVoteDetailLoading] = useState(false);
+  const [voteActionError, setVoteActionError] = useState("");
+  const [voteSubmitting, setVoteSubmitting] = useState<"yes" | "no" | null>(null);
+  const [voteClipUrl, setVoteClipUrl] = useState<string | null>(null);
   const [board, setBoard] = useState<BoardListResponse | null>(null);
   const [boardLoading, setBoardLoading] = useState(false);
   const [boardError, setBoardError] = useState("");
@@ -319,6 +373,169 @@ export default function MemberPage() {
     } finally {
       setDirectoryLoading(false);
       setLoadingMore(false);
+    }
+  }
+
+  async function loadVotes(cursor: string | null = null) {
+    if (cursor === null) {
+      setVotesLoading(true);
+    } else {
+      setVotesLoadingMore(true);
+    }
+    setVotesError("");
+
+    try {
+      const params = new URLSearchParams({ limit: "20" });
+      if (cursor !== null) {
+        params.set("cursor", cursor);
+      }
+      const response = await authedFetch(
+        `/api/vote/applications?${params.toString()}`,
+      );
+      if (response.status === 401) {
+        router.replace("/login");
+        return;
+      }
+      if (response.status === 403) {
+        router.replace("/gate");
+        return;
+      }
+      if (!response.ok) {
+        throw new Error("Unable to load votes");
+      }
+
+      const nextVotes = await readJson<VoteListResponse>(response);
+      setVotes((current) => {
+        if (cursor === null || !current) {
+          return nextVotes;
+        }
+
+        return {
+          ...nextVotes,
+          items: [...current.items, ...nextVotes.items],
+        };
+      });
+    } catch (error) {
+      if (error instanceof UnauthenticatedError) {
+        router.replace("/login");
+      } else {
+        setVotesError("입장 투표를 불러오지 못했습니다.");
+      }
+    } finally {
+      setVotesLoading(false);
+      setVotesLoadingMore(false);
+    }
+  }
+
+  async function loadVoteDetail(voteId: string) {
+    setSelectedVoteId(voteId);
+    setVoteDetailLoading(true);
+    setVoteActionError("");
+    setVoteClipUrl(null);
+
+    try {
+      const response = await authedFetch(`/api/vote/applications/${voteId}`);
+      if (response.status === 401) {
+        router.replace("/login");
+        return;
+      }
+      if (response.status === 403) {
+        router.replace("/gate");
+        return;
+      }
+      if (!response.ok) {
+        throw new Error("Unable to load vote detail");
+      }
+
+      setVoteDetail(await readJson<AdmissionVoteDetail>(response));
+    } catch (error) {
+      if (error instanceof UnauthenticatedError) {
+        router.replace("/login");
+      } else {
+        setVoteActionError("입장 투표 상세를 불러오지 못했습니다.");
+      }
+    } finally {
+      setVoteDetailLoading(false);
+    }
+  }
+
+  async function castAdmissionVote(choice: "yes" | "no") {
+    if (!voteDetail) {
+      return;
+    }
+
+    setVoteSubmitting(choice);
+    setVoteActionError("");
+    try {
+      const response = await authedFetch(
+        `/api/vote/applications/${voteDetail.id}/cast`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ choice }),
+        },
+      );
+      if (response.status === 401) {
+        router.replace("/login");
+        return;
+      }
+      if (response.status === 403) {
+        router.replace("/gate");
+        return;
+      }
+      if (response.status === 409) {
+        setVoteActionError("이미 이 투표에 참여했습니다.");
+        await loadVoteDetail(voteDetail.id);
+        await loadVotes();
+        return;
+      }
+      if (!response.ok) {
+        throw new Error("Unable to cast vote");
+      }
+
+      setVoteDetail(await readJson<AdmissionVoteDetail>(response));
+      await loadVotes();
+    } catch (error) {
+      if (error instanceof UnauthenticatedError) {
+        router.replace("/login");
+      } else {
+        setVoteActionError("투표를 반영하지 못했습니다.");
+      }
+    } finally {
+      setVoteSubmitting(null);
+    }
+  }
+
+  async function loadVoteClip(voteId: string) {
+    setVoteActionError("");
+    try {
+      const response = await authedFetch(
+        `/api/vote/applications/${voteId}/persona-clip-url`,
+      );
+      if (response.status === 401) {
+        router.replace("/login");
+        return;
+      }
+      if (response.status === 403) {
+        router.replace("/gate");
+        return;
+      }
+      if (response.status === 404) {
+        setVoteActionError("볼 수 있는 Persona Clip이 없습니다.");
+        return;
+      }
+      if (!response.ok) {
+        throw new Error("Unable to load vote clip");
+      }
+
+      const payload = await readJson<{ readonly url: string }>(response);
+      setVoteClipUrl(payload.url);
+    } catch (error) {
+      if (error instanceof UnauthenticatedError) {
+        router.replace("/login");
+      } else {
+        setVoteActionError("Persona Clip을 불러오지 못했습니다.");
+      }
     }
   }
 
@@ -585,6 +802,19 @@ export default function MemberPage() {
 
   useEffect(() => {
     if (
+      activeTab !== "votes"
+      || membership?.status !== "active"
+      || votes
+      || votesLoading
+    ) {
+      return;
+    }
+
+    void loadVotes();
+  }, [activeTab, membership?.status, votes, votesLoading]);
+
+  useEffect(() => {
+    if (
       activeTab !== "board"
       || membership?.status !== "active"
       || board
@@ -694,6 +924,140 @@ export default function MemberPage() {
                   </div>
                 ) : null}
               </Section>
+            </div>
+          ) : null}
+
+          {activeTab === "votes" ? (
+            <div className={styles.quietPanel}>
+              <Section
+                title="입장 투표"
+                description="멤버가 새 입장을 비밀투표로 결정합니다."
+                action={votes?.nextCursor ? <Badge>20+</Badge> : null}
+              >
+                {votesLoading ? (
+                  <EmptyState>입장 투표를 불러오는 중입니다.</EmptyState>
+                ) : null}
+                {!votesLoading && votesError ? (
+                  <div className={styles.directoryState}>
+                    <EmptyState>{votesError}</EmptyState>
+                  </div>
+                ) : null}
+                {!votesLoading && !votesError && votes
+                  && votes.items.length === 0 ? (
+                    <div className={styles.directoryState}>
+                      <EmptyState>열린 입장 투표가 없습니다.</EmptyState>
+                    </div>
+                  ) : null}
+                {!votesLoading && !votesError && votes
+                  && votes.items.length > 0 ? (
+                    <div className={styles.boardList}>
+                      {votes.items.map((vote) => (
+                        <button
+                          className={`${styles.boardPostButton} ${
+                            selectedVoteId === vote.id
+                              ? styles.boardPostButtonActive
+                              : ""
+                          }`}
+                          key={vote.id}
+                          onClick={() => void loadVoteDetail(vote.id)}
+                          type="button"
+                        >
+                          <span className={styles.boardPostMeta}>
+                            {vote.candidateToken} · 마감 {formatDate(vote.windowEndsAt)}
+                          </span>
+                          <span className={styles.boardPostBody}>
+                            {vote.applicantStatement ?? "신청 자료는 결정 후 삭제됩니다."}
+                          </span>
+                          {vote.hasVoted ? <Badge tone="success">투표 완료</Badge> : null}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                {votes?.nextCursor ? (
+                  <div className={styles.directoryActions}>
+                    <Button
+                      disabled={votesLoadingMore}
+                      onClick={() => void loadVotes(votes.nextCursor)}
+                      tone="secondary"
+                      type="button"
+                    >
+                      {votesLoadingMore ? "불러오는 중" : "더 보기"}
+                    </Button>
+                  </div>
+                ) : null}
+              </Section>
+
+              {voteActionError ? (
+                <p className="form-message" role="alert">{voteActionError}</p>
+              ) : null}
+
+              {selectedVoteId ? (
+                <Section title="투표 상세">
+                  {voteDetailLoading ? (
+                    <EmptyState>투표 상세를 여는 중입니다.</EmptyState>
+                  ) : null}
+                  {!voteDetailLoading && voteDetail ? (
+                    <div className={styles.boardDetail}>
+                      <div className={styles.boardDetailHeader}>
+                        <div>
+                          <p>{voteDetail.candidateToken}</p>
+                          <span>마감 {formatDate(voteDetail.windowEndsAt)}</span>
+                        </div>
+                        {voteDetail.hasVoted ? (
+                          <Badge tone="success">투표 완료</Badge>
+                        ) : (
+                          <Badge>비밀투표</Badge>
+                        )}
+                      </div>
+                      <p className={styles.boardDetailBody}>
+                        {voteDetail.applicantStatement
+                          ?? "결정된 신청 자료는 삭제되었습니다."}
+                      </p>
+                      {voteDetail.hasClip ? (
+                        <div className={styles.clipBlock}>
+                          <Button
+                            tone="secondary"
+                            type="button"
+                            onClick={() => void loadVoteClip(voteDetail.id)}
+                          >
+                            Persona Clip 보기
+                          </Button>
+                          {voteClipUrl ? (
+                            <video
+                              aria-label="입장 투표 Persona Clip"
+                              className={styles.clipVideo}
+                              controls
+                              src={voteClipUrl}
+                            />
+                          ) : null}
+                        </div>
+                      ) : null}
+                      <div className={styles.boardActions}>
+                        <Button
+                          disabled={voteDetail.hasVoted || voteSubmitting !== null}
+                          onClick={() => void castAdmissionVote("yes")}
+                          type="button"
+                        >
+                          {voteSubmitting === "yes" ? "반영 중" : "YES"}
+                        </Button>
+                        <Button
+                          disabled={voteDetail.hasVoted || voteSubmitting !== null}
+                          onClick={() => void castAdmissionVote("no")}
+                          tone="secondary"
+                          type="button"
+                        >
+                          {voteSubmitting === "no" ? "반영 중" : "NO"}
+                        </Button>
+                      </div>
+                      {voteDetail.status !== "open" ? (
+                        <p className={styles.boardPostMeta}>
+                          결과: YES {voteDetail.yesCount} · NO {voteDetail.noCount}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </Section>
+              ) : null}
             </div>
           ) : null}
 

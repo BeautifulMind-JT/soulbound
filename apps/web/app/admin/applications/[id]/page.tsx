@@ -39,6 +39,14 @@ const statusLabel: Record<AdmissionStatus, string> = {
   expired: "만료됨",
 };
 
+function applicationStatusLabel(status: string): string {
+  if (status === "in_vote") {
+    return "멤버 투표 중";
+  }
+
+  return statusLabel[status as AdmissionStatus] ?? "검토 중";
+}
+
 const reasonLabel: Record<AdmissionReasonCode, string> = {
   meets_phase1_policy: "입장 정책 충족",
   insufficient_context: "판단 정보 부족",
@@ -49,10 +57,11 @@ const reasonLabel: Record<AdmissionReasonCode, string> = {
   application_expired: "신청 만료",
 };
 
-interface AdminApplication extends AdmissionApplication {
+type AdminApplication = Omit<AdmissionApplication, "status"> & {
+  readonly status: AdmissionStatus | "in_vote";
   readonly applicantUsername?: string | null;
   readonly reviewerUsername?: string | null;
-}
+};
 
 const decisionConfigs = [
   {
@@ -293,7 +302,7 @@ export default function ReviewDetailPage() {
   }, [loadApplication, loading, router, session]);
 
   async function runAction(
-    action: "review" | DecisionAction,
+    action: "review" | DecisionAction | "vote/open" | "vote/finalize" | "vote/override",
     body: Record<string, unknown>,
   ) {
     setBusyAction(action);
@@ -430,7 +439,7 @@ export default function ReviewDetailPage() {
                 <dt>상태</dt>
                 <dd>
                   <Badge tone="brand">
-                    {statusLabel[application.status]}
+                    {applicationStatusLabel(application.status)}
                   </Badge>
                 </dd>
               </div>
@@ -527,17 +536,18 @@ export default function ReviewDetailPage() {
             </dl>
             </Section>
 
+          {actionMessage ? (
+            <p className={styles.actionMessage} role="status">
+              {actionMessage}
+            </p>
+          ) : null}
+
           {application.status === "submitted" ? (
             <Section
               className={styles.actionSection}
               title="검토 시작"
               description="제출된 신청을 검토 중 상태로 전환합니다."
             >
-              {actionMessage ? (
-                <p className={styles.actionMessage} role="status">
-                  {actionMessage}
-                </p>
-              ) : null}
               <Button
                 type="button"
                 disabled={busyAction !== null}
@@ -551,14 +561,64 @@ export default function ReviewDetailPage() {
           {application.status === "under_review" ? (
             <Section
               className={styles.actionSection}
+              title="멤버 투표"
+              description="active 멤버에게 신청 자료를 열고 비밀투표를 시작합니다."
+            >
+              <Button
+                type="button"
+                disabled={busyAction !== null}
+                onClick={() =>
+                  void runAction("vote/open", {
+                    windowHours: 72,
+                  })}
+              >
+                {busyAction === "vote/open" ? "여는 중" : "투표 열기"}
+              </Button>
+            </Section>
+          ) : null}
+
+          {application.status === "in_vote" ? (
+            <Section
+              className={styles.actionSection}
+              title="투표 확정"
+              description="멤버 투표 집계를 binding decision으로 확정합니다. 운영자 override는 admin만 가능합니다."
+            >
+              <div className={styles.actionRow}>
+                <Button
+                  type="button"
+                  disabled={busyAction !== null}
+                  onClick={() => void runAction("vote/finalize", {})}
+                >
+                  {busyAction === "vote/finalize" ? "확정 중" : "투표 결과 확정"}
+                </Button>
+                <Button
+                  type="button"
+                  tone="secondary"
+                  disabled={busyAction !== null}
+                  onClick={() =>
+                    void runAction("vote/override", { decision: "approved" })}
+                >
+                  승인 override
+                </Button>
+                <Button
+                  type="button"
+                  tone="danger"
+                  disabled={busyAction !== null}
+                  onClick={() =>
+                    void runAction("vote/override", { decision: "rejected" })}
+                >
+                  거절 override
+                </Button>
+              </div>
+            </Section>
+          ) : null}
+
+          {application.status === "under_review" ? (
+            <Section
+              className={styles.actionSection}
               title="검토 결정"
               description="결정 종류를 고르면 가능한 사유 코드만 표시됩니다."
             >
-              {actionMessage ? (
-                <p className={styles.actionMessage} role="status">
-                  {actionMessage}
-                </p>
-              ) : null}
               <DecisionPanel
                 busy={busyAction !== null}
                 onSubmit={async (action, input) => {
