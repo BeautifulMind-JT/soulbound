@@ -226,6 +226,45 @@ describe("ReviewDetailPage", () => {
     expect(screen.queryByRole("button", { name: "클립 재생" })).toBeNull();
   });
 
+  it("requires an explicit second click before admin vote override", async () => {
+    authMocks.useAuth.mockReturnValue({
+      authedFetch,
+      loading: false,
+      role: "admin",
+      session: { user: { id: "admin-1" } },
+    });
+    authedFetch
+      .mockResolvedValueOnce(jsonResponse(application("in_vote", false)))
+      .mockResolvedValueOnce(jsonResponse(application("approved", false)))
+      .mockResolvedValueOnce(jsonResponse(application("approved", false)));
+
+    render(<ReviewDetailPage />);
+
+    const overrideButton = await screen.findByRole("button", {
+      name: "승인 재정의",
+    });
+    fireEvent.click(overrideButton);
+
+    expect(await screen.findByText(
+      "승인 재정의를 실행하시겠습니까? 다시 누르면 실행합니다.",
+    )).toBeTruthy();
+    expect(authedFetch).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", {
+      name: "다시 눌러 승인 재정의",
+    }));
+
+    await waitFor(() => expect(authedFetch).toHaveBeenCalledTimes(3));
+    expect(authedFetch.mock.calls[1]?.[0]).toBe(
+      "/api/admin/applications/application-1/vote/override",
+    );
+    const init = authedFetch.mock.calls[1]?.[1] as RequestInit;
+    expect(JSON.parse(String(init.body))).toEqual({
+      decision: "approved",
+      idempotencyKey: "idempotency-key",
+    });
+  });
+
   it("surfaces a 409 and re-fetches the authoritative detail", async () => {
     authedFetch
       .mockResolvedValueOnce(jsonResponse(application("submitted", false)))

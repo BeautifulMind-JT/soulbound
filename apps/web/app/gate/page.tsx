@@ -83,7 +83,7 @@ export default function GatePage() {
     : state?.application
       ? {
           title: "입장 대기",
-          body: "신청 상태와 안내를 확인하세요.",
+          body: "신청 상태와 안내를 확인해 주세요.",
           href: "/apply/status",
           label: "신청 현황 보기",
         }
@@ -97,7 +97,6 @@ export default function GatePage() {
   return (
     <main className="page-main">
       <header className="page-heading">
-        <p className="eyebrow">Gate</p>
         <h1>입장 절차</h1>
         <p>현재 상태에 맞는 한 가지 다음 행동만 보여드립니다.</p>
       </header>
@@ -124,8 +123,8 @@ export default function GatePage() {
         <section className="status-panel" aria-labelledby="process-title">
           <h2 id="process-title">절차</h2>
           <ol className="process-list">
-            <li>1. 입장 신청</li>
-            <li>2. 검토 대기</li>
+            <li>1. 계정 만들기</li>
+            <li>2. 입장 신청</li>
             <li>3. 멤버 입장</li>
           </ol>
         </section>

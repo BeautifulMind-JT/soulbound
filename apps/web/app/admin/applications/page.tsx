@@ -191,7 +191,6 @@ export default function ReviewQueuePage() {
   return (
     <main className="page-main">
       <AppBar
-        eyebrow="Review operations"
         title="입장 신청 검토"
         description="상태별 신청을 확인하고 상세 검토로 이동합니다."
       />

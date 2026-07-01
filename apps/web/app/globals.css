@@ -100,7 +100,7 @@ a {
   gap: 10px;
   color: var(--ink);
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .brand-seal {
@@ -113,7 +113,7 @@ a {
   background: var(--accent-weak);
   color: var(--accent-text);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .site-nav {
@@ -186,7 +186,7 @@ a {
 .hero h1 {
   margin: 0;
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.2;
 }
 
@@ -241,7 +241,7 @@ a {
 .auth-panel h1 {
   margin: 0;
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.2;
 }
 
@@ -334,7 +334,7 @@ a {
   border: 1px solid transparent;
   border-radius: 10px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .button {
@@ -344,8 +344,8 @@ a {
 }
 
 .button:hover {
-  border-color: #2a2a2a;
-  background: #2a2a2a;
+  border-color: var(--ink);
+  background: var(--ink);
 }
 
 .button-secondary {
@@ -399,7 +399,7 @@ a {
 .gate-status h2 {
   margin: 0 0 8px;
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .gate-status p:not(.loading-line) {
@@ -411,7 +411,7 @@ a {
 .status-panel h2 {
   margin: 0 0 8px;
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .status-panel > p:not(.loading-line),
@@ -458,7 +458,7 @@ a {
   background: var(--accent-weak);
   color: var(--accent-text);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .status-details {

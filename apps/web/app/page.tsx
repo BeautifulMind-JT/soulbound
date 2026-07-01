@@ -14,7 +14,7 @@ export default function LandingPage() {
           <h1>SoulBound</h1>
           <p className="hero-lede">
             신뢰가 확인된 사람만 들어오는 비공개 멤버 공간.
-            가입하고, 입장을 신청하고, 멤버와 대화하세요.
+            가입하고, 입장을 신청하고, 멤버들과 게시판에서 이야기합니다.
           </p>
           <div className="hero-actions">
             {!loading && session ? (
@@ -29,13 +29,13 @@ export default function LandingPage() {
         </div>
         <ol className="landing-steps" aria-label="입장 순서">
           <li>
-            계정을 만들고 메일을 확인합니다.
+            아이디와 비밀번호로 계정을 만듭니다.
           </li>
           <li>
             짧은 입장 신청을 보냅니다.
           </li>
           <li>
-            승인 후 멤버, 대화, 더보기를 사용합니다.
+            승인 후 멤버 명부, 입장 투표, 게시판을 사용합니다.
           </li>
         </ol>
       </section>

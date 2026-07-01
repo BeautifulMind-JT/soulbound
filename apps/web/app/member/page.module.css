@@ -33,7 +33,7 @@
 .phoneTop span:first-child {
   color: var(--ink);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .tabPanels {
@@ -132,7 +132,7 @@
   display: block;
   width: 100%;
   max-height: 320px;
-  background: #101418;
+  background: var(--ink);
 }
 
 .boardList {
@@ -210,7 +210,7 @@
 .commentItem > div:first-child p {
   color: var(--ink);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .boardDetailHeader span,

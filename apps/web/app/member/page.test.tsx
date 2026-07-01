@@ -173,7 +173,7 @@ describe("MemberPage", () => {
       "SOUL 잔액 · 스테이킹 · 원장",
       "지갑 연결",
       "신고 · 모더레이션",
-      "Support / Challenge (stake review)",
+      "지원 / 이의 제기",
       "심사 권한",
       "프라이버시 / 데이터 보관 정책",
       "E2EE 보안 설명",

@@ -8,7 +8,7 @@ import { TabBar } from "./tab-bar";
 describe("TabBar", () => {
   afterEach(() => cleanup());
 
-  it("renders icon-only tabs with accessible labels", () => {
+  it("renders visible labels and keeps accessible tab names", () => {
     const onChange = vi.fn();
 
     render(
@@ -18,15 +18,21 @@ describe("TabBar", () => {
         onChange={onChange}
         items={[
           { id: "members", label: "멤버", icon: <span>M</span> },
-          { id: "chats", label: "대화", icon: <span>C</span> },
+          { id: "votes", label: "투표", icon: <span>V</span> },
+          { id: "board", label: "게시판", icon: <span>B</span> },
           { id: "more", label: "더보기", icon: <span>O</span> },
         ]}
       />,
     );
 
     const members = screen.getByRole("tab", { name: "멤버" });
-    expect(members.textContent).toBe("M");
+    expect(members.textContent).toContain("M");
+    expect(members.textContent).toContain("멤버");
     expect(members.getAttribute("aria-selected")).toBe("true");
+    expect(
+      screen.getByRole("tablist", { name: "멤버 탐색" })
+        .getAttribute("style"),
+    ).toContain("--tab-count: 4");
 
     fireEvent.click(screen.getByRole("tab", { name: "더보기" }));
     expect(onChange).toHaveBeenCalledWith("more");

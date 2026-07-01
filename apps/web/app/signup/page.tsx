@@ -27,7 +27,7 @@ export default function SignupPage() {
       router.push("/gate");
     } catch {
       setIsError(true);
-      setMessage("username 또는 비밀번호를 확인해 주세요.");
+      setMessage("아이디 또는 비밀번호를 확인해 주세요.");
     } finally {
       setSubmitting(false);
     }
@@ -37,10 +37,10 @@ export default function SignupPage() {
     <main className="page-main narrow-main">
       <section className="auth-panel" aria-labelledby="signup-title">
         <h1 id="signup-title">가입하기</h1>
-        <p>username과 비밀번호를 저장해 주세요. 복구는 제공하지 않습니다.</p>
+        <p>아이디와 비밀번호를 저장해 주세요. 복구는 제공하지 않습니다.</p>
         <form className="form-grid" onSubmit={handleSubmit}>
           <div className="field">
-            <label htmlFor="signup-username">username</label>
+            <label htmlFor="signup-username">아이디</label>
             <input
               id="signup-username"
               name="username"
@@ -49,6 +49,7 @@ export default function SignupPage() {
               pattern="[a-z0-9][a-z0-9_-]{2,23}"
               required
             />
+            <small>소문자·숫자·-·_ 3~24자</small>
           </div>
           <div className="field">
             <label htmlFor="signup-password">비밀번호</label>
@@ -60,6 +61,7 @@ export default function SignupPage() {
               minLength={6}
               required
             />
+            <small>6자 이상</small>
           </div>
           {message ? (
             <p
@@ -73,7 +75,7 @@ export default function SignupPage() {
             <button className="button" type="submit" disabled={submitting}>
               {submitting ? "가입 중" : "가입하기"}
             </button>
-            <Link className="quiet-link" href="/login">이미 계정이 있어요</Link>
+            <Link className="quiet-link" href="/login">이미 계정이 있습니다</Link>
           </div>
         </form>
       </section>

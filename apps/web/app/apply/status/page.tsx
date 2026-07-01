@@ -20,7 +20,7 @@ const statusLabel: Record<AdmissionStatus, string> = {
   under_review: "검토 중",
   needs_more_info: "추가 정보 필요",
   approved: "승인됨",
-  rejected: "거절됨",
+  rejected: "거부됨",
   withdrawn: "철회됨",
   expired: "만료됨",
 };
@@ -104,7 +104,6 @@ export default function ApplicationStatusPage() {
   return (
     <main className="page-main narrow-main">
       <header className="page-heading">
-        <p className="eyebrow">Status</p>
         <h1>내 신청 현황</h1>
       </header>
 
@@ -130,18 +129,14 @@ export default function ApplicationStatusPage() {
             <span className="status-badge">
               {applicantStatusLabel(application.status)}
             </span>
-            <dl className="status-details">
-              <div>
-                <dt>신청 상태</dt>
-                <dd>{applicantStatusLabel(application.status)}</dd>
-              </div>
-              {application.applicantNotice ? (
+            {application.applicantNotice ? (
+              <dl className="status-details">
                 <div>
                   <dt>검토자 안내</dt>
                   <dd className="prose-text">{application.applicantNotice}</dd>
                 </div>
-              ) : null}
-            </dl>
+              </dl>
+            ) : null}
           </>
         ) : null}
       </section>

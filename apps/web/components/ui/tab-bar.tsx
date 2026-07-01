@@ -31,6 +31,7 @@ export function TabBar<T extends string>({
       className={styles.tabBar}
       data-orientation={orientation}
       role="tablist"
+      style={{ "--tab-count": items.length } as React.CSSProperties}
     >
       {items.map((item) => (
         <button
@@ -43,6 +44,7 @@ export function TabBar<T extends string>({
           type="button"
         >
           {item.icon ? <span aria-hidden="true">{item.icon}</span> : null}
+          <span className={styles.tabLabel}>{item.label}</span>
         </button>
       ))}
     </nav>

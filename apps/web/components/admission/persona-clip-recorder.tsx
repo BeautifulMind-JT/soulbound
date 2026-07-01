@@ -16,19 +16,19 @@ export type PersonaClipRecorderProps = {
 const buttonStyle = {
   minHeight: 40,
   padding: "0 16px",
-  border: "1px solid #a8b0b9",
-  borderRadius: 6,
-  background: "#ffffff",
-  color: "#1b2027",
+  border: "1px solid var(--line-strong)",
+  borderRadius: 10,
+  background: "var(--surface)",
+  color: "var(--ink)",
   font: "inherit",
   cursor: "pointer",
 } as const;
 
 const primaryButtonStyle = {
   ...buttonStyle,
-  borderColor: "#17684f",
-  background: "#17684f",
-  color: "#ffffff",
+  borderColor: "var(--ink)",
+  background: "var(--ink)",
+  color: "var(--surface)",
 } as const;
 
 export function PersonaClipRecorder({
@@ -76,7 +76,7 @@ export function PersonaClipRecorder({
         gap: 16,
         width: "100%",
         maxWidth: 560,
-        color: "#1b2027",
+        color: "var(--ink)",
       }}
     >
       <div>
@@ -86,7 +86,7 @@ export function PersonaClipRecorder({
         >
           Persona Clip
         </h2>
-        <p style={{ margin: "4px 0 0", color: "#5d6672", fontSize: 14 }}>
+        <p style={{ margin: "4px 0 0", color: "var(--muted)", fontSize: 14 }}>
           선택 사항
         </p>
       </div>
@@ -104,7 +104,7 @@ export function PersonaClipRecorder({
               width: "100%",
               aspectRatio: "4 / 3",
               borderRadius: 8,
-              background: "#101418",
+              background: "var(--ink)",
               objectFit: "cover",
             }}
           />
@@ -131,7 +131,7 @@ export function PersonaClipRecorder({
 
       {status === "requesting" ? (
         <div style={{ display: "grid", gap: 12 }}>
-          <p role="status" style={{ margin: 0, color: "#5d6672" }}>
+          <p role="status" style={{ margin: 0, color: "var(--muted)" }}>
             카메라 권한을 확인하는 중입니다.
           </p>
           <div>
@@ -150,7 +150,7 @@ export function PersonaClipRecorder({
       ) : null}
 
       {status === "done" ? (
-        <p role="status" style={{ margin: 0, color: "#17684f" }}>
+        <p role="status" style={{ margin: 0, color: "var(--success)" }}>
           Persona Clip이 준비되었습니다.
         </p>
       ) : null}
@@ -170,7 +170,7 @@ export function PersonaClipRecorder({
 
       {status === "error" ? (
         <div style={{ display: "grid", gap: 12 }}>
-          <p role="alert" style={{ margin: 0, color: "#9f2d24" }}>
+          <p role="alert" style={{ margin: 0, color: "var(--danger)" }}>
             {errorMessage}
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -189,7 +189,7 @@ export function PersonaClipRecorder({
       ) : null}
 
       {status === "skipped" ? (
-        <p role="status" style={{ margin: 0, color: "#5d6672" }}>
+        <p role="status" style={{ margin: 0, color: "var(--muted)" }}>
           Persona Clip 없이 계속합니다.
         </p>
       ) : null}

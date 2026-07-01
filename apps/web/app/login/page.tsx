@@ -49,7 +49,7 @@ export default function LoginPage() {
         router.push("/gate");
       }
     } catch {
-      setErrorMessage("username 또는 비밀번호를 확인해 주세요.");
+      setErrorMessage("아이디 또는 비밀번호를 확인해 주세요.");
     } finally {
       setSubmitting(false);
     }
@@ -59,10 +59,10 @@ export default function LoginPage() {
     <main className="page-main narrow-main">
       <section className="auth-panel" aria-labelledby="login-title">
         <h1 id="login-title">로그인</h1>
-        <p>username과 비밀번호로 돌아옵니다. 복구는 제공하지 않습니다.</p>
+        <p>아이디와 비밀번호로 돌아옵니다. 복구는 제공하지 않습니다.</p>
         <form className="form-grid" onSubmit={handleSubmit}>
           <div className="field">
-            <label htmlFor="login-username">username</label>
+            <label htmlFor="login-username">아이디</label>
             <input
               id="login-username"
               name="username"

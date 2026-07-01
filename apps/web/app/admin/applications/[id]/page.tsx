@@ -250,6 +250,8 @@ export default function ReviewDetailPage() {
   const [actionMessage, setActionMessage] = useState("");
   const [clipUrl, setClipUrl] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [pendingOverride, setPendingOverride] =
+    useState<"approved" | "rejected" | null>(null);
 
   const loadApplication = useCallback(async (signal?: AbortSignal) => {
     setErrorMessage("");
@@ -307,6 +309,7 @@ export default function ReviewDetailPage() {
   ) {
     setBusyAction(action);
     setActionMessage("");
+    setPendingOverride(null);
     try {
       const response = await authedFetch(
         `/api/admin/applications/${encodeURIComponent(applicationId)}/${action}`,
@@ -388,6 +391,20 @@ export default function ReviewDetailPage() {
     }
   }
 
+  function confirmOverride(decision: "approved" | "rejected") {
+    if (pendingOverride !== decision) {
+      setPendingOverride(decision);
+      setActionMessage(
+        decision === "approved"
+          ? "승인 재정의를 실행하시겠습니까? 다시 누르면 실행합니다."
+          : "거부 재정의를 실행하시겠습니까? 다시 누르면 실행합니다.",
+      );
+      return;
+    }
+
+    void runAction("vote/override", { decision });
+  }
+
   if (permissionDenied) {
     return (
       <main className="page-main narrow-main">
@@ -403,7 +420,6 @@ export default function ReviewDetailPage() {
   return (
     <main className="page-main">
       <AppBar
-        eyebrow="Application review"
         title="신청 상세"
         description={applicationId}
         action={(
@@ -431,7 +447,7 @@ export default function ReviewDetailPage() {
         <div className={styles.detailGrid}>
           <Section
             className={styles.dossierSection}
-            title="심사 dossier"
+            title="심사 자료"
             description="심사에 필요한 신청 자료만 먼저 확인합니다."
           >
             <dl className={styles.detailList}>
@@ -444,7 +460,7 @@ export default function ReviewDetailPage() {
                 </dd>
               </div>
               <div>
-                <dt>신청자 username</dt>
+                <dt>신청자 아이디</dt>
                 <dd>{application.applicantUsername ?? "확인 불가"}</dd>
               </div>
               <div>
@@ -492,7 +508,7 @@ export default function ReviewDetailPage() {
                 </div>
                 {application.reviewerId ? (
                   <div>
-                    <dt>검토자 username</dt>
+                    <dt>검토자 아이디</dt>
                     <dd>{application.reviewerUsername ?? "확인 불가"}</dd>
                   </div>
                 ) : null}
@@ -562,7 +578,7 @@ export default function ReviewDetailPage() {
             <Section
               className={styles.actionSection}
               title="멤버 투표"
-              description="active 멤버에게 신청 자료를 열고 비밀투표를 시작합니다."
+              description="활동 멤버에게 신청 자료를 열고 비밀투표를 시작합니다."
             >
               <Button
                 type="button"
@@ -581,7 +597,7 @@ export default function ReviewDetailPage() {
             <Section
               className={styles.actionSection}
               title="투표 확정"
-              description="멤버 투표 집계를 binding decision으로 확정합니다. 운영자 override는 admin만 가능합니다."
+              description="멤버 투표 결과로 확정합니다. 운영자만 재정의할 수 있습니다."
             >
               <div className={styles.actionRow}>
                 <Button
@@ -595,19 +611,17 @@ export default function ReviewDetailPage() {
                   type="button"
                   tone="secondary"
                   disabled={busyAction !== null}
-                  onClick={() =>
-                    void runAction("vote/override", { decision: "approved" })}
+                  onClick={() => confirmOverride("approved")}
                 >
-                  승인 override
+                  {pendingOverride === "approved" ? "다시 눌러 승인 재정의" : "승인 재정의"}
                 </Button>
                 <Button
                   type="button"
                   tone="danger"
                   disabled={busyAction !== null}
-                  onClick={() =>
-                    void runAction("vote/override", { decision: "rejected" })}
+                  onClick={() => confirmOverride("rejected")}
                 >
-                  거절 override
+                  {pendingOverride === "rejected" ? "다시 눌러 거부 재정의" : "거부 재정의"}
                 </Button>
               </div>
             </Section>
@@ -617,7 +631,7 @@ export default function ReviewDetailPage() {
             <Section
               className={styles.actionSection}
               title="검토 결정"
-              description="결정 종류를 고르면 가능한 사유 코드만 표시됩니다."
+              description="멤버 투표를 열지 않고 검토자가 직접 결정할 때 사용합니다."
             >
               <DecisionPanel
                 busy={busyAction !== null}

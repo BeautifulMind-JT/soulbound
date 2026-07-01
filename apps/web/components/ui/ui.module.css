@@ -14,7 +14,7 @@
   margin: 0;
   color: var(--ink);
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.2;
 }
 
@@ -75,7 +75,7 @@
   margin: 0;
   color: var(--ink);
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.2;
 }
 
@@ -153,7 +153,7 @@
   border: 1px solid transparent;
   border-radius: 12px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .avatar-brand {
@@ -170,7 +170,7 @@
 
 .avatar-success {
   border-color: rgba(61, 154, 109, 0.28);
-  background: #e8f4ee;
+  background: color-mix(in srgb, var(--success) 12%, var(--surface));
   color: var(--success);
 }
 
@@ -195,7 +195,7 @@
 
 .badge-success {
   border-color: rgba(61, 154, 109, 0.26);
-  background: #e8f4ee;
+  background: color-mix(in srgb, var(--success) 12%, var(--surface));
   color: var(--success);
 }
 
@@ -207,7 +207,7 @@
 
 .badge-danger {
   border-color: rgba(192, 57, 43, 0.24);
-  background: #fae8e5;
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface));
   color: var(--danger);
 }
 
@@ -220,7 +220,7 @@
   border: 1px solid transparent;
   border-radius: 10px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1;
   transition:
     background-color 140ms ease,
@@ -240,8 +240,8 @@
 }
 
 .button-primary:hover {
-  border-color: #2a2a2a;
-  background: #2a2a2a;
+  border-color: var(--ink);
+  background: var(--ink);
 }
 
 .button-secondary {
@@ -251,8 +251,8 @@
 }
 
 .button-secondary:hover {
-  border-color: #2a2a2a;
-  color: #2a2a2a;
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
 .button-danger {
@@ -305,15 +305,19 @@
 
 .tabBar {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  min-height: 58px;
+  grid-template-columns: repeat(var(--tab-count, 3), minmax(0, 1fr));
+  min-height: 64px;
   border-top: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.92);
 }
 
 .tabBar button {
-  display: inline-grid;
-  place-items: center;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
   border: 0;
   border-right: 1px solid var(--line-soft);
   background: transparent;
@@ -327,10 +331,20 @@
 
 .tabBar button > span:first-child {
   display: inline-grid;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   place-items: center;
   border-radius: 999px;
+}
+
+.tabLabel {
+  overflow: hidden;
+  max-width: 100%;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tabActive {

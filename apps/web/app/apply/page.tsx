@@ -94,7 +94,6 @@ export default function ApplyPage() {
   return (
     <main className="page-main">
       <header className="page-heading">
-        <p className="eyebrow">Apply</p>
         <h1>입장 신청</h1>
         <p>
           제출 정보는 심사 동안만 보관하고, 승인 또는 거부 즉시 파쇄합니다.

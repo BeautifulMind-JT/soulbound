@@ -218,7 +218,7 @@ const disabledMoreGroups: readonly {
     rows: [
       { label: "신고 · 모더레이션", description: "문제 상황을 안전하게 알리기" },
       {
-        label: "Support / Challenge (stake review)",
+        label: "지원 / 이의 제기",
         description: "스테이크 기반 이의 제기와 지원",
       },
       {
@@ -235,7 +235,7 @@ const disabledMoreGroups: readonly {
         label: "프라이버시 / 데이터 보관 정책",
         description: "개인정보와 보관 기준 확인",
       },
-      { label: "E2EE 보안 설명", description: "대화 보안 구조 안내" },
+      { label: "E2EE 보안 설명", description: "보안 구조 안내" },
       { label: "설정 (계정/화면)", description: "계정과 화면 설정" },
     ],
   },
@@ -248,8 +248,8 @@ const appInfo: readonly {
 }[] = [
   {
     label: "앱 정보 / 버전",
-    description: "Pre-alpha staging shell",
-    badge: "pre-alpha",
+    description: "프리알파 스테이징 셸",
+    badge: "프리알파",
   },
 ];
 
@@ -261,6 +261,20 @@ function formatDate(value: string): string {
 
 function memberMark(memberNumber: number | null): string {
   return memberNumber === null ? "N" : String(memberNumber);
+}
+
+function formatCandidateToken(candidateToken: string): string {
+  return `신청 #${candidateToken.replace(/^candidate-/, "")}`;
+}
+
+function voteOutcomeLabel(outcome: AdmissionVoteDetail["outcome"]): string | null {
+  if (outcome === "approved") {
+    return "가결";
+  }
+  if (outcome === "rejected") {
+    return "부결";
+  }
+  return null;
 }
 
 function DisabledMoreRow({
@@ -301,6 +315,7 @@ export default function MemberPage() {
   const [voteDetail, setVoteDetail] = useState<AdmissionVoteDetail | null>(null);
   const [voteDetailLoading, setVoteDetailLoading] = useState(false);
   const [voteActionError, setVoteActionError] = useState("");
+  const [voteActionMessage, setVoteActionMessage] = useState("");
   const [voteSubmitting, setVoteSubmitting] = useState<"yes" | "no" | null>(null);
   const [voteClipUrl, setVoteClipUrl] = useState<string | null>(null);
   const [board, setBoard] = useState<BoardListResponse | null>(null);
@@ -431,6 +446,7 @@ export default function MemberPage() {
     setSelectedVoteId(voteId);
     setVoteDetailLoading(true);
     setVoteActionError("");
+    setVoteActionMessage("");
     setVoteClipUrl(null);
 
     try {
@@ -466,6 +482,7 @@ export default function MemberPage() {
 
     setVoteSubmitting(choice);
     setVoteActionError("");
+    setVoteActionMessage("");
     try {
       const response = await authedFetch(
         `/api/vote/applications/${voteDetail.id}/cast`,
@@ -494,6 +511,7 @@ export default function MemberPage() {
       }
 
       setVoteDetail(await readJson<AdmissionVoteDetail>(response));
+      setVoteActionMessage("투표가 접수되었습니다. 선택은 공개되지 않습니다.");
       await loadVotes();
     } catch (error) {
       if (error instanceof UnauthenticatedError) {
@@ -842,7 +860,7 @@ export default function MemberPage() {
       <main className="page-main narrow-main">
         <div className={styles.notMember}>
           <h2>멤버 전용 공간입니다.</h2>
-          <p>입장이 확인되면 멤버 명부와 대화를 사용할 수 있습니다.</p>
+          <p>입장이 확인되면 멤버 명부와 게시판을 사용할 수 있습니다.</p>
         </div>
       </main>
     );
@@ -870,7 +888,7 @@ export default function MemberPage() {
                 <ListRow
                   leading={<Avatar label={memberMark(myMemberNumber)} />}
                   title={myLabel}
-                  description="복구 가능한 실명·이메일·프로필을 보관하지 않습니다."
+                  description="복구 가능한 개인 식별 정보를 보관하지 않습니다."
                   meta={`입장일 ${formatDate(membership.issuedAt)}`}
                 />
               </Section>
@@ -963,7 +981,7 @@ export default function MemberPage() {
                           type="button"
                         >
                           <span className={styles.boardPostMeta}>
-                            {vote.candidateToken} · 마감 {formatDate(vote.windowEndsAt)}
+                            {formatCandidateToken(vote.candidateToken)} · 마감 {formatDate(vote.windowEndsAt)}
                           </span>
                           <span className={styles.boardPostBody}>
                             {vote.applicantStatement ?? "신청 자료는 결정 후 삭제됩니다."}
@@ -990,6 +1008,11 @@ export default function MemberPage() {
               {voteActionError ? (
                 <p className="form-message" role="alert">{voteActionError}</p>
               ) : null}
+              {voteActionMessage ? (
+                <p className="success-message" role="status">
+                  {voteActionMessage}
+                </p>
+              ) : null}
 
               {selectedVoteId ? (
                 <Section title="투표 상세">
@@ -1000,7 +1023,7 @@ export default function MemberPage() {
                     <div className={styles.boardDetail}>
                       <div className={styles.boardDetailHeader}>
                         <div>
-                          <p>{voteDetail.candidateToken}</p>
+                          <p>{formatCandidateToken(voteDetail.candidateToken)}</p>
                           <span>마감 {formatDate(voteDetail.windowEndsAt)}</span>
                         </div>
                         {voteDetail.hasVoted ? (
@@ -1038,7 +1061,7 @@ export default function MemberPage() {
                           onClick={() => void castAdmissionVote("yes")}
                           type="button"
                         >
-                          {voteSubmitting === "yes" ? "반영 중" : "YES"}
+                          {voteSubmitting === "yes" ? "반영 중" : "찬성"}
                         </Button>
                         <Button
                           disabled={voteDetail.hasVoted || voteSubmitting !== null}
@@ -1046,12 +1069,15 @@ export default function MemberPage() {
                           tone="secondary"
                           type="button"
                         >
-                          {voteSubmitting === "no" ? "반영 중" : "NO"}
+                          {voteSubmitting === "no" ? "반영 중" : "반대"}
                         </Button>
                       </div>
                       {voteDetail.status !== "open" ? (
                         <p className={styles.boardPostMeta}>
-                          결과: YES {voteDetail.yesCount} · NO {voteDetail.noCount}
+                          결과: 찬성 {voteDetail.yesCount} · 반대 {voteDetail.noCount}
+                          {voteOutcomeLabel(voteDetail.outcome)
+                            ? ` · ${voteOutcomeLabel(voteDetail.outcome)}`
+                            : ""}
                         </p>
                       ) : null}
                     </div>
