@@ -256,6 +256,16 @@ finalize 후 신규 발급 0(기발급 즉시 revoke는 과대주장 안 함). *
 정직한 알파 flag: stake/SOUL 비용 없는 1인1표라 faction capture 비용이 낮음, 정족수 없음(default-deny tie), live turnout은 운영자 보유
 (선택은 분리/purge). tag/RC/alpha 보류.
 
+추가 갱신(2026-07-01, Interface Polish — 전체 UI 카피/탭/게이트 정리): `cb05b00`(fix(web): polish interface copy and
+tab navigation) = **Cowork Step-5 FINAL PASS, pushed**. 설계 brief `docs/INTERFACE_POLISH_BRIEF.md`(`319093e`) → Codex Step-2 →
+Cowork Step-3 승인 → Step-4 → Step-5 독립감사. surface-only fast loop, builder≠approver. **변경**: TabBar 3열 하드코딩 제거
+(`--tab-count` 동적 컬럼) + visible label로 웹 4탭 노출 정상화(토글/웹 nav B 펜딩 종료), home/signup/login/gate/apply/status/member/admin
+카피를 anonymous identity + member-N + 게시판/투표 모델에 맞게 정리, `YES/NO`→`찬성/반대`, admin override 2-step 확인, Persona Clip
+recorder/install prompt 토큰/weight 정리. **게이트**: uppercase 0, CSS `font-weight` 6xx~9xx 0, `fonts.ts` weight `"400 500"`,
+거짓 이메일/chat 약속 0, 신청자 `in_vote`는 "검토 중" 유지, member-facing username/email/persona/uuid 노출 0(member-N만). **경계 0-diff**:
+`apps/web/app/api`·core·adapters·supabase·auth-provider·PWA/manifest·package-lock. Host-independent gate: web typecheck, web test 76/76,
+workspace typecheck, build, audit.sh, diff-check PASS. tag/RC/alpha 보류.
+
 ---
 
 ## 0. 한 줄 요약
