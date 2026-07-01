@@ -236,6 +236,26 @@ web integration 8/8·adapters 5/5). 수정된 기존 pgTAP/test는 0010 username
 0011 board_posts/comments에 컬럼-무지정 `grant insert`가 컬럼별 grant 중복(dormant 컬럼 세팅 가능하나 content_hash는 트리거가 덮고
 나머지 dormant·RLS 행게이트라 익스플로잇 0) — 다음에 `grant insert (author_id, body)`로 정리 권장. tag/RC/alpha 보류.
 
+추가 갱신(2026-07-01, Admission Voting — 멤버가 입장을 결정): `007feba`(feat: add anonymous member admission voting)
+= **Cowork Step-5 FINAL PASS, pushed**. 설계 brief `docs/ADMISSION_VOTING_BRIEF.md`(`be2abcb`) → Codex Step-2 →
+Cowork Step-3 조건부(C1 `in_vote` applicant-facing 비누출·C2 system actor·C3 cast=auth.uid/short-TTL clip·C4 secret graph/frozen
+delegation/host 5x) → Step-4 → Step-5 독립감사. builder≠approver. 제품 thesis: **익명 가입(username) → 신청(자기소개+Persona Clip)
+→ active 멤버 비밀투표(YES>NO admit, tie/0-0 reject) → frozen approve/reject 위임 → member-N → 게시판**. 즉 SoulBound의 입장을
+운영자가 아니라 멤버가 결정하는 첫 binding 메커니즘. **변경**: ① `0012_admission_voting.sql` additive(status CHECK에 DB-only `in_vote`,
+single-active index 포함, `admission_votes`/turnout/ballot/clip-access tables, vote RPC/read RPC) ② 멤버 "투표" 탭 + vote routes
+③ admin open/finalize/override routes/UI ④ applicant status label 매핑(`in_vote`→"검토 중"). **frozen-safe**: 0001-0011·0004·frozen
+core admission/service/repo/test·auth-provider·Persona Clip storage/reaper·PWA·package-lock 0-diff; core `AdmissionStatus` enum 미편집.
+**C1**: `in_vote`는 applicant-facing에 투표 substage로 새지 않고 "검토 중"으로 표시. **C2**: 고정 UUID system finalizer actor
+(random password hash, 로그인 불가, `member_number=null`)로 FK 충족·member-facing 제외. **secret graph fix**: turnout은
+`voter_id`만(choice 없음), ballot은 choice만(`voter_id` 없음), finalize/override 후 ballot purge; audit/events는 결정 사실+집계만,
+개별 ballot 0. **finalize/override**: `in_vote→under_review` 후 frozen `approve_application_tx`/`reject_application_tx` 위임
+(membership/member-N/dossier shred 인라인 0). **no-leak**: vote read RPC/routes 반환은 opaque candidate token + statement + clip flag/counts뿐;
+username/applicant_id/member_number/reviewSummary/role/email/wallet 0. **clip**: open vote active member에게만 short-TTL signed URL,
+finalize 후 신규 발급 0(기발급 즉시 revoke는 과대주장 안 함). **Host**: core 20/20·adapters 23/23·web 75/75·typecheck/build/audit.sh,
+`supabase test db` 134/134, **5x+reset GREEN**(매회 db reset → pgTAP 134/134 → web integration 9/9 → adapters integration 5/5).
+정직한 알파 flag: stake/SOUL 비용 없는 1인1표라 faction capture 비용이 낮음, 정족수 없음(default-deny tie), live turnout은 운영자 보유
+(선택은 분리/purge). tag/RC/alpha 보류.
+
 ---
 
 ## 0. 한 줄 요약
