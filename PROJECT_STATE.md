@@ -296,12 +296,16 @@ trust-first, 입장심사 기반 비공개 메신저(SoulBound) Phase 1 MVP를, 
 > 전 레이어(표면+보안) 빌드, GLM/Claude Code는 빌더 은퇴(미사용).** 레이어 위험도는 이제 *감사 깊이*만 좌우
 > (표면=fast loop, 보안=full loop). 불변식(최종 승인자 ≠ 짠/보수한 주체)은 **Codex 빌드 → Opus/Cowork 최종**으로 보존.
 > HARD RULES는 CLAUDE.md/.clinerules/AGENTS.md/이 문서 네 곳을 함께 갱신(드리프트 금지, §6).
+> **2026-07-02 개정(JT 승인): 커밋/푸시/디플로이 = Codex(빌더 세션), Cowork FINAL PASS 후에만. Cowork는
+> 커밋하지 않는다. 루프 = 설계(Cowork)→계획(Codex)→계획검토·보충(Cowork)→빌드(Codex)→검토(Cowork)→
+> 수정(Codex)→최종검토(Cowork)→커밋/푸시/디플로이(Codex). (WORKFLOW §4/§7)**
 
 ```text
 [0] Architect/Auditor  설계 동결 + 최종 의미감사   ← Cowork 한 세션 OR 채팅 (단, 하나로 고정)
 [1] Builder            Codex (전 레이어, 06-05 개정)  ← 코드를 짠다 (GLM/Claude Code 은퇴)
 [2] First-pass Auditor Codex                       ← read-only 기계감사 (AGENTS.md)
 [3] Final Auditor      = [0]                        ← 의미적 불변식 검증, 반려 시 [1]로
+[4] Ship               Codex (빌더 세션, 07-02 개정)  ← FINAL PASS 후 commit/push/deploy (was JT)
 ```
 
 철칙:

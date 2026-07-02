@@ -68,6 +68,9 @@ packages/core/vitest.config.ts
     approver of a change is never the actor that built or patched it; the builder never self-approves (final
     gate = Cowork/Opus, or a Codex session that did not build it). Preserved by Codex-builds → Opus/Cowork-finals.
     If GLM/Claude Code is reactivated, the §6 exception + the surface/security split apply again.
+    **As of 2026-07-02 (JT-approved): the loop is design(Cowork) → plan(Codex) → plan review/supplement(Cowork)
+    → build(Codex) → review(Cowork) → fix(Codex) → final review(Cowork) → commit/push/deploy(Codex, only
+    after the Cowork FINAL PASS; Cowork never commits).**
 
 ---
 

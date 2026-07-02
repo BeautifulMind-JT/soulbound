@@ -16,6 +16,14 @@
 > The load-bearing invariant (§2 — builder ≠ final approver) is preserved by **Codex builds → Opus/Cowork
 > finals**. If GLM/Claude Code is ever reactivated as a builder, the §6 exception protocol + the surface rules
 > below apply again.
+>
+> **AMENDMENT 2026-07-02 (JT-approved): Codex owns commit / push / deployment.** The loop is fixed as:
+> design (Cowork) → plan (Codex) → plan review & supplement (Cowork) → build (Codex) → review (Cowork) →
+> fix findings (Codex) → final review (Cowork) → **commit / push / deploy (Codex)**. Commit/push/deploy is
+> a *mechanical execution step* that runs **only after the Cowork FINAL PASS** — it is not approval, so §2
+> is preserved (Cowork approves and never commits; Codex commits only what Cowork approved). JT remains
+> exception authority and may still run host git when stepping in. Supersedes the former "JT sole commit
+> authority" clauses (§1, §4, §7 updated below).
 
 ---
 
@@ -24,9 +32,9 @@
 | Actor | Role | One line |
 |---|---|---|
 | **Cowork** | Architect / Final Auditor / Judge | Designs contract, invariants, Task prompts, acceptance gates; final semantic approval. Does **not** mass-implement. |
-| **Codex** | Builder (**all tiers** since 2026-06-05) *and* first-pass Auditor / precision repair | Builds surface + constitutional layers; or audits + surgically patches. Never builds **and** finally-approves the **same** change. |
+| **Codex** | Builder (**all tiers** since 2026-06-05) *and* first-pass Auditor / precision repair; **ships (commit/push/deploy) since 2026-07-02** | Builds surface + constitutional layers; or audits + surgically patches. Commits/pushes/deploys **only after the Cowork FINAL PASS**. Never builds **and** finally-approves the **same** change. |
 | **GLM / Claude Code** | Surface-layer Builder — **retired 2026-06-05** (not used) | Was: UI, boilerplate, repetitive edits, mechanical wiring. If reactivated, §6 exception + §3 surface rules apply. |
-| **JT** | Site lead / commit authority | Runs host commands; sole `git add/commit/push`. Approves exceptions. |
+| **JT** | Site lead / exception authority | Names tasks, approves exceptions and amendments; may run host commands. Commit/push/deploy moved to **Codex** 2026-07-02 (was: JT sole). |
 
 ---
 
@@ -74,28 +82,31 @@ primary builder here (bounded scaffolding / logs / command execution only).
 ### 4a. Standard loop — surface-layer tasks (fast path)
 ```
 [0] JT: name the Task
-[1] Cowork: Task prompt — scope, forbidden list, acceptance gates, expected failure points
-[2] Codex (Builder session): implement (this Task only; stop, do not advance)
-[3] Cowork — or a separate Codex session that did NOT build it: first-pass review (scope, regressions, typecheck/build/test, invariants)
-[4] Codex (Builder session): fix the findings
-[5] Cowork: final semantic review (independent — see §5; never the session that built it)
-[6] JT: commit / push
+[1] Cowork: design brief — scope, forbidden list, acceptance gates, expected failure points
+[2] Codex: implementation plan only (no build yet)
+[3] Cowork: plan review & supplement — approve before any build
+[4] Codex (Builder session): implement the approved plan (this Task only; stop, do not advance)
+[5] Cowork — or a separate Codex session that did NOT build it: review (scope, regressions, typecheck/build/test, invariants)
+[6] Codex (Builder session): fix the findings
+[7] Cowork: final review (independent — see §5; never the session that built it)
+[8] Codex: commit / push / deploy — only after [7] FINAL PASS (amended 2026-07-02; was JT)
 ```
 
 ### 4b. Full loop — security/constitutional-layer tasks
 ```
 [0] JT: name the Task
 [1] Cowork: Task prompt + invariants + acceptance gates
-[2] Codex (Builder session): implement the security layer
-[3] Codex (separate Auditor session) OR Cowork: first-pass audit
-[4] Codex (Patch): surgical patch of findings only — no design change, no scope creep
-[5] Cowork: final semantic review (independent — see §5); the builder/patcher does NOT approve here
-[6] Codex: repatch only Cowork's blocking findings
-[7] Cowork: final approval (PASS/FAIL)
-[8] JT: commit / push
+[2] Codex: implementation plan; Cowork reviews & supplements it before build
+[3] Codex (Builder session): implement the security layer
+[4] Codex (separate Auditor session) OR Cowork: first-pass audit
+[5] Codex (Patch): surgical patch of findings only — no design change, no scope creep
+[6] Cowork: final semantic review (independent — see §5); the builder/patcher does NOT approve here
+[7] Codex: repatch only Cowork's blocking findings
+[8] Cowork: final approval (PASS/FAIL)
+[9] Codex: commit / push / deploy — only after [8] PASS (amended 2026-07-02; was JT)
 ```
 
-Proportionality: do not run the full 7-hop loop on low-risk surface work; do not shortcut it on the
+Proportionality: do not run the full loop on low-risk surface work; do not shortcut it on the
 security layer.
 
 ---
@@ -131,13 +142,18 @@ builds all tiers) rather than re-invoked per task. When an "exception" stops bei
 
 ---
 
-## 7. Commits (JT only, on host)
+## 7. Commits / push / deploy (Codex, after Cowork FINAL PASS — amended 2026-07-02)
 
 - Builder/audit/patch commits are **separated** for a clean audit trail:
   - implementation: `feat(...): implement Task N ...`
   - audit-finding repair: `fix(...): address Task N audit findings`
   - audit evidence/decision: `docs: record Task N audit pass`
-- JT is the sole commit authority; sandbox agents never `git add/commit/push`.
+- **Codex (builder session) executes `git add/commit/push` and deployments — only after the Cowork FINAL
+  PASS on that exact change.** Committing is mechanical execution of an approved change, not approval;
+  §2 stays intact because Cowork approves and never commits, and Codex commits only what Cowork approved.
+- Cowork and Codex *auditor* sessions never `git add/commit/push` (AGENTS.md read-only charter; sandbox
+  `.git` locks are also a documented failure — PROJECT_STATE §6).
+- JT: exception authority; may run host git when stepping in (tags, releases, recovery).
 - Repo identity: `soulbounddao-ADMIN`, not a personal identity.
 
 ---
