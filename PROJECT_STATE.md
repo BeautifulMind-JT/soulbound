@@ -266,6 +266,19 @@ recorder/install prompt 토큰/weight 정리. **게이트**: uppercase 0, CSS `f
 `apps/web/app/api`·core·adapters·supabase·auth-provider·PWA/manifest·package-lock. Host-independent gate: web typecheck, web test 76/76,
 workspace typecheck, build, audit.sh, diff-check PASS. tag/RC/alpha 보류.
 
+추가 갱신(2026-07-02, Interface Polish R2 — 다음 행동 안내/흐름 매끄러움): `35c0a90`(fix(web): polish interface flow,
+next-step guidance, and copy (round 2)) = **Cowork Step-5 FINAL PASS**. 설계 brief `docs/INTERFACE_POLISH_R2_BRIEF.md`(`c92e27d`)
+→ Codex Step-2 계획 → Cowork Step-3 조건부 승인(보완 3건: status 재시도·gate/status EmptyState 통일·제목 마침표 스윕)
+→ Step-4 빌드 → Step-5 독립감사(5관점 병렬 + 발견별 3인 반박 검증, 확정 4건 → 패치 라운드 후 표적 재감사 PASS).
+**변경**: status 상태별 next-action CTA(approved→gate "입장 절차 보기", 거부/만료/철회→재신청, needs_more_info는 검토자
+안내 유무로 분기), gate 현재 단계 `aria-current="step"`+CSS 카운터, 마감/재정의 투표에서 찬성/반대 버튼 숨김, 게시글/댓글
+2-step 삭제("다시 눌러 삭제"), 전 표면 fetch 에러 [다시 시도] + 투표/게시판 자동 재요청 무한루프 가드(`votesError`/`boardError`)
+수정, 파쇄→파기·승인 번호→멤버 번호·기록일→입장일·admin 표면 거부/거절 혼용 정리("거절 재정의"), E2EE/스테이징 셸 등
+더보기 카피 순화, EmptyState 상태 패턴 통일(loading-line 폐기), TabBar 중복 aria-label 제거. **게이트**: no-leak 유지
+(member-N만, 신청자 `in_vote`="검토 중", admin만 username), uppercase/신규 hex 0, font-weight 400/500 내. **경계 0-diff**:
+`apps/web/app/api`·core·adapters·supabase·PWA/manifest·package-lock. web typecheck, web test 90/90(+14 신규, 비약화),
+build, audit.sh, diff-check PASS. tag/RC/alpha 보류.
+
 ---
 
 ## 0. 한 줄 요약
