@@ -103,8 +103,10 @@ describe("ApplyPage", () => {
 
     expect(screen.queryByLabelText("추천 코드")).toBeNull();
     expect(screen.queryByLabelText("이 공간에 들어오려는 이유")).toBeNull();
+    expect(screen.getByText("한두 문장이면 충분합니다. 최대 1,200자."))
+      .toBeTruthy();
     fireEvent.change(
-      screen.getByLabelText("나를 설명하는 한 문장"),
+      screen.getByLabelText("자기소개"),
       { target: { value: "신뢰를 지키는 사람" } },
     );
     fireEvent.click(screen.getByRole("button", { name: "complete clip" }));

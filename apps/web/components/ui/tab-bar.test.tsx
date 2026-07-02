@@ -28,6 +28,7 @@ describe("TabBar", () => {
     const members = screen.getByRole("tab", { name: "멤버" });
     expect(members.textContent).toContain("M");
     expect(members.textContent).toContain("멤버");
+    expect(members.hasAttribute("aria-label")).toBe(false);
     expect(members.getAttribute("aria-selected")).toBe("true");
     expect(
       screen.getByRole("tablist", { name: "멤버 탐색" })

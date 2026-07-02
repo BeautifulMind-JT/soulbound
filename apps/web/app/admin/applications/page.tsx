@@ -236,7 +236,16 @@ export default function ReviewQueuePage() {
       ) : null}
 
       {errorMessage ? (
-        <p className="form-message" role="alert">{errorMessage}</p>
+        <div className="status-action-state" role="alert">
+          <EmptyState>{errorMessage}</EmptyState>
+          <Button
+            tone="secondary"
+            type="button"
+            onClick={() => void loadQueue(status)}
+          >
+            다시 시도
+          </Button>
+        </div>
       ) : null}
 
       {!permissionDenied && applications?.length === 0 ? (

@@ -6,7 +6,8 @@ import type {
 } from "@soulbound/core";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { EmptyState } from "../../../components/ui";
 import {
   UnauthenticatedError,
   useAuth,
@@ -35,12 +36,102 @@ function applicantStatusLabel(status: string): string {
   return statusLabel[status as AdmissionStatus] ?? "검토 중";
 }
 
+function statusNextStep(application: ApplicantApplicationView) {
+  if (application.status === "approved") {
+    return {
+      body: "입장이 승인되었습니다.",
+      href: "/gate",
+      label: "입장 절차 보기",
+    };
+  }
+
+  if (
+    application.status === "rejected"
+    || application.status === "expired"
+    || application.status === "withdrawn"
+  ) {
+    const body = application.status === "rejected"
+      ? "이번 신청은 거부되었습니다."
+      : application.status === "expired"
+        ? "이번 신청은 만료되었습니다."
+        : "이번 신청은 철회되었습니다.";
+    return {
+      body,
+      href: "/apply",
+      label: "새로 신청하기",
+    };
+  }
+
+  if (application.status === "needs_more_info") {
+    return {
+      body: application.applicantNotice
+        ? "검토자 안내를 확인하고 요청된 정보를 준비해 주세요."
+        : "추가 정보가 필요합니다. 검토자의 안내를 기다려 주세요.",
+      href: null,
+      label: null,
+    };
+  }
+
+  return {
+    body: "검토가 끝나면 이 화면에서 결과를 안내합니다.",
+    href: null,
+    label: null,
+  };
+}
+
 export default function ApplicationStatusPage() {
   const router = useRouter();
   const { session, loading, authedFetch } = useAuth();
   const [application, setApplication] =
     useState<ApplicantApplicationView | null | undefined>(undefined);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const loadApplication = useCallback(async (signal?: AbortSignal) => {
+    setErrorMessage("");
+    setApplication(undefined);
+    try {
+      const activeResponse = await authedFetch(
+        "/api/admission/applications/me",
+        signal ? { signal } : undefined,
+      );
+      if (activeResponse.status === 401) {
+        router.replace("/login");
+        return;
+      }
+      if (!activeResponse.ok) {
+        throw new Error("Unable to load application");
+      }
+
+      let nextApplication =
+        await readJson<ApplicantApplicationView | null>(activeResponse);
+      if (!nextApplication) {
+        const rememberedId = readRememberedApplicationId();
+        if (rememberedId) {
+          const detailResponse = await authedFetch(
+            `/api/admission/applications/${encodeURIComponent(rememberedId)}`,
+            signal ? { signal } : undefined,
+          );
+          if (detailResponse.status === 401) {
+            router.replace("/login");
+            return;
+          }
+          if (detailResponse.ok) {
+            nextApplication =
+              await readJson<ApplicantApplicationView>(detailResponse);
+          }
+        }
+      }
+      setApplication(nextApplication);
+    } catch (error) {
+      if (error instanceof UnauthenticatedError) {
+        router.replace("/login");
+      } else if (
+        !(error instanceof DOMException && error.name === "AbortError")
+      ) {
+        setErrorMessage("신청 현황을 불러오지 못했습니다.");
+      }
+    }
+  }, [authedFetch, router]);
 
   useEffect(() => {
     if (loading) {
@@ -52,54 +143,10 @@ export default function ApplicationStatusPage() {
     }
 
     const controller = new AbortController();
-    const loadApplication = async () => {
-      try {
-        const activeResponse = await authedFetch(
-          "/api/admission/applications/me",
-          { signal: controller.signal },
-        );
-        if (activeResponse.status === 401) {
-          router.replace("/login");
-          return;
-        }
-        if (!activeResponse.ok) {
-          throw new Error("Unable to load application");
-        }
-
-        let nextApplication =
-          await readJson<ApplicantApplicationView | null>(activeResponse);
-        if (!nextApplication) {
-          const rememberedId = readRememberedApplicationId();
-          if (rememberedId) {
-            const detailResponse = await authedFetch(
-              `/api/admission/applications/${encodeURIComponent(rememberedId)}`,
-              { signal: controller.signal },
-            );
-            if (detailResponse.status === 401) {
-              router.replace("/login");
-              return;
-            }
-            if (detailResponse.ok) {
-              nextApplication =
-                await readJson<ApplicantApplicationView>(detailResponse);
-            }
-          }
-        }
-        setApplication(nextApplication);
-      } catch (error) {
-        if (error instanceof UnauthenticatedError) {
-          router.replace("/login");
-        } else if (
-          !(error instanceof DOMException && error.name === "AbortError")
-        ) {
-          setErrorMessage("신청 현황을 불러오지 못했습니다.");
-        }
-      }
-    };
-
-    void loadApplication();
+    void loadApplication(controller.signal);
     return () => controller.abort();
-  }, [authedFetch, loading, router, session]);
+  }, [loadApplication, loading, router, session]);
+  const nextStep = application ? statusNextStep(application) : null;
 
   return (
     <main className="page-main narrow-main">
@@ -108,20 +155,30 @@ export default function ApplicationStatusPage() {
       </header>
 
       {errorMessage ? (
-        <p className="form-message" role="alert">{errorMessage}</p>
+        <div className="status-action-state" role="alert">
+          <EmptyState>{errorMessage}</EmptyState>
+          <button
+            className="button-secondary"
+            type="button"
+            onClick={() => void loadApplication()}
+          >
+            다시 시도
+          </button>
+        </div>
       ) : null}
 
       <section className="status-panel" aria-live="polite">
         {application === undefined && !errorMessage ? (
-          <p className="loading-line">신청 현황을 확인하는 중입니다.</p>
+          <EmptyState>신청 현황을 확인하는 중입니다.</EmptyState>
         ) : null}
 
         {application === null ? (
-          <>
-            <h2>진행 중인 신청이 없습니다</h2>
-            <p>새 입장 신청을 시작할 수 있습니다.</p>
+          <div className="status-content-state">
+            <EmptyState title="진행 중인 신청이 없습니다">
+              새 입장 신청을 시작할 수 있습니다.
+            </EmptyState>
             <Link className="button" href="/apply">입장 신청</Link>
-          </>
+          </div>
         ) : null}
 
         {application ? (
@@ -129,6 +186,7 @@ export default function ApplicationStatusPage() {
             <span className="status-badge">
               {applicantStatusLabel(application.status)}
             </span>
+            <p>{nextStep?.body}</p>
             {application.applicantNotice ? (
               <dl className="status-details">
                 <div>
@@ -136,6 +194,11 @@ export default function ApplicationStatusPage() {
                   <dd className="prose-text">{application.applicantNotice}</dd>
                 </div>
               </dl>
+            ) : null}
+            {nextStep?.href && nextStep.label ? (
+              <Link className="button" href={nextStep.href}>
+                {nextStep.label}
+              </Link>
             ) : null}
           </>
         ) : null}

@@ -96,14 +96,17 @@ export default function ApplyPage() {
       <header className="page-heading">
         <h1>입장 신청</h1>
         <p>
-          제출 정보는 심사 동안만 보관하고, 승인 또는 거부 즉시 파쇄합니다.
+          제출 정보는 심사 동안만 보관하고, 승인 또는 거부 즉시 파기합니다.
           Persona Clip은 선택 사항입니다.
         </p>
       </header>
 
       <form className="form-panel form-grid" onSubmit={handleSubmit}>
         <div className="field">
-          <label htmlFor="applicant-statement">나를 설명하는 한 문장</label>
+          <label htmlFor="applicant-statement">자기소개</label>
+          <p className="field-hint">
+            한두 문장이면 충분합니다. 최대 1,200자.
+          </p>
           <textarea
             id="applicant-statement"
             name="applicantStatement"

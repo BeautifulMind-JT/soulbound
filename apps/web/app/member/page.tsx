@@ -1,6 +1,7 @@
 "use client";
 
 import type { Membership } from "@soulbound/core";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { type ReactNode, useEffect, useState } from "react";
 import { InstallPrompt } from "../../components/pwa/install-prompt";
@@ -200,7 +201,7 @@ const disabledMoreGroups: readonly {
   }[];
 }[] = [
   {
-    title: "신원 & 자산",
+    title: "신원·자산",
     rows: [
       {
         label: "소울바운드 신원 / 온체인 크리덴셜",
@@ -214,7 +215,7 @@ const disabledMoreGroups: readonly {
     ],
   },
   {
-    title: "신뢰 & 안전",
+    title: "신뢰·안전",
     rows: [
       { label: "신고 · 모더레이션", description: "문제 상황을 안전하게 알리기" },
       {
@@ -229,13 +230,13 @@ const disabledMoreGroups: readonly {
     ],
   },
   {
-    title: "개인정보·보안 & 설정",
+    title: "개인정보·보안·설정",
     rows: [
       {
         label: "프라이버시 / 데이터 보관 정책",
         description: "개인정보와 보관 기준 확인",
       },
-      { label: "E2EE 보안 설명", description: "보안 구조 안내" },
+      { label: "종단 간 암호화(E2EE) 안내", description: "보안 구조 안내" },
       { label: "설정 (계정/화면)", description: "계정과 화면 설정" },
     ],
   },
@@ -248,7 +249,7 @@ const appInfo: readonly {
 }[] = [
   {
     label: "앱 정보 / 버전",
-    description: "프리알파 스테이징 셸",
+    description: "프리알파 미리보기 버전",
     badge: "프리알파",
   },
 ];
@@ -330,6 +331,10 @@ export default function MemberPage() {
   const [commentBody, setCommentBody] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [boardActionError, setBoardActionError] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<{
+    readonly type: "post" | "comment";
+    readonly id: string;
+  } | null>(null);
   const [signOutError, setSignOutError] = useState("");
 
   async function handleSignOut() {
@@ -610,6 +615,7 @@ export default function MemberPage() {
     setSelectedPostId(postId);
     setPostDetailLoading(true);
     setBoardActionError("");
+    setPendingDelete(null);
 
     try {
       const response = await authedFetch(`/api/board/${postId}`);
@@ -645,6 +651,7 @@ export default function MemberPage() {
 
     setPostSubmitting(true);
     setBoardActionError("");
+    setPendingDelete(null);
     try {
       const response = await authedFetch("/api/board", {
         method: "POST",
@@ -690,6 +697,7 @@ export default function MemberPage() {
 
     setCommentSubmitting(true);
     setBoardActionError("");
+    setPendingDelete(null);
     try {
       const response = await authedFetch(
         `/api/board/${postDetail.post.id}/comments`,
@@ -729,6 +737,11 @@ export default function MemberPage() {
 
   async function deletePost(postId: string) {
     setBoardActionError("");
+    if (pendingDelete?.type !== "post" || pendingDelete.id !== postId) {
+      setPendingDelete({ type: "post", id: postId });
+      return;
+    }
+
     try {
       const response = await authedFetch(`/api/board/${postId}`, {
         method: "DELETE",
@@ -746,6 +759,7 @@ export default function MemberPage() {
         setSelectedPostId(null);
         setPostDetail(null);
       }
+      setPendingDelete(null);
     } catch {
       setBoardActionError("게시글을 삭제하지 못했습니다.");
     }
@@ -753,6 +767,11 @@ export default function MemberPage() {
 
   async function deleteComment(commentId: string) {
     setBoardActionError("");
+    if (pendingDelete?.type !== "comment" || pendingDelete.id !== commentId) {
+      setPendingDelete({ type: "comment", id: commentId });
+      return;
+    }
+
     try {
       const response = await authedFetch(
         `/api/board/${postDetail?.post.id}/comments/${commentId}`,
@@ -767,6 +786,7 @@ export default function MemberPage() {
           comments: current.comments.filter((item) => item.id !== commentId),
         }
         : current);
+      setPendingDelete(null);
     } catch {
       setBoardActionError("댓글을 삭제하지 못했습니다.");
     }
@@ -824,12 +844,13 @@ export default function MemberPage() {
       || membership?.status !== "active"
       || votes
       || votesLoading
+      || votesError
     ) {
       return;
     }
 
     void loadVotes();
-  }, [activeTab, membership?.status, votes, votesLoading]);
+  }, [activeTab, membership?.status, votes, votesError, votesLoading]);
 
   useEffect(() => {
     if (
@@ -837,18 +858,19 @@ export default function MemberPage() {
       || membership?.status !== "active"
       || board
       || boardLoading
+      || boardError
     ) {
       return;
     }
 
     void loadBoard();
-  }, [activeTab, board, boardLoading, membership?.status]);
+  }, [activeTab, board, boardError, boardLoading, membership?.status]);
 
   if (loading || membership === undefined) {
     return (
       <main className="page-main narrow-main">
         <div className={styles.notMember}>
-          <h2>멤버십을 확인하는 중입니다.</h2>
+          <h2>멤버십을 확인하는 중입니다</h2>
           <p>잠시만 기다려 주세요.</p>
         </div>
       </main>
@@ -859,15 +881,16 @@ export default function MemberPage() {
     return (
       <main className="page-main narrow-main">
         <div className={styles.notMember}>
-          <h2>멤버 전용 공간입니다.</h2>
+          <h2>멤버 전용 공간입니다</h2>
           <p>입장이 확인되면 멤버 명부와 게시판을 사용할 수 있습니다.</p>
+          <Link className="button" href="/gate">입장 절차 보기</Link>
         </div>
       </main>
     );
   }
 
   const myMemberNumber = directory?.myMemberNumber ?? null;
-  const myLabel = directory?.myLabel ?? "승인 번호를 불러오는 중입니다.";
+  const myLabel = directory?.myLabel ?? "멤버 번호를 불러오는 중입니다.";
 
   return (
     <main className={`page-main ${styles.memberPage}`}>
@@ -904,6 +927,13 @@ export default function MemberPage() {
                 {!directoryLoading && directoryError ? (
                   <div className={styles.directoryState}>
                     <EmptyState>{directoryError}</EmptyState>
+                    <Button
+                      tone="secondary"
+                      type="button"
+                      onClick={() => void loadDirectory()}
+                    >
+                      다시 시도
+                    </Button>
                   </div>
                 ) : null}
                 {!directoryLoading && !directoryError && directory
@@ -921,7 +951,7 @@ export default function MemberPage() {
                           leading={<Avatar label={memberMark(member.memberNumber)} />}
                           title={member.label}
                           description="익명 멤버"
-                          meta={`기록일 ${formatDate(member.createdAt)}`}
+                          meta={`입장일 ${formatDate(member.createdAt)}`}
                           trailing={member.isMe ? (
                             <Badge tone="success">나</Badge>
                           ) : null}
@@ -958,6 +988,13 @@ export default function MemberPage() {
                 {!votesLoading && votesError ? (
                   <div className={styles.directoryState}>
                     <EmptyState>{votesError}</EmptyState>
+                    <Button
+                      tone="secondary"
+                      type="button"
+                      onClick={() => void loadVotes()}
+                    >
+                      다시 시도
+                    </Button>
                   </div>
                 ) : null}
                 {!votesLoading && !votesError && votes
@@ -1055,31 +1092,32 @@ export default function MemberPage() {
                           ) : null}
                         </div>
                       ) : null}
-                      <div className={styles.boardActions}>
-                        <Button
-                          disabled={voteDetail.hasVoted || voteSubmitting !== null}
-                          onClick={() => void castAdmissionVote("yes")}
-                          type="button"
-                        >
-                          {voteSubmitting === "yes" ? "반영 중" : "찬성"}
-                        </Button>
-                        <Button
-                          disabled={voteDetail.hasVoted || voteSubmitting !== null}
-                          onClick={() => void castAdmissionVote("no")}
-                          tone="secondary"
-                          type="button"
-                        >
-                          {voteSubmitting === "no" ? "반영 중" : "반대"}
-                        </Button>
-                      </div>
-                      {voteDetail.status !== "open" ? (
+                      {voteDetail.status === "open" ? (
+                        <div className={styles.boardActions}>
+                          <Button
+                            disabled={voteDetail.hasVoted || voteSubmitting !== null}
+                            onClick={() => void castAdmissionVote("yes")}
+                            type="button"
+                          >
+                            {voteSubmitting === "yes" ? "반영 중" : "찬성"}
+                          </Button>
+                          <Button
+                            disabled={voteDetail.hasVoted || voteSubmitting !== null}
+                            onClick={() => void castAdmissionVote("no")}
+                            tone="secondary"
+                            type="button"
+                          >
+                            {voteSubmitting === "no" ? "반영 중" : "반대"}
+                          </Button>
+                        </div>
+                      ) : (
                         <p className={styles.boardPostMeta}>
                           결과: 찬성 {voteDetail.yesCount} · 반대 {voteDetail.noCount}
                           {voteOutcomeLabel(voteDetail.outcome)
                             ? ` · ${voteOutcomeLabel(voteDetail.outcome)}`
                             : ""}
                         </p>
-                      ) : null}
+                      )}
                     </div>
                   ) : null}
                 </Section>
@@ -1123,6 +1161,13 @@ export default function MemberPage() {
                 {!boardLoading && boardError ? (
                   <div className={styles.directoryState}>
                     <EmptyState>{boardError}</EmptyState>
+                    <Button
+                      tone="secondary"
+                      type="button"
+                      onClick={() => void loadBoard()}
+                    >
+                      다시 시도
+                    </Button>
                   </div>
                 ) : null}
                 {!boardLoading && !boardError && board
@@ -1192,7 +1237,10 @@ export default function MemberPage() {
                             onClick={() => void deletePost(postDetail.post.id)}
                             type="button"
                           >
-                            삭제
+                            {pendingDelete?.type === "post"
+                              && pendingDelete.id === postDetail.post.id
+                              ? "다시 눌러 삭제"
+                              : "삭제"}
                           </button>
                         ) : null}
                       </div>
@@ -1217,7 +1265,10 @@ export default function MemberPage() {
                                 onClick={() => void deleteComment(comment.id)}
                                 type="button"
                               >
-                                삭제
+                                {pendingDelete?.type === "comment"
+                                  && pendingDelete.id === comment.id
+                                  ? "다시 눌러 삭제"
+                                  : "삭제"}
                               </button>
                             ) : null}
                           </div>

@@ -115,6 +115,10 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
+function shortId(value: string): string {
+  return value.length > 8 ? `${value.slice(0, 8)}...` : value;
+}
+
 function optionalFormText(form: FormData, name: string): string | undefined {
   const value = String(form.get(name) ?? "").trim();
   return value || undefined;
@@ -397,7 +401,7 @@ export default function ReviewDetailPage() {
       setActionMessage(
         decision === "approved"
           ? "승인 재정의를 실행하시겠습니까? 다시 누르면 실행합니다."
-          : "거부 재정의를 실행하시겠습니까? 다시 누르면 실행합니다.",
+          : "거절 재정의를 실행하시겠습니까? 다시 누르면 실행합니다.",
       );
       return;
     }
@@ -421,7 +425,7 @@ export default function ReviewDetailPage() {
     <main className="page-main">
       <AppBar
         title="신청 상세"
-        description={applicationId}
+        description={`신청 ${shortId(applicationId)}`}
         action={(
           <LinkButton tone="secondary" href="/admin/applications">
             대기열로 돌아가기
@@ -430,11 +434,20 @@ export default function ReviewDetailPage() {
       />
 
       {errorMessage ? (
-        <p className="form-message" role="alert">{errorMessage}</p>
+        <div className="status-action-state" role="alert">
+          <EmptyState>{errorMessage}</EmptyState>
+          <Button
+            tone="secondary"
+            type="button"
+            onClick={() => void loadApplication()}
+          >
+            다시 시도
+          </Button>
+        </div>
       ) : null}
 
       {application === undefined && !errorMessage ? (
-        <p className="loading-line">신청 상세를 불러오는 중입니다.</p>
+        <EmptyState>신청 상세를 불러오는 중입니다.</EmptyState>
       ) : null}
 
       {application === null && !errorMessage ? (
@@ -461,7 +474,7 @@ export default function ReviewDetailPage() {
               </div>
               <div>
                 <dt>신청자 아이디</dt>
-                <dd>{application.applicantUsername ?? "확인 불가"}</dd>
+                <dd>{application.applicantUsername ?? "기록 없음"}</dd>
               </div>
               <div>
                 <dt>신청자 ID</dt>
@@ -509,7 +522,7 @@ export default function ReviewDetailPage() {
                 {application.reviewerId ? (
                   <div>
                     <dt>검토자 아이디</dt>
-                    <dd>{application.reviewerUsername ?? "확인 불가"}</dd>
+                    <dd>{application.reviewerUsername ?? "기록 없음"}</dd>
                   </div>
                 ) : null}
                 <div>
@@ -621,7 +634,7 @@ export default function ReviewDetailPage() {
                   disabled={busyAction !== null}
                   onClick={() => confirmOverride("rejected")}
                 >
-                  {pendingOverride === "rejected" ? "다시 눌러 거부 재정의" : "거부 재정의"}
+                  {pendingOverride === "rejected" ? "다시 눌러 거절 재정의" : "거절 재정의"}
                 </Button>
               </div>
             </Section>

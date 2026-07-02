@@ -32,6 +32,33 @@ vi.mock("next/navigation", () => ({
   useRouter: () => routerMocks,
 }));
 
+function jsonResponse(value: unknown, status = 200): Response {
+  return new Response(JSON.stringify(value), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+function activeMembership() {
+  return {
+    id: "membership-1",
+    userId: "member-1",
+    status: "active",
+    tier: "basic",
+    issuedAt: "2026-06-08T00:00:00.000Z",
+    revokedAt: null,
+  };
+}
+
+function emptyDirectory() {
+  return {
+    myMemberNumber: 7,
+    myLabel: "soulbound-member-7",
+    items: [],
+    nextCursor: null,
+  };
+}
+
 describe("MemberPage", () => {
   const authedFetch = vi.fn();
   const signOut = vi.fn(async () => undefined);
@@ -176,7 +203,7 @@ describe("MemberPage", () => {
       "지원 / 이의 제기",
       "심사 권한",
       "프라이버시 / 데이터 보관 정책",
-      "E2EE 보안 설명",
+      "종단 간 암호화(E2EE) 안내",
       "설정 (계정/화면)",
       "앱 설치",
       "앱 정보 / 버전",
@@ -194,6 +221,194 @@ describe("MemberPage", () => {
     );
     expect(authedFetch).toHaveBeenCalledWith("/api/board?limit=20");
     expect(authedFetch).toHaveBeenCalledWith("/api/board/post-1");
+  });
+
+  it("hides cast buttons after an admission vote closes", async () => {
+    authedFetch.mockResolvedValueOnce(new Response(JSON.stringify({
+      id: "membership-1",
+      userId: "member-1",
+      status: "active",
+      tier: "basic",
+      issuedAt: "2026-06-08T00:00:00.000Z",
+      revokedAt: null,
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    })).mockResolvedValueOnce(new Response(JSON.stringify({
+      myMemberNumber: 7,
+      myLabel: "soulbound-member-7",
+      items: [],
+      nextCursor: null,
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    })).mockResolvedValueOnce(new Response(JSON.stringify({
+      items: [{
+        id: "vote-1",
+        candidateToken: "candidate-1234",
+        applicantStatement: "새 멤버 신청입니다.",
+        hasClip: false,
+        windowEndsAt: "2026-06-12T00:00:00.000Z",
+        openedAt: "2026-06-10T00:00:00.000Z",
+        hasVoted: false,
+      }],
+      nextCursor: null,
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    })).mockResolvedValueOnce(new Response(JSON.stringify({
+      id: "vote-1",
+      candidateToken: "candidate-1234",
+      applicantStatement: "새 멤버 신청입니다.",
+      hasClip: false,
+      windowEndsAt: "2026-06-12T00:00:00.000Z",
+      openedAt: "2026-06-10T00:00:00.000Z",
+      hasVoted: false,
+      status: "closed",
+      outcome: "approved",
+      yesCount: 3,
+      noCount: 1,
+      turnoutCount: 4,
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+
+    render(<MemberPage />);
+
+    fireEvent.click(await screen.findByRole("tab", { name: "투표" }));
+    fireEvent.click(await screen.findByText("새 멤버 신청입니다."));
+
+    expect(await screen.findByText("결과: 찬성 3 · 반대 1 · 가결"))
+      .toBeTruthy();
+    expect(screen.queryByRole("button", { name: "찬성" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "반대" })).toBeNull();
+  });
+
+  it("stops automatic vote reloads after an error until retry is clicked", async () => {
+    authedFetch
+      .mockResolvedValueOnce(jsonResponse(activeMembership()))
+      .mockResolvedValueOnce(jsonResponse(emptyDirectory()))
+      .mockResolvedValueOnce(new Response(null, { status: 500 }));
+
+    render(<MemberPage />);
+
+    fireEvent.click(await screen.findByRole("tab", { name: "투표" }));
+
+    expect(await screen.findByText("입장 투표를 불러오지 못했습니다."))
+      .toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(authedFetch).toHaveBeenCalledTimes(3);
+
+    authedFetch.mockResolvedValueOnce(jsonResponse({
+      items: [],
+      nextCursor: null,
+    }));
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+
+    await waitFor(() => expect(authedFetch).toHaveBeenCalledTimes(4));
+    expect(await screen.findByText("열린 입장 투표가 없습니다.")).toBeTruthy();
+  });
+
+  it("stops automatic board reloads after an error until retry is clicked", async () => {
+    authedFetch
+      .mockResolvedValueOnce(jsonResponse(activeMembership()))
+      .mockResolvedValueOnce(jsonResponse(emptyDirectory()))
+      .mockResolvedValueOnce(new Response(null, { status: 500 }));
+
+    render(<MemberPage />);
+
+    fireEvent.click(await screen.findByRole("tab", { name: "게시판" }));
+
+    expect(await screen.findByText("게시글을 불러오지 못했습니다."))
+      .toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(authedFetch).toHaveBeenCalledTimes(3);
+
+    authedFetch.mockResolvedValueOnce(jsonResponse({
+      items: [],
+      nextCursor: null,
+    }));
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+
+    await waitFor(() => expect(authedFetch).toHaveBeenCalledTimes(4));
+    expect(await screen.findByText("아직 게시글이 없습니다.")).toBeTruthy();
+  });
+
+  it("requires a second click before deleting a board post", async () => {
+    authedFetch.mockResolvedValueOnce(new Response(JSON.stringify({
+      id: "membership-1",
+      userId: "member-1",
+      status: "active",
+      tier: "basic",
+      issuedAt: "2026-06-08T00:00:00.000Z",
+      revokedAt: null,
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    })).mockResolvedValueOnce(new Response(JSON.stringify({
+      myMemberNumber: 7,
+      myLabel: "soulbound-member-7",
+      items: [],
+      nextCursor: null,
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    })).mockResolvedValueOnce(new Response(JSON.stringify({
+      items: [{
+        id: "post-1",
+        body: "내 게시글입니다.",
+        createdAt: "2026-06-11T00:00:00.000Z",
+        author: {
+          memberNumber: 7,
+          label: "soulbound-member-7",
+          isMe: true,
+        },
+      }],
+      nextCursor: null,
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    })).mockResolvedValueOnce(new Response(JSON.stringify({
+      post: {
+        id: "post-1",
+        body: "내 게시글입니다.",
+        createdAt: "2026-06-11T00:00:00.000Z",
+        author: {
+          memberNumber: 7,
+          label: "soulbound-member-7",
+          isMe: true,
+        },
+      },
+      comments: [],
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+
+    render(<MemberPage />);
+
+    fireEvent.click(await screen.findByRole("tab", { name: "게시판" }));
+    fireEvent.click(await screen.findByText("내 게시글입니다."));
+
+    const callsBeforeDelete = authedFetch.mock.calls.length;
+    fireEvent.click(await screen.findByRole("button", { name: "삭제" }));
+
+    expect(screen.getByRole("button", { name: "다시 눌러 삭제" }))
+      .toBeTruthy();
+    expect(authedFetch).toHaveBeenCalledTimes(callsBeforeDelete);
+
+    authedFetch.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    fireEvent.click(screen.getByRole("button", { name: "다시 눌러 삭제" }));
+
+    await waitFor(() => expect(authedFetch).toHaveBeenCalledTimes(
+      callsBeforeDelete + 1,
+    ));
+    expect(authedFetch.mock.calls[callsBeforeDelete]?.[0]).toBe(
+      "/api/board/post-1",
+    );
+    expect((authedFetch.mock.calls[callsBeforeDelete]?.[1] as RequestInit).method)
+      .toBe("DELETE");
   });
 
   it("returns a non-member to the gate", async () => {

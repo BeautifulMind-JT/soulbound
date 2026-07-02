@@ -265,6 +265,32 @@ describe("ReviewDetailPage", () => {
     });
   });
 
+  it("uses consistent rejection wording for admin vote override", async () => {
+    authMocks.useAuth.mockReturnValue({
+      authedFetch,
+      loading: false,
+      role: "admin",
+      session: { user: { id: "admin-1" } },
+    });
+    authedFetch.mockResolvedValueOnce(jsonResponse(application("in_vote", false)));
+
+    render(<ReviewDetailPage />);
+
+    const overrideButton = await screen.findByRole("button", {
+      name: "거절 재정의",
+    });
+    fireEvent.click(overrideButton);
+
+    expect(await screen.findByText(
+      "거절 재정의를 실행하시겠습니까? 다시 누르면 실행합니다.",
+    )).toBeTruthy();
+    expect(screen.getByRole("button", {
+      name: "다시 눌러 거절 재정의",
+    })).toBeTruthy();
+    expect(screen.queryByText(/거부 재정의/)).toBeNull();
+    expect(authedFetch).toHaveBeenCalledTimes(1);
+  });
+
   it("surfaces a 409 and re-fetches the authoritative detail", async () => {
     authedFetch
       .mockResolvedValueOnce(jsonResponse(application("submitted", false)))

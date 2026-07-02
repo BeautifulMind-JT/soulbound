@@ -59,7 +59,7 @@ export default function LoginPage() {
     <main className="page-main narrow-main">
       <section className="auth-panel" aria-labelledby="login-title">
         <h1 id="login-title">로그인</h1>
-        <p>아이디와 비밀번호로 돌아옵니다. 복구는 제공하지 않습니다.</p>
+        <p>아이디와 비밀번호를 입력해 주세요. 복구는 제공하지 않습니다.</p>
         <form className="form-grid" onSubmit={handleSubmit}>
           <div className="field">
             <label htmlFor="login-username">아이디</label>
