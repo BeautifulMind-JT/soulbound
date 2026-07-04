@@ -22,11 +22,10 @@
 |---|---|
 | Email confirmation | **ON** — real SMTP, verify-by-email |
 | Alpha signup | **open — no allow-list** (JT). Anyone with the staging URL can register (gated only by email confirmation + the reviewer-approval boundary). Supersedes the earlier allow-list value. |
-| Persona Clip deletion | **manual CLI reaper** — operator runs `pnpm -F @soulbound/adapters clip:reap` per a written procedure |
-| Reaper automation | **deferred** — no 9a-2 cron route, no `CRON_SECRET` route, no Vercel Cron, no admin-UI button; re-evaluated as a separate release-blocker/ops decision **before public (non-alpha) launch** |
+| Persona Clip deletion | **automated daily Vercel Cron + manual CLI fallback** — cron calls the internal reaper route; operator can still run `pnpm -F @soulbound/adapters clip:reap` |
+| Reaper automation | **GO for alpha (2026-07-04)** — 9a-2 cron route protected by `CRON_SECRET`; no admin-UI button |
 
-> One line: **in alpha/RC, clip deletion is NOT automated — an operator sweeps manually with the CLI.** ("청소부는
-> 있고, 자동청소 로봇은 안 둠 — 사람이 빗자루 들고 청소.")
+> One line: **in alpha, clip deletion runs automatically once daily and the manual CLI remains the fallback.**
 
 ---
 
@@ -57,7 +56,6 @@ approve/reject → member**, with RLS/RPC security, the 3-client boundary, perso
 audit/outbox hardening.
 
 ## 3. Deferred (explicitly NOT in RC-1)
-- **Task 9a-2** — an internal cron route wrapping `clip:reap`. RC-1 runs the reaper as a **manual CLI** (§14).
 - **Task 10** — external-ledger PoC + outbox-drain processor (separate branch; `externalLedgerEnabled=false` on
   main, so the outbox never fires in RC-1).
 - **CAPTCHA on auth** — deferred fix-forward. `signUp`/`signIn` do not send `options.captchaToken` (verified), so the
@@ -163,6 +161,7 @@ SHA invalidates the record. Tag **`v0.1.0-rc.1`** on candidate_sha only after th
 | `NEXT_PUBLIC_SUPABASE_URL` | **Web** (Vercel) | public, build-inlined | staging project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | **Web** (Vercel) | public, build-inlined | staging anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Web** (Vercel) | **secret, server runtime only** | NEVER `NEXT_PUBLIC_`; never in client bundle |
+| `CRON_SECRET` | **Web** (Vercel production) | **secret, server runtime only** | bearer secret for `/api/internal/persona-clip-reap`; never `NEXT_PUBLIC_` |
 | `SUPABASE_URL` | **CLI / reaper** (ops host, operator-run) | secret env | staging URL for `clip:reap` |
 | `SUPABASE_SERVICE_ROLE_KEY` | **CLI / reaper** | secret env | same key, server-only |
 - (Local integration tests additionally need `SUPABASE_ANON_KEY` — test-only, not a deploy var.)
@@ -221,25 +220,23 @@ Run these on the live staging URL with real accounts (record pass/fail + screens
    + network; all data calls carry a user bearer; the browser Supabase client is used for auth + `current_user_role`
    only (no `.from`/`.storage`).
 
-## 14. Reaper operations — MANUAL CLI (JT decision; NO automation in alpha/RC)
-- **Model: manual CLI reaper.** Persona Clip deletion is **NOT automated** in alpha/RC. There is **no cron route
-  (9a-2 deferred), no `CRON_SECRET` route, no Vercel Cron, no admin-UI button.** An **operator** runs the CLI by hand
-  per a written procedure.
-- **Execution subject:** an operator on an ops host holding the **staging** `SUPABASE_URL` +
-  `SUPABASE_SERVICE_ROLE_KEY` (server-only) — NOT the browser, NOT an end user. Command:
-  `pnpm -F @soulbound/adapters clip:reap` (see `docs/TASK9A_CLIP_REAP_RUNBOOK.md`).
-- **Cadence (documented manual procedure):** the operator runs it on a defined manual schedule — at least **once
-  daily during the alpha**, and **promptly after any batch of approve/reject decisions** (terminal clips are marked
-  `delete_after=now()` immediately; abandoned drafts have a 24h TTL). The privacy expectation communicated to alpha
-  users must match this manual cadence: a decided applicant's clip bytes are deleted on the operator's **next run**,
-  not instantly.
-- **Failure handling:** the reaper is **idempotent + failure-tolerant** — a transient Storage error leaves the row
-  unmarked (`failed += 1`) and the **next manual run retries**. The operator reads the CLI summary (**counts +
-  assetIds only**, no path/URL — safe to log); if `failed > 0` persists across runs, investigate (Storage outage /
-  stale path) before declaring a clean sweep.
-- **Automation is a separate, later decision.** Whether to add automated deletion (the 9a-2 cron route or
-  equivalent) is **re-evaluated as its own release-blocker / ops decision before public (non-alpha) launch** — it is
-  NOT built in RC-1.
+## 14. Reaper operations — automated cron + manual CLI fallback
+- **Model: Vercel Cron primary, manual CLI fallback.** Persona Clip deletion runs daily through the internal route
+  `GET /api/internal/persona-clip-reap`, protected only by `Authorization: Bearer ${CRON_SECRET}`. There is still no
+  admin-UI button.
+- **Cron cadence:** `0 18 * * *` UTC = **03:00 KST daily**. Vercel Cron runs only on the production deployment of
+  the staging project, so the staging project must be promoted to production for the cron to execute.
+- **Route behavior:** the route calls the already-audited storage adapter reaper. A clean run returns
+  `{ scanned, deleted, failed }` with status 200. If `failed > 0`, it returns the same counts with status 500 so
+  Vercel marks the cron invocation failed. Responses never include `deletedAssetIds`, storage paths, URLs, or tokens.
+- **Server log:** each run logs the CLI-style summary line:
+  `persona-clip reap scanned=<n> deleted=<n> failed=<n> deletedAssetIds=[...]`. This is server-only forensic output.
+- **Manual fallback:** an operator can still run `pnpm -F @soulbound/adapters clip:reap` from an ops host holding
+  `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` (see `docs/TASK9A_CLIP_REAP_RUNBOOK.md`), especially after decision
+  batches or if Vercel reports failed cron invocations.
+- **Failure handling:** the reaper is idempotent and failure-tolerant. A transient Storage error leaves the row
+  unmarked (`failed += 1`) and a later cron/manual run retries. If `failed > 0` persists, investigate Storage outage
+  or stale paths before declaring a clean sweep.
 
 ## 15. Internal alpha (5–20 people) checklist
 - [ ] Staging fully deployed + §13 smoke all green + recorded at the SHA.
@@ -259,8 +256,8 @@ Run these on the live staging URL with real accounts (record pass/fail + screens
       (Turnstile/hCaptcha).
 - [ ] Each alpha user runs the happy path: signup → apply (try a clip + try skipping) → see status; a few get
       approved → see `/member`; a few rejected → see the applicant notice (NOT the internal reasonCode/reviewSummary).
-- [ ] **Operator runs the manual `clip:reap` (§14)** during the alpha (daily + after decision batches); spot-check
-      that an approved/rejected clip's bytes are gone after a run.
+- [ ] **Vercel Cron runs `persona-clip-reap` daily (§14)**; after decision batches or failed cron invocations,
+      operator runs the manual `clip:reap` fallback and spot-checks that approved/rejected clip bytes are gone.
 - [ ] Watch for: client errors, broken redirects, email-confirmation friction, any service-role/secret exposure in
       network/devtools, clip upload failures on real devices/cameras (the 7b manual-QA — real camera/permission/skip).
 - [ ] Feedback capture channel + a **kill switch** (how to disable new signups / take staging down fast).
@@ -269,8 +266,8 @@ Run these on the live staging URL with real accounts (record pass/fail + screens
 ## 16. RC-1 code/config artifacts to create (ONLY after JT approves this plan)
 Small builder tasks (Codex), each audited:
 - (a) `apps/web/next.config.ts` `transpilePackages` — **only if** the Vercel build needs it (§8); otherwise skip.
-- (b) A short **manual-reaper operating procedure** (extend `docs/TASK9A_CLIP_REAP_RUNBOOK.md` with the staging
-  cadence + who runs it + the summary check). **No automation** — no GH Action / cron / route (deferred per §0/§14).
+- (b) A short **reaper operating procedure** covering the Vercel Cron route, `CRON_SECRET`, failed-run handling, and
+  the manual CLI fallback.
 - (c) A `docs/RC1_VERIFICATION.md` template (§5) — or keep the record in release notes.
 - (d) (Optional) a one-off SQL snippet doc for the §6 reviewer/admin promotion.
 None of these are feature code; they are release wiring. **Do not create them in this draft.**
@@ -288,7 +285,6 @@ RC-1 → **release-ready** only when ALL hold, recorded at the SHA:
 ---
 
 ### Notes (Cowork)
-- This is a **draft for review** — no implementation started (per JT). On approval, §16 artifacts get dispatched and
-  the staging bring-up (§6–§8) is executed by JT, with Cowork final-auditing the §13 evidence against the
-  **candidate_sha** (the deployed SHA).
+- 2026-07-04 alpha update: Task 9a-2 reaper automation is an approved code/config artifact. Staging bring-up
+  (§6–§8) and Cowork final audit of §13 evidence still happen against the **candidate_sha** (the deployed SHA).
 - The single most likely surprise is §8's workspace-TS Vercel build — validate it on a preview deploy first.

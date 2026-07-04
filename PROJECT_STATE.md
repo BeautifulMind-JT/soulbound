@@ -279,6 +279,22 @@ next-step guidance, and copy (round 2)) = **Cowork Step-5 FINAL PASS**. 설계 b
 `apps/web/app/api`·core·adapters·supabase·PWA/manifest·package-lock. web typecheck, web test 90/90(+14 신규, 비약화),
 build, audit.sh, diff-check PASS. tag/RC/alpha 보류.
 
+추가 갱신(2026-07-04, alpha 운영 결정 — JT): ① **계정 복구 없음 = 확정 정책. 비밀번호 분실 = 멤버십 상실, 운영자 개입 없음.**
+가입/로그인 카피에 "분실 시 멤버십 상실" 경고를 명시하도록 강화(다음 fast 라운드에 포함). ② **Task 9a-2 reaper 자동화 = GO**
+(deferred 해제, §"env schema/9a-2 변경 금지" 조항의 명시 승인 충족; 브리프 `docs/TASK9A2_REAPER_CRON_BRIEF.md`).
+③ 재신청 경로 스모크 = 보류(JT). 알파 라운드 순서: **R1 = needs_more_info 재제출 경로**(full loop, core 계약
+*additive* 확장 — 빌드 전 JT "unfreeze contract" 선언 필요; 브리프 `docs/ALPHA_RESUBMIT_BRIEF.md`) →
+**R2 = Task 9a-2** → R3 = 투표 참여 신호 + 소품 묶음(fast). (R2 선빌드는 Cowork 계획검토서 허용 — 파일 교집합 0.)
+
+추가 갱신(2026-07-04, Task 9a-2 reaper cron route = R2 빌드): **Cowork CODE FINAL PASS** (커밋/배포 = Codex 대기).
+브리프 `docs/TASK9A2_REAPER_CRON_BRIEF.md` → Codex 계획 → Cowork 검토·보충(서버 로그라인·readWebEnv 무변경/optional
+읽기 503) → Codex 빌드 → Cowork 최종감사: 4관점+발견별 3인 반박 워크플로 = **확정 결함 0 / 기각 11**(전수 검토 동의);
+게이트 재실측 PASS(typecheck 3pkg·web 94/94·build[route ƒ dynamic]·audit.sh·diff-check)·INV-17 번들 grep 0
+(CRON_SECRET/service_role/deletedAssetIds). 구현: 빈 secret→503·timingSafeEqual(길이차 패딩)·force-dynamic·
+counts-only 응답·ids는 서버 로그만·9a reap 함수 재사용만. **배포 게이트 잔여(Codex)**: production 승격 →
+CRON_SECRET 설정 → cron 등록 확인 → 수동 curl 200 → 다음 정기 실행 로그. 비차단 권고: `docs/PROGRESS.md`의
+stale "9a-2 deferred/재평가" 라인을 같은 커밋에서 갱신.
+
 ---
 
 ## 0. 한 줄 요약

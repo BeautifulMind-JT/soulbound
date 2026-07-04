@@ -7,7 +7,7 @@
 > UI/UX 변경 추적: `docs/UIUX_CHANGELOG.md`. 운영 루프: `docs/WORKFLOW.md`.
 
 - **현재 단계**: **P0 MVP 기능 + 하드닝 완성** (Task 1–9 완료). RC staging 검증 완료. **`v0.1.0-rc.2` 태그됨 @ `e517ec3`**. Pre-alpha UI/UX polish 최종 독립검토 PASS(`3bd68f2`, verdict 기록 `0efd237`). 2026-06-18 design pass + PWA `ac62201`도 최종 독립검토 PASS(acceptable for pre-alpha); push/deploy 전 host-only runtime gate만 남음.
-- **다음 단계**: internal alpha 운영. public/non-alpha 전 reaper 자동화(Task 9a-2) 재평가.
+- **다음 단계**: internal alpha 운영. Task 9a-2 reaper 자동화는 CODE FINAL PASS, 배포 게이트 진행 중.
 - **현재 브랜치**: `phase1-p0-mvp`
 - **검증 환경**: Node 24 / pnpm 11.1.3
 - **요약 갱신일**: 2026-06-18 (KST)
@@ -52,7 +52,7 @@
 | Pre-alpha UI/UX polish | early-KakaoTalk-like member shell (`멤버/대화/더보기`) + public/auth/gate/apply/status copy polish | ✅ 완료 (Opus/Cowork 최종 PASS) | `PROJECT_STATE.md`, `docs/UIUX_CHANGELOG.md`, `3bd68f2`, `0efd237` |
 | Pre-alpha design pass + PWA | warm terracotta visual pass + UI primitives + PWA manifest/icons/install prompt/SW + applicant status privacy lock | ✅ final audit PASS (`ac62201`, host runtime gate pending before push/deploy) | `docs/DESIGN_PASS_BRIEF.md`, `docs/DESIGN_PASS_PLAN.md`, `docs/UIUX_CHANGELOG.md`, `PROJECT_STATE.md` |
 | 9a / 9b | persona-clip byte-delete worker + audit/outbox 하드닝 lock | ✅ 완료 | TASK9A_*, TASK9B_* |
-| 9a-2 | internal cron reaper route | ⏳ deferred | (잔여) |
+| 9a-2 | internal cron reaper route | ✅ CODE FINAL PASS / 배포 게이트 진행 중 | TASK9A2_REAPER_CRON_BRIEF.md |
 | 10 | external ledger PoC (옵션, 별도 브랜치) | ⛔ 미착수 (의도적 보류) | — |
 
 **🎉 P0 MVP happy-path end-to-end**: signup → gate → apply → submit → (reviewer) approve → member. 완료.
@@ -66,7 +66,7 @@
 | `v0.1.0-rc.1` @ `fafba30` | ✅ 태그됨. RC-1 §13 FINAL AUDIT PASS (실 SMTP·signup→profiles·role boundary·approve/reject·member·clip lifecycle→manual reap→object absence·INV-17/no-leak) |
 | `v0.1.0-rc.2` @ `e517ec3` | ✅ 태그됨 (현재). persona-clip recorder **MIME fallback**(Samsung/Safari MP4 경로, Chrome/webm 보존). 코드 Opus 최종감사 PASS + Samsung Internet 실기기 스모크 PASS |
 | staging 배포 | ✅ Vercel `soulbound-staging` + Supabase 마이그 0001–0008 (no-seed) |
-| RC 결정 | email-confirm ON · open signup · manual CLI reaper · 자동화/CAPTCHA deferred |
+| RC 결정 | email-confirm ON · open signup · daily cron reaper + manual CLI fallback · CAPTCHA deferred |
 
 ---
 
@@ -75,7 +75,7 @@
 `PROJECT_STATE.md §4` 미결 항목의 요약. (상세·이유는 원문 참조)
 
 - ⏳ **Safari persona-clip 호환성 스모크** — 후속(non-블로커). 미지원 시 graceful **PC-01 degradation**(클립 없이 제출).
-- ⏳ **Task 9a-2** — internal cron reaper 자동화. public/non-alpha 전 재평가.
+- ⏳ **Task 9a-2 배포 게이트** — production 승격, `CRON_SECRET` 설정, cron 등록 확인, secret curl 200, 다음 정기 실행 로그 확인.
 - ⏳ **Task 10-1** — outbox vs ledger 직접호출 책임 분리(중복 발급 위험). **Task 10 전** "서비스는 enqueue만, ledger 호출은 processor 1회"로 단일화 결정 필요.
 - 🟡 **Pre-alpha design pass + PWA host-only runtime gate** — Android Chrome/Samsung Internet/iOS Safari install smoke, Lighthouse PWA installable, 9-screen visual eyeball.
 - 🟡 **SW drift-guard test 강화(P2)** — 현재 SW는 안전하나 shipped `sw.js` 동기화 테스트가 문자열 기반이라 구조/행동형 테스트로 후속 강화.
@@ -86,12 +86,12 @@
 
 ## 5. 거버넌스 (현재 — 잊지 말 것)
 
-> 정본 = `docs/WORKFLOW.md` (2026-06-01 채택, **2026-06-05 개정**, JT 승인).
+> 정본 = `docs/WORKFLOW.md` (2026-06-01 채택, **2026-06-05 / 2026-07-02 개정**, JT 승인).
 
 - **Builder = Codex (전 레이어).** GLM / Claude Code는 빌더 **은퇴**(미사용, 2026-06-05). 재활성화 시 §6 예외 프로토콜.
 - **Architect / Final Auditor = Cowork(한 세션 고정).** 빌더 ≠ 최종 승인자 불변식 보존.
 - **First-pass Auditor = Codex(read-only, `AGENTS.md`).**
-- **Commit authority = JT(호스트 전용 `git add/commit/push`).** 샌드박스 에이전트 직접 커밋 금지.
+- **Commit/push/deploy = Codex 빌더 세션.** 단, Cowork FINAL PASS 이후에만 수행한다. 감사관 세션은 read-only.
 - 위 규칙 변경 시 `WORKFLOW.md` / `CLAUDE.md` / `.clinerules` / `AGENTS.md` / `PROJECT_STATE.md` 5곳 동기화(드리프트 금지).
 
 ---
