@@ -295,6 +295,15 @@ counts-only 응답·ids는 서버 로그만·9a reap 함수 재사용만. **배�
 CRON_SECRET 설정 → cron 등록 확인 → 수동 curl 200 → 다음 정기 실행 로그. 비차단 권고: `docs/PROGRESS.md`의
 stale "9a-2 deferred/재평가" 라인을 같은 커밋에서 갱신.
 
+추가 갱신(2026-07-05, Task 9a-2 shipping): `4962198`(feat) + `e141d61`(fix: catch 경로 서버 로그) 커밋·푸시,
+HEAD==origin. **배포 게이트: 승격/CRON_SECRET/cron 등록 = PASS · 수동 트리거 = FAIL 502** — 확정 원인은 앱이 아니라
+**staging Supabase 프로젝트(leyjdpoycglzvybbegrd) INACTIVE**(supabase.co NXDOMAIN, `fetch failed`). 앱/cron 배포는 정상.
+잔여 조치: ① JT가 Supabase Dashboard에서 reactivate ② DNS 복구 확인 ③ Codex 재검증(`vercel crons run` 우선,
+curl 필요 시 CRON_SECRET 회전 후) ④ 03:00 KST 정기 실행 로그 확인 → 완료 시 이 라운드 최종 마감.
+**절차 기록: `e141d61`은 배포 진단 중 FINAL PASS 범위 밖에서 커밋됨(경미·28줄·로그만).** Cowork 사후 감사 =
+**PASS**(응답 무변경·서버 로그만·비공허 테스트 +1, web 95/95·typecheck 재실측). 단, 규칙 재확인: 진단성 수정도
+**커밋 전** Cowork 검토가 원칙(§7 — FINAL PASS는 "그 정확한 변경"에 대한 것; build→push 혼재는 §6 기록된 실패 모드).
+
 ---
 
 ## 0. 한 줄 요약
