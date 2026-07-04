@@ -30,6 +30,7 @@ describe("/api/internal/persona-clip-reap", () => {
   beforeEach(() => {
     vi.stubEnv("CRON_SECRET", "cron-secret");
     vi.spyOn(console, "log").mockImplementation(() => undefined);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
     storageMocks.reapDeletablePersonaClips.mockReset().mockResolvedValue({
       scanned: 2,
       deleted: 1,
@@ -103,5 +104,24 @@ describe("/api/internal/persona-clip-reap", () => {
       failed: 2,
     });
     expect(body).not.toHaveProperty("deletedAssetIds");
+  });
+
+  it("returns a generic 502 and logs a server-only error on dependency failure", async () => {
+    storageMocks.reapDeletablePersonaClips
+      .mockRejectedValue(new Error("rpc unavailable"));
+
+    const response = await GET(cronRequest("cron-secret"));
+    const body = await json(response);
+
+    expect(response.status).toBe(502);
+    expect(body).toEqual({
+      error: {
+        code: "DEPENDENCY_FAILURE",
+        message: "dependency failure",
+      },
+    });
+    expect(console.error).toHaveBeenCalledWith(
+      "persona-clip reap dependency failure: rpc unavailable",
+    );
   });
 });

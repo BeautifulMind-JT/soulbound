@@ -16,6 +16,7 @@ declare const process: {
 
 declare const console: {
   log(line: string): void;
+  error(line: string): void;
 };
 
 interface ReapCounts {
@@ -67,6 +68,10 @@ function countsOnly(result: ReapCounts): ReapCounts {
   };
 }
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "unknown dependency failure";
+}
+
 export async function GET(request: Request): Promise<Response> {
   const cronSecret = readCronSecret();
   if (!cronSecret) {
@@ -86,6 +91,9 @@ export async function GET(request: Request): Promise<Response> {
 
     return jsonResponse(countsOnly(result), result.failed > 0 ? 500 : 200);
   } catch (error) {
+    console.error(
+      `persona-clip reap dependency failure: ${errorMessage(error)}`,
+    );
     return dependencyFailure(error);
   }
 }
