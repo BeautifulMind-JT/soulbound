@@ -304,6 +304,31 @@ curl 필요 시 CRON_SECRET 회전 후) ④ 03:00 KST 정기 실행 로그 확�
 **PASS**(응답 무변경·서버 로그만·비공허 테스트 +1, web 95/95·typecheck 재실측). 단, 규칙 재확인: 진단성 수정도
 **커밋 전** Cowork 검토가 원칙(§7 — FINAL PASS는 "그 정확한 변경"에 대한 것; build→push 혼재는 §6 기록된 실패 모드).
 
+추가 갱신(2026-07-06, Task 9a-2 최종 마감): **COMPLETE.** 자연 정기 실행(07-06 03:00 KST) = Vercel Observability
+기준 invocation 1·**2XX**·error 0%·timeout 0%·Supabase external call 1. literal 로그 라인(`scanned=...`)은 Hobby
+로그 보존기간으로 미확보 — 단 route 계약상 **200은 `failed===0`일 때만 반환**되므로 파기 실패 0은 결정적 추론
+(수동 curl 200 + counts body는 별도 확보됨). 알파 파기 자동화 공식 가동: cron 일1회 03:00 KST + 수동 CLI fallback.
+
+추가 갱신(2026-07-06, ⛔→🔓 계약 해동 선언 — JT): **"unfreeze contract (additive resubmit only)" 선언됨.**
+범위 = `docs/ALPHA_RESUBMIT_BRIEF.md` §2의 additive 항목만(기존 시그니처·기존 core 테스트 20·enum·기존 RPC
+바이트 무변경; 추가만 허용). **R1 최종 감사 PASS와 동시에 자동 재동결** — 이 선언은 R1 한 라운드에만 유효하며
+다른 frozen 변경에 원용 금지. R1 빌드 착수 가능(Codex 계획 + Cowork 보충 4건[audit_logs 'application.resubmit'
+ids-only·reviewer 필드 무변경·충돌 의미론·UI 소품] 승인 완료 상태). R3(투표 참여 신호 + 소품) 브리프 =
+`docs/ALPHA_R3_VOTE_SIGNAL_BRIEF.md`. JT 지시: R1·R3 전부 진행("전부 다 하자").
+
+추가 갱신(2026-07-06, Alpha R1 admission resubmit = **Cowork FINAL PASS** — ⛔ **계약 재동결 발효**): needs_more_info
+응답 경로 완성. core additive(`resubmitApplication`+`canResubmitFrom`+port/type/`application.resubmit` 액션;
+frozen `admission-service.test.ts` 바이트 무변경·삭제 라인 = import 통합 1줄) · `0013_admission_resubmit.sql`
+(security definer·service_role-only·전역 idempotency 매칭 + application_id 불일치 P0001·이벤트 reason null·
+audit ids-only) · resubmit route(bearer actor·applicantId strict reject·reviewSummary 제거 = /me 필드셋 동일) ·
+status 페이지 보완 폼(409→키 폐기+재로드·`submitErrorMessage`·randomUUID). **감사**: 5관점 워크플로+인라인 검증
+(세션한도로 패널 일부 대체) → 수정 3건(pgTAP 픽스처 분리·RPC 키-신청서 불일치 가드·409 dead-end 제거) 반영 확인.
+**승인된 의미론**: same-key replay는 상태 전이 후 409(frozen submit 패턴과 동형; UI 재로드로 사용자 영향 0 —
+바인딩 (d) 문구보다 좁지만 "submit 패턴 복제" 취지가 우선, carve-out 제거로 단순화). **게이트**(Cowork 독립 재실행):
+db reset(0013)·pgTAP 158·integration 10/10·core 26/adapters 25/web 102·typecheck·build·audit.sh·diff-check +
+빌더 호스트 5x+reset 결정성. **배포 잔여(Codex)**: 커밋(feat+docs 분리) → push → staging Supabase에 0013
+`db push` → Vercel 배포 → (선택) 스테이징 재제출 스모크. **unfreeze는 이 PASS로 소멸 — core는 다시 CONTRACT-FROZEN.**
+
 ---
 
 ## 0. 한 줄 요약
