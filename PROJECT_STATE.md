@@ -329,6 +329,16 @@ db reset(0013)·pgTAP 158·integration 10/10·core 26/adapters 25/web 102·typec
 빌더 호스트 5x+reset 결정성. **배포 잔여(Codex)**: 커밋(feat+docs 분리) → push → staging Supabase에 0013
 `db push` → Vercel 배포 → (선택) 스테이징 재제출 스모크. **unfreeze는 이 PASS로 소멸 — core는 다시 CONTRACT-FROZEN.**
 
+추가 갱신(2026-07-06, Alpha R3 vote signal + 소품 = **Cowork FINAL PASS**): 투표 탭 미투표 뱃지(멤버십 확인 후
+기존 목록 프리페치·9+ 상한·0건 미표시·aria-hidden으로 탭 접근성 이름 "투표" 불변·`votesPrefetchedRef`로 마운트당
+1회 — 토큰 리프레시 시 목록 리셋 회귀 감사에서 적발→수정) · 마감 임박 뱃지(24h) · signup 경고 카피("분실하면
+멤버십을 잃게 됩니다" — 2026-07-04 정책 고지) · 중복 아이디 분기(`AuthApiError`+`user_already_exists` 구조화
+판별만, 문자열 매칭 0) · recorder 인라인 스타일 → CSS module(동작/카피 무변경). **감사**: 직독 + 2관점 워크플로
++3인 반박(확정 1 저심각→수정 반영, 기각 2 동의). **게이트**(Cowork 독립 재실행): typecheck·web 109/109·build·
+audit.sh·diff-check, boundary 0-diff(api/packages/supabase/PWA/lock). 프리페치 실패 처리 = 브리프 §4 원문 우선
+(탭 진입 시 에러+재시도 UI). **배포 잔여(Codex)**: 커밋 → push → Vercel(프론트 전용). staging DB push(0009–0013)는
+JT 귀환 시 이월 유지 — 완료 전까지 staging의 투표/게시판/재제출 표면은 DB 레벨 미가동 상태임을 유의.
+
 ---
 
 ## 0. 한 줄 요약
