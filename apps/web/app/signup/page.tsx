@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState, type FormEvent } from "react";
-import { useAuth } from "../../lib/auth-provider";
+import {
+  UsernameAlreadyExistsError,
+  useAuth,
+} from "../../lib/auth-provider";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -25,9 +28,13 @@ export default function SignupPage() {
     try {
       await signUp(username, password);
       router.push("/gate");
-    } catch {
+    } catch (error) {
       setIsError(true);
-      setMessage("아이디 또는 비밀번호를 확인해 주세요.");
+      setMessage(
+        error instanceof UsernameAlreadyExistsError
+          ? "이미 사용 중인 아이디입니다."
+          : "아이디 또는 비밀번호를 확인해 주세요.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -37,7 +44,10 @@ export default function SignupPage() {
     <main className="page-main narrow-main">
       <section className="auth-panel" aria-labelledby="signup-title">
         <h1 id="signup-title">가입하기</h1>
-        <p>아이디와 비밀번호를 저장해 주세요. 복구는 제공하지 않습니다.</p>
+        <p>
+          아이디와 비밀번호를 저장해 주세요. 복구는 제공하지 않으며,
+          분실하면 멤버십을 잃게 됩니다.
+        </p>
         <form className="form-grid" onSubmit={handleSubmit}>
           <div className="field">
             <label htmlFor="signup-username">아이디</label>

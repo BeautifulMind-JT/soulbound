@@ -6,30 +6,13 @@ import {
   type PersonaClipResult,
 } from "./use-persona-clip-recorder";
 import type { AuthedFetch } from "../../lib/auth-provider";
+import styles from "./persona-clip-recorder.module.css";
 
 export type PersonaClipRecorderProps = {
   onComplete: (result: PersonaClipResult) => void;
   onSkip: () => void;
   authedFetch?: AuthedFetch;
 };
-
-const buttonStyle = {
-  minHeight: 40,
-  padding: "0 16px",
-  border: "1px solid var(--line-strong)",
-  borderRadius: 10,
-  background: "var(--surface)",
-  color: "var(--ink)",
-  font: "inherit",
-  cursor: "pointer",
-} as const;
-
-const primaryButtonStyle = {
-  ...buttonStyle,
-  borderColor: "var(--ink)",
-  background: "var(--ink)",
-  color: "var(--surface)",
-} as const;
 
 export function PersonaClipRecorder({
   onComplete,
@@ -71,71 +54,62 @@ export function PersonaClipRecorder({
   return (
     <section
       aria-labelledby="persona-clip-title"
-      style={{
-        display: "grid",
-        gap: 16,
-        width: "100%",
-        maxWidth: 560,
-        color: "var(--ink)",
-      }}
+      className={styles.recorder}
     >
       <div>
-        <h2
-          id="persona-clip-title"
-          style={{ margin: 0, fontSize: 20, lineHeight: 1.3 }}
-        >
+        <h2 id="persona-clip-title" className={styles.heading}>
           Persona Clip
         </h2>
-        <p style={{ margin: "4px 0 0", color: "var(--muted)", fontSize: 14 }}>
+        <p className={styles.hint}>
           선택 사항
         </p>
       </div>
 
       {status === "recording" ? (
-        <div style={{ display: "grid", gap: 12 }}>
+        <div className={styles.stack}>
           <video
             ref={videoRef}
             autoPlay
             muted
             playsInline
             aria-label="Persona Clip 실시간 카메라 화면"
-            style={{
-              display: "block",
-              width: "100%",
-              aspectRatio: "4 / 3",
-              borderRadius: 8,
-              background: "var(--ink)",
-              objectFit: "cover",
-            }}
+            className={styles.video}
           />
-          <button type="button" onClick={stop} style={primaryButtonStyle}>
+          <button
+            type="button"
+            onClick={stop}
+            className={`${styles.button} ${styles.primaryButton}`}
+          >
             녹화 중지
           </button>
         </div>
       ) : null}
 
       {status === "idle" ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <div className={styles.buttonRow}>
           <button
             type="button"
             onClick={() => void start()}
-            style={primaryButtonStyle}
+            className={`${styles.button} ${styles.primaryButton}`}
           >
             녹화하기
           </button>
-          <button type="button" onClick={skip} style={buttonStyle}>
+          <button type="button" onClick={skip} className={styles.button}>
             건너뛰기
           </button>
         </div>
       ) : null}
 
       {status === "requesting" ? (
-        <div style={{ display: "grid", gap: 12 }}>
-          <p role="status" style={{ margin: 0, color: "var(--muted)" }}>
+        <div className={styles.stack}>
+          <p
+            role="status"
+            className={`${styles.statusLine} ${styles.mutedText}`}
+          >
             카메라 권한을 확인하는 중입니다.
           </p>
           <div>
-            <button type="button" onClick={skip} style={buttonStyle}>
+            <button type="button" onClick={skip} className={styles.button}>
               건너뛰기
             </button>
           </div>
@@ -143,25 +117,32 @@ export function PersonaClipRecorder({
       ) : null}
 
       {status === "uploading" ? (
-        <div aria-busy="true" role="status" style={{ display: "grid", gap: 8 }}>
-          <p style={{ margin: 0 }}>Persona Clip을 준비하는 중입니다.</p>
+        <div aria-busy="true" role="status" className={styles.compactStack}>
+          <p className={styles.statusLine}>Persona Clip을 준비하는 중입니다.</p>
           <progress aria-label="Persona Clip 업로드 중" />
         </div>
       ) : null}
 
       {status === "done" ? (
-        <p role="status" style={{ margin: 0, color: "var(--success)" }}>
+        <p
+          role="status"
+          className={`${styles.statusLine} ${styles.successText}`}
+        >
           Persona Clip이 준비되었습니다.
         </p>
       ) : null}
 
       {status === "unavailable" ? (
-        <div style={{ display: "grid", gap: 12 }}>
-          <p role="status" style={{ margin: 0 }}>
+        <div className={styles.stack}>
+          <p role="status" className={styles.statusLine}>
             녹화를 사용할 수 없습니다. Persona Clip 없이 계속 진행할 수 있습니다.
           </p>
           <div>
-            <button type="button" onClick={skip} style={primaryButtonStyle}>
+            <button
+              type="button"
+              onClick={skip}
+              className={`${styles.button} ${styles.primaryButton}`}
+            >
               계속하기
             </button>
           </div>
@@ -169,19 +150,22 @@ export function PersonaClipRecorder({
       ) : null}
 
       {status === "error" ? (
-        <div style={{ display: "grid", gap: 12 }}>
-          <p role="alert" style={{ margin: 0, color: "var(--danger)" }}>
+        <div className={styles.stack}>
+          <p
+            role="alert"
+            className={`${styles.statusLine} ${styles.dangerText}`}
+          >
             {errorMessage}
           </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <div className={styles.buttonRow}>
             <button
               type="button"
               onClick={() => void start()}
-              style={primaryButtonStyle}
+              className={`${styles.button} ${styles.primaryButton}`}
             >
               다시 시도
             </button>
-            <button type="button" onClick={skip} style={buttonStyle}>
+            <button type="button" onClick={skip} className={styles.button}>
               건너뛰기
             </button>
           </div>
@@ -189,7 +173,10 @@ export function PersonaClipRecorder({
       ) : null}
 
       {status === "skipped" ? (
-        <p role="status" style={{ margin: 0, color: "var(--muted)" }}>
+        <p
+          role="status"
+          className={`${styles.statusLine} ${styles.mutedText}`}
+        >
           Persona Clip 없이 계속합니다.
         </p>
       ) : null}

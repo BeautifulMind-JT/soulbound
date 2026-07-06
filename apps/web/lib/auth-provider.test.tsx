@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AuthProvider,
   UnauthenticatedError,
+  UsernameAlreadyExistsError,
   useAuth,
 } from "./auth-provider";
 
@@ -53,7 +54,15 @@ function AuthProbe() {
       <button
         type="button"
         onClick={() => {
-          void auth.signUp("new_member", "password123");
+          void auth.signUp("new_member", "password123")
+            .then(() => setMessage("signed up"))
+            .catch((error: unknown) => {
+              setMessage(
+                error instanceof UsernameAlreadyExistsError
+                  ? "duplicate username"
+                  : "sign-up failed",
+              );
+            });
         }}
       >
         sign up
@@ -96,7 +105,17 @@ describe("AuthProvider", () => {
     data: { session, user: session.user },
     error: null,
   }));
-  const signUp = vi.fn(async () => ({
+  const signUp = vi.fn(async (): Promise<{
+    data: {
+      session: typeof session | null;
+      user: typeof session.user | null;
+    };
+    error: null | {
+      code: string;
+      name: string;
+      status: number;
+    };
+  }> => ({
     data: { session, user: session.user },
     error: null,
   }));
@@ -208,5 +227,32 @@ describe("AuthProvider", () => {
         },
       },
     }));
+  });
+
+  it("maps structured duplicate username failures", async () => {
+    signUp.mockResolvedValueOnce({
+      data: { session: null, user: null },
+      error: {
+        code: "user_already_exists",
+        name: "AuthApiError",
+        status: 400,
+      },
+    });
+    render(
+      <AuthProvider>
+        <AuthProbe />
+      </AuthProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("loading").textContent).toBe("false")
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "sign up" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("message").textContent)
+        .toBe("duplicate username")
+    );
   });
 });

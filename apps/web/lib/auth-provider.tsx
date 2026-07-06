@@ -109,6 +109,28 @@ export class UnauthenticatedError extends Error {
   }
 }
 
+export class UsernameAlreadyExistsError extends Error {
+  constructor() {
+    super("Username already exists");
+    this.name = "UsernameAlreadyExistsError";
+  }
+}
+
+function isUserAlreadyExistsError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const candidate = error as {
+    readonly code?: unknown;
+    readonly name?: unknown;
+  };
+  return (
+    candidate.name === "AuthApiError"
+    && candidate.code === "user_already_exists"
+  );
+}
+
 export function AuthProvider({ children }: { readonly children: ReactNode }) {
   const [session, setSession] = useState<BrowserSession | null>(null);
   const [role, setRole] = useState<UserRole>("applicant");
@@ -237,6 +259,9 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
       },
     });
     if (error) {
+      if (isUserAlreadyExistsError(error)) {
+        throw new UsernameAlreadyExistsError();
+      }
       throw error;
     }
 

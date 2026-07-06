@@ -3,7 +3,7 @@
 import type { Membership } from "@soulbound/core";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { type ReactNode, useEffect, useState } from "react";
+import React, { type ReactNode, useEffect, useRef, useState } from "react";
 import { InstallPrompt } from "../../components/pwa/install-prompt";
 import {
   Avatar,
@@ -260,6 +260,25 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
+function pendingVoteBadge(votes: VoteListResponse | null): string | undefined {
+  const count = votes?.items.filter((vote) => !vote.hasVoted).length ?? 0;
+  if (count === 0) {
+    return undefined;
+  }
+
+  return count > 9 ? "9+" : String(count);
+}
+
+function isClosingSoon(value: string): boolean {
+  const time = new Date(value).getTime();
+  if (!Number.isFinite(time)) {
+    return false;
+  }
+
+  const remainingMs = time - Date.now();
+  return remainingMs > 0 && remainingMs <= 24 * 60 * 60 * 1000;
+}
+
 function memberMark(memberNumber: number | null): string {
   return memberNumber === null ? "N" : String(memberNumber);
 }
@@ -336,6 +355,7 @@ export default function MemberPage() {
     readonly id: string;
   } | null>(null);
   const [signOutError, setSignOutError] = useState("");
+  const votesPrefetchedRef = useRef(false);
 
   async function handleSignOut() {
     setSignOutError("");
@@ -823,6 +843,10 @@ export default function MemberPage() {
 
         setMembership(nextMembership);
         void loadDirectory();
+        if (!votesPrefetchedRef.current) {
+          votesPrefetchedRef.current = true;
+          void loadVotes();
+        }
       } catch (error) {
         if (error instanceof UnauthenticatedError) {
           router.replace("/login");
@@ -891,6 +915,10 @@ export default function MemberPage() {
 
   const myMemberNumber = directory?.myMemberNumber ?? null;
   const myLabel = directory?.myLabel ?? "멤버 번호를 불러오는 중입니다.";
+  const voteBadge = pendingVoteBadge(votes);
+  const memberTabs = tabs.map((tab) =>
+    tab.id === "votes" && voteBadge ? { ...tab, badge: voteBadge } : tab
+  );
 
   return (
     <main className={`page-main ${styles.memberPage}`}>
@@ -1023,6 +1051,9 @@ export default function MemberPage() {
                           <span className={styles.boardPostBody}>
                             {vote.applicantStatement ?? "신청 자료는 결정 후 삭제됩니다."}
                           </span>
+                          {isClosingSoon(vote.windowEndsAt) ? (
+                            <Badge>마감 임박</Badge>
+                          ) : null}
                           {vote.hasVoted ? <Badge tone="success">투표 완료</Badge> : null}
                         </button>
                       ))}
@@ -1374,7 +1405,7 @@ export default function MemberPage() {
 
         <TabBar
           activeId={activeTab}
-          items={tabs}
+          items={memberTabs}
           label="멤버 영역"
           onChange={setActiveTab}
         />

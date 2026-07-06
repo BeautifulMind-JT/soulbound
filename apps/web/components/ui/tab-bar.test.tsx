@@ -18,7 +18,7 @@ describe("TabBar", () => {
         onChange={onChange}
         items={[
           { id: "members", label: "멤버", icon: <span>M</span> },
-          { id: "votes", label: "투표", icon: <span>V</span> },
+          { id: "votes", label: "투표", icon: <span>V</span>, badge: "3" },
           { id: "board", label: "게시판", icon: <span>B</span> },
           { id: "more", label: "더보기", icon: <span>O</span> },
         ]}
@@ -30,6 +30,9 @@ describe("TabBar", () => {
     expect(members.textContent).toContain("멤버");
     expect(members.hasAttribute("aria-label")).toBe(false);
     expect(members.getAttribute("aria-selected")).toBe("true");
+    const votes = screen.getByRole("tab", { name: "투표" });
+    expect(votes.textContent).toContain("3");
+    expect(votes.getAttribute("aria-label")).toBeNull();
     expect(
       screen.getByRole("tablist", { name: "멤버 탐색" })
         .getAttribute("style"),

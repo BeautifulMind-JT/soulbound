@@ -7,6 +7,7 @@ interface TabItem<T extends string> {
   readonly id: T;
   readonly label: string;
   readonly icon?: ReactNode;
+  readonly badge?: string;
 }
 
 interface TabBarProps<T extends string> {
@@ -44,6 +45,11 @@ export function TabBar<T extends string>({
         >
           {item.icon ? <span aria-hidden="true">{item.icon}</span> : null}
           <span className={styles.tabLabel}>{item.label}</span>
+          {item.badge ? (
+            <span aria-hidden="true" className={styles.tabBadge}>
+              {item.badge}
+            </span>
+          ) : null}
         </button>
       ))}
     </nav>
