@@ -5,6 +5,7 @@ import type {
 } from "@soulbound/core";
 
 const optionalString = z.string().trim().min(1).optional();
+const optionalApplicantStatement = z.string().trim().min(1).max(1200).optional();
 const optionalNullableString = z.string().trim().min(1).nullable().optional();
 const personaClipMimeTypes = [
   "video/webm",
@@ -46,6 +47,14 @@ export const submitApplicationSchema = z.object({
 
 export type SubmitApplicationBody =
   z.infer<typeof submitApplicationSchema>;
+
+export const resubmitApplicationSchema = z.object({
+  applicantStatement: optionalApplicantStatement,
+  idempotencyKey: z.string().trim().min(1),
+}).strict();
+
+export type ResubmitApplicationBody =
+  z.infer<typeof resubmitApplicationSchema>;
 
 export const startReviewSchema = z.object({
   idempotencyKey: z.string().trim().min(1),

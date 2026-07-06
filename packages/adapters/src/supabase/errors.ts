@@ -2,6 +2,7 @@ import {
   AppError,
   conflict,
   dependencyFailure,
+  forbidden,
   invalidTransition,
   notFound,
 } from "@soulbound/core";
@@ -27,6 +28,10 @@ export function mapPostgresError(error: PostgresLikeError): AppError {
 
   if (error.code === "P0001") {
     return invalidTransition(message, meta);
+  }
+
+  if (error.code === "42501") {
+    return forbidden(message, meta);
   }
 
   if (error.code === "23505") {

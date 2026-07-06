@@ -7,6 +7,7 @@ import {
   createBoardPostSchema,
   reviewDecisionSchema,
   reviewQueueQuerySchema,
+  resubmitApplicationSchema,
   startReviewSchema,
   submitApplicationSchema,
 } from "./schemas";
@@ -37,6 +38,35 @@ describe("submitApplicationSchema", () => {
     expect(submitApplicationSchema.safeParse({
       referralCode: "REF",
       idempotencyKey: "idem",
+    }).success).toBe(false);
+  });
+});
+
+describe("resubmitApplicationSchema", () => {
+  it("requires idempotency and rejects caller-supplied applicant identity", () => {
+    expect(resubmitApplicationSchema.safeParse({
+      applicantStatement: "보완 내용",
+    }).success).toBe(false);
+
+    expect(resubmitApplicationSchema.safeParse({
+      applicantId: "not-the-actor",
+      applicantStatement: "보완 내용",
+      idempotencyKey: "resubmit-1",
+    }).success).toBe(false);
+  });
+
+  it("trims and bounds the optional applicant statement", () => {
+    expect(resubmitApplicationSchema.parse({
+      applicantStatement: " 보완 내용 ",
+      idempotencyKey: "resubmit-1",
+    })).toEqual({
+      applicantStatement: "보완 내용",
+      idempotencyKey: "resubmit-1",
+    });
+
+    expect(resubmitApplicationSchema.safeParse({
+      applicantStatement: "a".repeat(1201),
+      idempotencyKey: "resubmit-1",
     }).success).toBe(false);
   });
 });

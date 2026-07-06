@@ -433,6 +433,10 @@ a {
   font-family: var(--font-prose);
 }
 
+.status-resubmit-form {
+  width: 100%;
+}
+
 .process-list {
   counter-reset: process-step;
   margin: 0;

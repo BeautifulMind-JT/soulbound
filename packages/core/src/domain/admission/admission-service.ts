@@ -20,16 +20,23 @@ import type { OutboxRepository } from "../../ports/outbox-repository";
 import type { LedgerPort } from "../../ports/ledger-port";
 import type {
   AdmissionApplication,
+  ResubmitApplicationCommand,
   ReviewDecisionCommand,
   StartReviewCommand,
   SubmitApplicationCommand,
 } from "./types";
 import { ok, err } from "../../application/result";
-import { forbidden, notFound, invalidTransition, conflict } from "../../application/errors";
+import {
+  forbidden,
+  notFound,
+  invalidTransition,
+  conflict,
+} from "../../application/errors";
 import {
   canReview,
   canDecideFrom,
   canRequestMoreInfoFrom,
+  canResubmitFrom,
   canStartReviewFrom,
   POLICY_VERSION,
 } from "./admission-policy";
@@ -47,6 +54,10 @@ export interface AdmissionServiceDeps {
 export interface AdmissionService {
   submitApplication(
     cmd: SubmitApplicationCommand,
+  ): Promise<Result<AdmissionApplication, AppError>>;
+
+  resubmitApplication(
+    cmd: ResubmitApplicationCommand,
   ): Promise<Result<AdmissionApplication, AppError>>;
 
   startReview(
@@ -125,6 +136,37 @@ export class DefaultAdmissionService implements AdmissionService {
     });
 
     return ok(application);
+  }
+
+  async resubmitApplication(
+    cmd: ResubmitApplicationCommand,
+  ): Promise<Result<AdmissionApplication, AppError>> {
+    const application =
+      await this.deps.admissionRepo.findById(cmd.applicationId);
+    if (!application) {
+      return err(notFound("application not found"));
+    }
+
+    if (application.applicantId !== cmd.applicantId) {
+      return err(forbidden("application does not belong to applicant"));
+    }
+
+    if (!canResubmitFrom(application.status)) {
+      return err(
+        invalidTransition(
+          `cannot resubmit from status '${application.status}'`,
+        ),
+      );
+    }
+
+    const updated = await this.deps.admissionRepo.resubmitApplicationTx({
+      applicationId: cmd.applicationId,
+      applicantId: cmd.applicantId,
+      ...spreadIfDefined("applicantStatement", cmd.applicantStatement),
+      idempotencyKey: cmd.idempotencyKey,
+    });
+
+    return ok(updated);
   }
 
   async startReview(

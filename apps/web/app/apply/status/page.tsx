@@ -6,14 +6,14 @@ import type {
 } from "@soulbound/core";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { EmptyState } from "../../../components/ui";
 import {
   UnauthenticatedError,
   useAuth,
 } from "../../../lib/auth-provider";
 import { readRememberedApplicationId } from "../../../lib/application-state";
-import { readJson } from "../../../lib/api-response";
+import { readJson, submitErrorMessage } from "../../../lib/api-response";
 
 const statusLabel: Record<AdmissionStatus, string> = {
   draft: "작성 중",
@@ -27,6 +27,10 @@ const statusLabel: Record<AdmissionStatus, string> = {
 };
 
 type ApplicantApplicationView = AdmissionApplication;
+
+function createIdempotencyKey(): string {
+  return crypto.randomUUID();
+}
 
 function applicantStatusLabel(status: string): string {
   if (status === "in_vote") {
@@ -85,9 +89,13 @@ export default function ApplicationStatusPage() {
   const [application, setApplication] =
     useState<ApplicantApplicationView | null | undefined>(undefined);
   const [errorMessage, setErrorMessage] = useState("");
+  const [resubmitErrorMessage, setResubmitErrorMessage] = useState("");
+  const [resubmitting, setResubmitting] = useState(false);
+  const resubmitIdempotencyKeyRef = useRef<string | null>(null);
 
   const loadApplication = useCallback(async (signal?: AbortSignal) => {
     setErrorMessage("");
+    setResubmitErrorMessage("");
     setApplication(undefined);
     try {
       const activeResponse = await authedFetch(
@@ -132,6 +140,67 @@ export default function ApplicationStatusPage() {
       }
     }
   }, [authedFetch, router]);
+
+  const handleResubmit = useCallback(async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+
+    if (!application || application.status !== "needs_more_info") {
+      return;
+    }
+
+    const formData = new FormData(event.currentTarget);
+    const applicantStatement =
+      String(formData.get("applicantStatement") ?? "").trim();
+
+    resubmitIdempotencyKeyRef.current ??= createIdempotencyKey();
+
+    setResubmitting(true);
+    setResubmitErrorMessage("");
+    try {
+      const response = await authedFetch(
+        `/api/admission/applications/${encodeURIComponent(application.id)}/resubmit`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            idempotencyKey: resubmitIdempotencyKeyRef.current,
+            ...(applicantStatement ? { applicantStatement } : {}),
+          }),
+        },
+      );
+
+      if (response.status === 401) {
+        router.replace("/login");
+        return;
+      }
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          resubmitIdempotencyKeyRef.current = null;
+          await loadApplication();
+          return;
+        }
+
+        setResubmitErrorMessage(submitErrorMessage(response.status));
+        return;
+      }
+
+      resubmitIdempotencyKeyRef.current = null;
+      await loadApplication();
+    } catch (error) {
+      if (error instanceof UnauthenticatedError) {
+        router.replace("/login");
+      } else {
+        setResubmitErrorMessage(
+          "서비스에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        );
+      }
+    } finally {
+      setResubmitting(false);
+    }
+  }, [application, authedFetch, loadApplication, router]);
 
   useEffect(() => {
     if (loading) {
@@ -199,6 +268,39 @@ export default function ApplicationStatusPage() {
               <Link className="button" href={nextStep.href}>
                 {nextStep.label}
               </Link>
+            ) : null}
+            {application.status === "needs_more_info" ? (
+              <form
+                className="status-resubmit-form form-grid"
+                onSubmit={handleResubmit}
+              >
+                <div className="field">
+                  <label htmlFor="resubmit-statement">보완 내용</label>
+                  <p className="field-hint">
+                    요청된 정보를 적어 주세요. 최대 1,200자.
+                  </p>
+                  <textarea
+                    id="resubmit-statement"
+                    name="applicantStatement"
+                    maxLength={1200}
+                    disabled={resubmitting}
+                  />
+                </div>
+                {resubmitErrorMessage ? (
+                  <p className="form-message" role="alert">
+                    {resubmitErrorMessage}
+                  </p>
+                ) : null}
+                <div className="button-row">
+                  <button
+                    className="button"
+                    type="submit"
+                    disabled={resubmitting}
+                  >
+                    {resubmitting ? "제출 중" : "보완 제출"}
+                  </button>
+                </div>
+              </form>
             ) : null}
           </>
         ) : null}

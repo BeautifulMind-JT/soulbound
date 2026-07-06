@@ -3,6 +3,7 @@ import type {
   AdmissionRepository,
   ApproveOutcome,
   DecisionTxInput,
+  ResubmitApplicationTxInput,
   ReviewQueueQuery,
   StartReviewTxInput,
   SubmitApplicationTxInput,
@@ -162,6 +163,22 @@ export class SupabaseAdmissionRepository implements AdmissionRepository {
       p_referral_code: input.referralCode ?? null,
       p_persona_clip_asset_id: input.personaClipAssetId ?? null,
       p_persona_clip_hash: input.personaClipHash ?? null,
+    });
+
+    throwIfSupabaseError(error);
+    return mapAdmissionApplicationRow(
+      requireSingleRow(data as AdmissionApplicationRow | AdmissionApplicationRow[] | null),
+    );
+  }
+
+  async resubmitApplicationTx(
+    input: ResubmitApplicationTxInput,
+  ): Promise<AdmissionApplication> {
+    const { data, error } = await this.client.rpc("admission_resubmit", {
+      p_application_id: input.applicationId,
+      p_applicant_id: input.applicantId,
+      p_statement: input.applicantStatement ?? null,
+      p_idempotency_key: input.idempotencyKey,
     });
 
     throwIfSupabaseError(error);
