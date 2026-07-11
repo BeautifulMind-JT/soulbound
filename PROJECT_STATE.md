@@ -339,6 +339,17 @@ audit.sh·diff-check, boundary 0-diff(api/packages/supabase/PWA/lock). 프리페
 (탭 진입 시 에러+재시도 UI). **배포 잔여(Codex)**: 커밋 → push → Vercel(프론트 전용). staging DB push(0009–0013)는
 JT 귀환 시 이월 유지 — 완료 전까지 staging의 투표/게시판/재제출 표면은 DB 레벨 미가동 상태임을 유의.
 
+추가 갱신(2026-07-07, Alpha R4 가입약관 + 동의 흐름 = **Cowork FINAL PASS**): `/terms` 정적 페이지(브리프
+`docs/ALPHA_R4_TERMS_BRIEF.md` §3 전문 verbatim·prose-text 본문/산세리프 제목·metadata title) + signup 필수 동의
+체크박스(명시적 htmlFor/id·required 네이티브 검증·새 탭 약관 링크·**동의값 payload 미전송**). 약관 = 구현 사실
+1:1 정직 고지 10조: 복구 불가(분실=멤버십 상실)·심사 자료 파기·비밀투표·member-N 익명성+탈익명 금지·프리알파
+무보증·만 14세 미만 불가. **JT 강조(2026-07-07) 반영**: "회원이 실제로 누구인지 알 수 있는 정보를 수집하지 않는
+것을 원칙" — 제1조 원칙 선언 + 제2조 "복구에 쓸 정보 자체를 갖지 않습니다" + 제7조 미수집 정보 선행 구조.
+("어떤 정보도 저장 안 함" 문구는 거짓 약속이라 배제 — 게시글/가명 아이디/감사 기록은 저장.) **게이트**(Cowork
+독립 재실행): typecheck·web 111/111·`/terms` 정적(○) 빌드·audit.sh·diff-check·boundary 4파일 외 0-diff. 감사
+1차에서 보충 미반영 2건(prose 타이포·metadata) 적발→수정 후 표적 재확인 PASS. ⚠️ **public 전 법률 검토 필수**
+(개인영상정보·처리방침 분리 — 브리프 §6 이월). **배포 잔여(Codex)**: 커밋 → push → Vercel(프론트 전용, DB 무관).
+
 ---
 
 ## 0. 한 줄 요약
