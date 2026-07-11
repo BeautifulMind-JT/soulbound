@@ -73,6 +73,25 @@ export default function SignupPage() {
             />
             <small>6자 이상</small>
           </div>
+          <div className="button-row">
+            <label htmlFor="signup-terms">
+              <input
+                id="signup-terms"
+                name="terms"
+                required
+                type="checkbox"
+              />{" "}
+              이용약관에 동의합니다
+            </label>
+            <Link
+              className="quiet-link"
+              href="/terms"
+              rel="noreferrer"
+              target="_blank"
+            >
+              약관 보기
+            </Link>
+          </div>
           {message ? (
             <p
               className={`form-message${isError ? "" : " success-message"}`}

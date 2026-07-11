@@ -60,6 +60,21 @@ describe("SignupPage", () => {
     )).toBeTruthy();
   });
 
+  it("requires terms agreement and links to the terms page", () => {
+    render(<SignupPage />);
+
+    const checkbox = screen.getByLabelText(
+      "이용약관에 동의합니다",
+    ) as HTMLInputElement;
+    expect(checkbox.type).toBe("checkbox");
+    expect(checkbox.required).toBe(true);
+
+    const link = screen.getByRole("link", { name: "약관 보기" });
+    expect(link.getAttribute("href")).toBe("/terms");
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noreferrer");
+  });
+
   it("maps structured duplicate username failures to a precise message", async () => {
     signUp.mockRejectedValueOnce(new authMocks.UsernameAlreadyExistsError());
     render(<SignupPage />);
@@ -70,6 +85,7 @@ describe("SignupPage", () => {
     fireEvent.change(screen.getByLabelText("비밀번호"), {
       target: { value: "password123" },
     });
+    fireEvent.click(screen.getByLabelText("이용약관에 동의합니다"));
     fireEvent.click(screen.getByRole("button", { name: "가입하기" }));
 
     await waitFor(() =>
