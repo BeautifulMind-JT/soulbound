@@ -80,18 +80,12 @@ export class SupabaseMemberDirectoryRepository {
   async listActiveMembers(
     input: ListActiveMembersInput,
   ): Promise<ListActiveMembersResult> {
-    let query = this.client
-      .from("profiles")
-      .select(memberDirectorySelect)
-      .not("member_number", "is", null)
-      .order("member_number", { ascending: true })
-      .limit(input.limit + 1);
-
-    if (input.cursor !== null) {
-      query = query.gt("member_number", input.cursor);
-    }
-
-    const { data, error } = await query;
+    const { data, error } = await this.client
+      .rpc("list_active_members", {
+        p_limit: input.limit + 1,
+        p_cursor: input.cursor,
+      })
+      .select(memberDirectorySelect);
     throwIfSupabaseError(error);
 
     const rows = (data ?? []) as unknown as MemberDirectoryRow[];

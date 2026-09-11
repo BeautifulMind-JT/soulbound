@@ -18,13 +18,13 @@ interface RouteContext {
   }>;
 }
 
-interface ClipVoteRow {
-  readonly id: string;
-  readonly status: string;
-  readonly admission_applications?: {
-    readonly status?: string;
-    readonly persona_clip_asset_id?: string | null;
-  } | null;
+interface ClipAccessRow {
+  readonly asset_id: string;
+  readonly window_ends_at: string;
+}
+
+function isUnexpired(row: ClipAccessRow | null): row is ClipAccessRow {
+  return Boolean(row?.asset_id) && Date.parse(row?.window_ends_at ?? "") > Date.now();
 }
 
 function serviceRoleClient() {
@@ -48,37 +48,44 @@ export async function GET(
     const { voteId } = await context.params;
     const client = serviceRoleClient();
     const { data, error } = await client
-      .from("admission_votes")
-      .select("id,status,admission_applications(status,persona_clip_asset_id)")
-      .eq("id", voteId)
+      .rpc("authorize_admission_vote_clip", {
+        p_vote_id: voteId,
+        p_voter_id: authorized.userId,
+        p_record_access: true,
+      })
       .maybeSingle();
     if (error) {
       throw error;
     }
 
-    const row = data as unknown as ClipVoteRow | null;
-    const application = row?.admission_applications ?? null;
-    if (
-      !row
-      || row.status !== "open"
-      || application?.status !== "in_vote"
-      || !application.persona_clip_asset_id
-    ) {
+    const row = data as unknown as ClipAccessRow | null;
+    if (!isUnexpired(row)) {
       return notFound();
     }
 
-    const { error: accessError } = await client.from("admission_vote_clip_accesses").insert({
-      vote_id: voteId,
-      voter_id: authorized.userId,
-      expires_at: new Date(Date.now() + 5 * 60_000).toISOString(),
-    });
-    if (accessError) {
-      throw accessError;
+    const url = await serviceRoleStorageAdapter().getSignedUrl(
+      row.asset_id,
+    );
+    if (!isUnexpired(row)) {
+      return notFound();
     }
 
-    const url = await serviceRoleStorageAdapter().getSignedUrl(
-      application.persona_clip_asset_id,
-    );
+    // Signing is external to the DB transaction: discard the URL if the vote,
+    // application, member or clip changed while storage was signing it.
+    const { data: currentData, error: currentError } = await client
+      .rpc("authorize_admission_vote_clip", {
+        p_vote_id: voteId,
+        p_voter_id: authorized.userId,
+        p_record_access: false,
+      })
+      .maybeSingle();
+    if (currentError) {
+      throw currentError;
+    }
+    const current = currentData as unknown as ClipAccessRow | null;
+    if (!isUnexpired(current) || current.asset_id !== row.asset_id) {
+      return notFound();
+    }
     return jsonResponse({ url });
   } catch (error) {
     return voteErrorResponse(error) ?? dependencyFailure(error);
