@@ -1,0 +1,162 @@
+{
+  "observed_at_utc": "2026-09-11T01:25:26.341Z",
+  "project_id": "leyjdpoycglzvybbegrd",
+  "project_name": "soulbound-staging",
+  "scope": "Read-only migration ledger and PostgreSQL catalogs. No member records, tokens, credentials or write RPCs queried.",
+  "migration_request": {
+    "tool": "supabase_list_migrations",
+    "project_id": "leyjdpoycglzvybbegrd"
+  },
+  "migration_result": {
+    "migrations": [
+      {
+        "version": "0001",
+        "name": "phase1_schema"
+      },
+      {
+        "version": "0002",
+        "name": "schema_only_tables"
+      },
+      {
+        "version": "0003",
+        "name": "rls"
+      },
+      {
+        "version": "0004",
+        "name": "rpc"
+      },
+      {
+        "version": "0005",
+        "name": "storage"
+      },
+      {
+        "version": "0006",
+        "name": "role_source"
+      },
+      {
+        "version": "0007",
+        "name": "profiles_provisioning"
+      },
+      {
+        "version": "0008",
+        "name": "persona_clip_reap"
+      }
+    ]
+  },
+  "catalog_request": {
+    "tool": "supabase_execute_sql",
+    "project_id": "leyjdpoycglzvybbegrd",
+    "query": "select\n  current_database() as database_name,\n  current_setting('server_version') as postgres_version,\n  (select jsonb_agg(jsonb_build_object('table', tablename, 'rls', rowsecurity) order by tablename)\n   from pg_tables\n   where schemaname = 'public' and tablename in\n     ('profiles','admission_applications','memberships','admission_votes','admission_vote_turnout','admission_vote_ballots','board_posts','board_comments')) as tables,\n  (select jsonb_agg(jsonb_build_object('function', p.proname, 'arguments', pg_get_function_identity_arguments(p.oid),\n     'returns', pg_get_function_result(p.oid), 'security_definer', p.prosecdef,\n     'authenticated_execute', has_function_privilege('authenticated', p.oid, 'EXECUTE'),\n     'anon_execute', has_function_privilege('anon', p.oid, 'EXECUTE')) order by p.proname)\n   from pg_proc p join pg_namespace n on n.oid = p.pronamespace\n   where n.nspname = 'public' and p.proname in\n     ('cast_vote_tx','is_application_owner','list_open_admission_votes','get_admission_vote','resubmit_application_tx')) as functions,\n  (select jsonb_agg(jsonb_build_object('column', a.attname,\n     'authenticated_select', has_column_privilege('authenticated', a.attrelid, a.attnum, 'SELECT'),\n     'authenticated_update', has_column_privilege('authenticated', a.attrelid, a.attnum, 'UPDATE')) order by a.attnum)\n   from pg_attribute a\n   where a.attrelid = 'public.profiles'::regclass and a.attnum > 0 and not a.attisdropped) as profile_column_grants,\n  (select jsonb_agg(jsonb_build_object('policy', policyname, 'roles', roles, 'command', cmd,\n     'using', qual, 'with_check', with_check) order by policyname)\n   from pg_policies where schemaname = 'public' and tablename = 'profiles') as profile_policies;"
+  },
+  "catalog_result": [
+    {
+      "database_name": "postgres",
+      "postgres_version": "17.6",
+      "tables": [
+        {
+          "rls": true,
+          "table": "admission_applications"
+        },
+        {
+          "rls": true,
+          "table": "memberships"
+        },
+        {
+          "rls": true,
+          "table": "profiles"
+        }
+      ],
+      "functions": [
+        {
+          "returns": "boolean",
+          "function": "is_application_owner",
+          "arguments": "p_application_id uuid, p_user_id uuid",
+          "anon_execute": false,
+          "security_definer": true,
+          "authenticated_execute": true
+        }
+      ],
+      "profile_column_grants": [
+        {
+          "column": "id",
+          "authenticated_select": true,
+          "authenticated_update": false
+        },
+        {
+          "column": "handle",
+          "authenticated_select": true,
+          "authenticated_update": true
+        },
+        {
+          "column": "display_name",
+          "authenticated_select": true,
+          "authenticated_update": true
+        },
+        {
+          "column": "bio",
+          "authenticated_select": true,
+          "authenticated_update": true
+        },
+        {
+          "column": "avatar_url",
+          "authenticated_select": true,
+          "authenticated_update": true
+        },
+        {
+          "column": "membership_status",
+          "authenticated_select": true,
+          "authenticated_update": false
+        },
+        {
+          "column": "role",
+          "authenticated_select": false,
+          "authenticated_update": false
+        },
+        {
+          "column": "wallet_address",
+          "authenticated_select": false,
+          "authenticated_update": false
+        },
+        {
+          "column": "created_at",
+          "authenticated_select": true,
+          "authenticated_update": false
+        },
+        {
+          "column": "updated_at",
+          "authenticated_select": true,
+          "authenticated_update": false
+        }
+      ],
+      "profile_policies": [
+        {
+          "roles": [
+            "authenticated"
+          ],
+          "using": "((membership_status = 'active'::text) AND is_active_member(auth.uid()))",
+          "policy": "profiles select active public",
+          "command": "SELECT",
+          "with_check": null
+        },
+        {
+          "roles": [
+            "authenticated"
+          ],
+          "using": "(id = auth.uid())",
+          "policy": "profiles select own",
+          "command": "SELECT",
+          "with_check": null
+        },
+        {
+          "roles": [
+            "authenticated"
+          ],
+          "using": "(id = auth.uid())",
+          "policy": "profiles update own safe columns",
+          "command": "UPDATE",
+          "with_check": "(id = auth.uid())"
+        }
+      ]
+    }
+  ]
+}

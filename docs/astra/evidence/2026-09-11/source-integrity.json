@@ -1,0 +1,7 @@
+{
+  "upstreamCommit": "1e9e2257a6dcc5e731619752630e0004b6dc89c4",
+  "upstreamTree": "91cafccf195033553a25c203bcf23743733237c0",
+  "sourceFileCount": 291,
+  "mismatchesAfterVerification": [],
+  "sourceAcquisition": "GitHub connector; reconstructed and hash-verified Git blobs, tree, and commit; shallow snapshot"
+}

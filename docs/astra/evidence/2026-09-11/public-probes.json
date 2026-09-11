@@ -1,0 +1,160 @@
+{
+  "target": "https://soulbound-staging.vercel.app",
+  "mode": "read-only GET; no cookies, credentials, accounts, submissions, votes, or cleanup jobs",
+  "results": [
+    {
+      "path": "/",
+      "checkedAt": "2026-09-11T01:14:56.394969+00:00",
+      "result": "ERROR",
+      "error": "curl: (28) Proxy CONNECT aborted due to timeout",
+      "retry": {
+        "checkedAt": "2026-09-11T01:16:08.202331+00:00",
+        "attempt": 2,
+        "status": 200,
+        "bodySha256": "d2200268512e2ecfb0b21aa74b4d611011c3a0455a3512f5be1e81ca112638af",
+        "checks": {
+          "비공개 멤버 공간": true
+        },
+        "result": "PASS"
+      }
+    },
+    {
+      "path": "/signup",
+      "checkedAt": "2026-09-11T01:14:56.395364+00:00",
+      "result": "ERROR",
+      "error": "curl: (28) Proxy CONNECT aborted due to timeout",
+      "retry": {
+        "checkedAt": "2026-09-11T01:16:17.021725+00:00",
+        "attempt": 2,
+        "status": 200,
+        "bodySha256": "f7b2101ec6238c6a3ecd8e1db308bdb1cb330f0ab26af4c4a2c7e5825be5f206",
+        "checks": {
+          "signup-terms": true,
+          "required": true,
+          "이용약관에 동의합니다": true,
+          "href=\"/terms\"": true
+        },
+        "result": "PASS"
+      }
+    },
+    {
+      "path": "/terms",
+      "checkedAt": "2026-09-11T01:14:56.395541+00:00",
+      "result": "ERROR",
+      "error": "curl: (28) Proxy CONNECT aborted due to timeout",
+      "retry": {
+        "checkedAt": "2026-09-11T01:16:27.966065+00:00",
+        "attempt": 2,
+        "status": 200,
+        "bodySha256": "d234d7f36d281289904b5e75c20e86b826c5b2601bfc70d1962b454cef08ed4c",
+        "checks": {
+          "이용약관 | SoulBound": true,
+          "2026-07-07": true
+        },
+        "result": "PASS"
+      }
+    },
+    {
+      "path": "/api/membership/me",
+      "checkedAt": "2026-09-11T01:15:06.406274+00:00",
+      "status": 401,
+      "bodySha256": "add6bb7d390d272f3292068f513ab725f5a8185204285a4f6acce00d8d797515",
+      "expected": {
+        "error": {
+          "code": "UNAUTHORIZED"
+        }
+      },
+      "actual": {
+        "error": {
+          "code": "UNAUTHORIZED"
+        }
+      },
+      "result": "PASS"
+    },
+    {
+      "path": "/api/members",
+      "checkedAt": "2026-09-11T01:15:06.406534+00:00",
+      "status": 401,
+      "bodySha256": "add6bb7d390d272f3292068f513ab725f5a8185204285a4f6acce00d8d797515",
+      "expected": {
+        "error": {
+          "code": "UNAUTHORIZED"
+        }
+      },
+      "actual": {
+        "error": {
+          "code": "UNAUTHORIZED"
+        }
+      },
+      "result": "PASS"
+    },
+    {
+      "path": "/api/board",
+      "checkedAt": "2026-09-11T01:15:06.407195+00:00",
+      "status": 401,
+      "bodySha256": "add6bb7d390d272f3292068f513ab725f5a8185204285a4f6acce00d8d797515",
+      "expected": {
+        "error": {
+          "code": "UNAUTHORIZED"
+        }
+      },
+      "actual": {
+        "error": {
+          "code": "UNAUTHORIZED"
+        }
+      },
+      "result": "PASS"
+    },
+    {
+      "path": "/api/vote/applications",
+      "checkedAt": "2026-09-11T01:15:09.024240+00:00",
+      "status": 401,
+      "bodySha256": "add6bb7d390d272f3292068f513ab725f5a8185204285a4f6acce00d8d797515",
+      "expected": {
+        "error": {
+          "code": "UNAUTHORIZED"
+        }
+      },
+      "actual": {
+        "error": {
+          "code": "UNAUTHORIZED"
+        }
+      },
+      "result": "PASS"
+    },
+    {
+      "path": "/api/admin/applications",
+      "checkedAt": "2026-09-11T01:15:09.030022+00:00",
+      "status": 401,
+      "bodySha256": "add6bb7d390d272f3292068f513ab725f5a8185204285a4f6acce00d8d797515",
+      "expected": {
+        "error": {
+          "code": "UNAUTHORIZED"
+        }
+      },
+      "actual": {
+        "error": {
+          "code": "UNAUTHORIZED"
+        }
+      },
+      "result": "PASS"
+    },
+    {
+      "path": "/api/admission/applications/me",
+      "checkedAt": "2026-09-11T01:15:09.112356+00:00",
+      "status": 401,
+      "bodySha256": "add6bb7d390d272f3292068f513ab725f5a8185204285a4f6acce00d8d797515",
+      "expected": {
+        "error": {
+          "code": "UNAUTHORIZED"
+        }
+      },
+      "actual": {
+        "error": {
+          "code": "UNAUTHORIZED"
+        }
+      },
+      "result": "PASS"
+    }
+  ]
+}

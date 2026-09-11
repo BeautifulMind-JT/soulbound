@@ -1,0 +1,12 @@
+{
+  "observed_at_utc": "2026-09-11T01:28:33.223Z",
+  "project_id": "leyjdpoycglzvybbegrd",
+  "reason": "Independent review corrected the queried resubmission RPC name. The original catalog query remains preserved in database-verification.json; its resubmit_application_tx filter does not prove absence of the actual source function.",
+  "source": "supabase/migrations/0013_admission_resubmit.sql: public.admission_resubmit(uuid, uuid, text, text)",
+  "request": {
+    "tool": "supabase_execute_sql",
+    "project_id": "leyjdpoycglzvybbegrd",
+    "query": "select p.proname as function_name, pg_get_function_identity_arguments(p.oid) as arguments, pg_get_function_result(p.oid) as returns, p.prosecdef as security_definer from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'admission_resubmit';"
+  },
+  "result": []
+}

@@ -1,0 +1,13 @@
+== SoulBound audit ==
+OK:   FROZEN no skip/todo in core
+OK:   FROZEN no free-text reason field
+OK:   chain-neutral: no concrete-chain SDK in code
+OK:   chain-neutral: no 'sui' literal in core src
+OK:   no supabase import in core
+OK:   persona clip: no supabase.storage in apps
+OK:   no direct supabase client in components
+OK:   no plaintext/raw-key columns
+OK:   no chat/messages routes
+OK:   no COMMIT/ROLLBACK in rpc migrations
+
+AUDIT PASSED

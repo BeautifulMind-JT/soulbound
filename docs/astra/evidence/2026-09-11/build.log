@@ -1,0 +1,65 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+Scope: 3 of 4 workspace projects
+packages/core build$ tsc -p tsconfig.build.json
+packages/core build: Done
+packages/adapters build$ tsc -p tsconfig.build.json
+packages/adapters build: Done
+apps/web build$ next build
+apps/web build: ▲ Next.js 16.2.7 (Turbopack)
+apps/web build:   Creating an optimized production build ...
+apps/web build: ✓ Compiled successfully in 2.3s
+apps/web build:   Running TypeScript ...
+apps/web build:   Finished TypeScript in 3.6s ...
+apps/web build:   Collecting page data using 8 workers ...
+apps/web build:   Generating static pages using 8 workers (0/22) ...
+apps/web build:   Generating static pages using 8 workers (5/22) 
+apps/web build:   Generating static pages using 8 workers (10/22) 
+apps/web build:   Generating static pages using 8 workers (16/22) 
+apps/web build: ✓ Generating static pages using 8 workers (22/22) in 273ms
+apps/web build:   Finalizing page optimization ...
+apps/web build: Route (app)
+apps/web build: ┌ ○ /
+apps/web build: ├ ○ /_not-found
+apps/web build: ├ ○ /admin/applications
+apps/web build: ├ ƒ /admin/applications/[id]
+apps/web build: ├ ƒ /api/admin/applications
+apps/web build: ├ ƒ /api/admin/applications/[id]
+apps/web build: ├ ƒ /api/admin/applications/[id]/approve
+apps/web build: ├ ƒ /api/admin/applications/[id]/persona-clip-url
+apps/web build: ├ ƒ /api/admin/applications/[id]/reject
+apps/web build: ├ ƒ /api/admin/applications/[id]/request-more-info
+apps/web build: ├ ƒ /api/admin/applications/[id]/review
+apps/web build: ├ ƒ /api/admin/applications/[id]/vote/finalize
+apps/web build: ├ ƒ /api/admin/applications/[id]/vote/open
+apps/web build: ├ ƒ /api/admin/applications/[id]/vote/override
+apps/web build: ├ ƒ /api/admin/board/comments/[commentId]
+apps/web build: ├ ƒ /api/admin/board/posts/[postId]
+apps/web build: ├ ƒ /api/admission/applications
+apps/web build: ├ ƒ /api/admission/applications/[id]
+apps/web build: ├ ƒ /api/admission/applications/[id]/resubmit
+apps/web build: ├ ƒ /api/admission/applications/me
+apps/web build: ├ ƒ /api/admission/persona-clip
+apps/web build: ├ ƒ /api/board
+apps/web build: ├ ƒ /api/board/[postId]
+apps/web build: ├ ƒ /api/board/[postId]/comments
+apps/web build: ├ ƒ /api/board/[postId]/comments/[commentId]
+apps/web build: ├ ƒ /api/internal/persona-clip-reap
+apps/web build: ├ ƒ /api/members
+apps/web build: ├ ƒ /api/membership/me
+apps/web build: ├ ƒ /api/vote/applications
+apps/web build: ├ ƒ /api/vote/applications/[voteId]
+apps/web build: ├ ƒ /api/vote/applications/[voteId]/cast
+apps/web build: ├ ƒ /api/vote/applications/[voteId]/persona-clip-url
+apps/web build: ├ ○ /apple-icon.png
+apps/web build: ├ ○ /apply
+apps/web build: ├ ○ /apply/status
+apps/web build: ├ ○ /gate
+apps/web build: ├ ○ /icon.png
+apps/web build: ├ ○ /login
+apps/web build: ├ ○ /manifest.webmanifest
+apps/web build: ├ ○ /member
+apps/web build: ├ ○ /signup
+apps/web build: └ ○ /terms
+apps/web build: ○  (Static)   prerendered as static content
+apps/web build: ƒ  (Dynamic)  server-rendered on demand
+apps/web build: Done
