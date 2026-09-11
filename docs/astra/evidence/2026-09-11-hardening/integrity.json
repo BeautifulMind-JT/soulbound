@@ -1,0 +1,13 @@
+{
+  "baseline": "bf7984ac98c4d980bd6ba722b0a9e831a5f2ae58",
+  "modified_existing_files": [
+    "apps/web/app/api/vote/applications/[voteId]/persona-clip-url/route.ts",
+    "docs/astra/README.md",
+    "packages/adapters/src/supabase/supabase-member-directory-repository.ts"
+  ],
+  "frozen_files_checked": 83,
+  "frozen_files_changed": 0,
+  "browser_static_files": 29,
+  "server_canary_matches": [],
+  "core_emitted_test_files": []
+}

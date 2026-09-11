@@ -1,0 +1,269 @@
+{
+  "observed_at_utc": "2026-09-11T02:07:48.402Z",
+  "project_id": "leyjdpoycglzvybbegrd",
+  "scope": "Read-only aggregate/catalog queries; no individual account identities or credentials retrieved.",
+  "database": [
+    {
+      "profiles": 88,
+      "memberships": 39,
+      "applications": 46,
+      "audit_logs": 104,
+      "migrations": [
+        {
+          "name": "phase1_schema",
+          "version": "0001"
+        },
+        {
+          "name": "schema_only_tables",
+          "version": "0002"
+        },
+        {
+          "name": "rls",
+          "version": "0003"
+        },
+        {
+          "name": "rpc",
+          "version": "0004"
+        },
+        {
+          "name": "storage",
+          "version": "0005"
+        },
+        {
+          "name": "role_source",
+          "version": "0006"
+        },
+        {
+          "name": "profiles_provisioning",
+          "version": "0007"
+        },
+        {
+          "name": "persona_clip_reap",
+          "version": "0008"
+        }
+      ]
+    }
+  ],
+  "username_backfill": {
+    "query": "with normalized as (\n select p.id, lower(regexp_replace(coalesce(nullif(split_part(u.email,'@',1),''),'member'),'[^a-z0-9_-]','_','g')) as raw_base\n from public.profiles p left join auth.users u on u.id=p.id\n), candidates as (\n select id, case when length(trim(both '_' from raw_base))<3 then 'member' else left(trim(both '_' from raw_base),20) end as base\n from normalized\n), numbered as (\n select id,base,row_number() over(partition by base order by id) as duplicate_index from candidates\n), proposed as (\n select case when duplicate_index=1 then base else left(base,20)||'_'||duplicate_index::text end as username from numbered\n)\nselect (select count(*) from proposed) as evaluated_profiles,\n (select count(*) from proposed where username !~ '^[a-z0-9][a-z0-9_-]{2,23}$') as invalid_usernames,\n (select count(*) from (select username from proposed group by username having count(*)>1) d) as username_collision_groups,\n (select count(*) from public.profiles where membership_status='active') as active_profiles_to_number;",
+    "result": [
+      {
+        "evaluated_profiles": 88,
+        "invalid_usernames": 0,
+        "username_collision_groups": 0,
+        "active_profiles_to_number": 39
+      }
+    ]
+  },
+  "auth_alias": {
+    "query": "with normalized as (\n select p.id, lower(regexp_replace(coalesce(nullif(split_part(u.email,'@',1),''),'member'),'[^a-z0-9_-]','_','g')) as raw_base\n from public.profiles p left join auth.users u on u.id=p.id\n), candidates as (\n select id, case when length(trim(both '_' from raw_base))<3 then 'member' else left(trim(both '_' from raw_base),20) end as base\n from normalized\n), numbered as (\n select id,base,row_number() over(partition by base order by id) as duplicate_index from candidates\n), proposed as (\n select id, case when duplicate_index=1 then base else left(base,20)||'_'||duplicate_index::text end as username from numbered\n)\nselect count(*) as evaluated_accounts, count(*) filter(where u.email = proposed.username || '@soulbound.internal') as matching_username_auth_alias, count(*) filter(where u.email is distinct from proposed.username || '@soulbound.internal') as legacy_auth_alias_mismatch from proposed join auth.users u on u.id=proposed.id;",
+    "result": [
+      {
+        "evaluated_accounts": 88,
+        "matching_username_auth_alias": 0,
+        "legacy_auth_alias_mismatch": 88
+      }
+    ]
+  },
+  "vercel": {
+    "teams": [],
+    "project_status": "403 Forbidden",
+    "project": "soulbound-admin-s-projects/soulbound-staging"
+  },
+  "security_advisors": {
+    "lints": [
+      {
+        "name": "rls_enabled_no_policy",
+        "title": "RLS Enabled No Policy",
+        "level": "INFO",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects cases where row level security (RLS) has been enabled on a table but no RLS policies have been created.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy",
+        "count": 11,
+        "findings": [
+          {
+            "detail": "Table \\`public.admission_events\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "admission_events",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-09-11T02:04:24.698Z"
+          },
+          {
+            "detail": "Table \\`public.audit_logs\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "audit_logs",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-09-11T02:04:24.698Z"
+          },
+          {
+            "detail": "Table \\`public.decision_receipts\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "decision_receipts",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-09-11T02:04:24.698Z"
+          },
+          {
+            "detail": "Table \\`public.emergency_actions\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "emergency_actions",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-09-11T02:04:24.698Z"
+          },
+          {
+            "detail": "Table \\`public.evidence_files\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "evidence_files",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-09-11T02:04:24.698Z"
+          },
+          {
+            "detail": "Table \\`public.outbox_events\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "outbox_events",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-09-11T02:04:24.698Z"
+          },
+          {
+            "detail": "Table \\`public.reports\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "reports",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-09-11T02:04:24.698Z"
+          },
+          {
+            "detail": "Table \\`public.slash_cases\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "slash_cases",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-09-11T02:04:24.698Z"
+          },
+          {
+            "detail": "Table \\`public.soul_balances\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "soul_balances",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-09-11T02:04:24.698Z"
+          },
+          {
+            "detail": "Table \\`public.soul_ledger_events\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "soul_ledger_events",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-09-11T02:04:24.698Z"
+          },
+          {
+            "detail": "Table \\`public.user_intent_authorizations\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "user_intent_authorizations",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-09-11T02:04:24.698Z"
+          }
+        ]
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "title": "Signed-In Users Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable by signed-in users. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if signed-in users should not call it.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+        "count": 4,
+        "findings": [
+          {
+            "detail": "Function `public.current_user_role()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/current_user_role`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "current_user_role",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-09-11T02:04:24.698Z"
+          },
+          {
+            "detail": "Function `public.is_active_member(p_user_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/is_active_member`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "is_active_member",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "p_user_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-09-11T02:04:24.698Z"
+          },
+          {
+            "detail": "Function `public.is_application_owner(p_application_id uuid, p_user_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/is_application_owner`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "is_application_owner",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "p_application_id uuid, p_user_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-09-11T02:04:24.698Z"
+          },
+          {
+            "detail": "Function `public.is_conversation_participant(p_conversation_id uuid, p_user_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/is_conversation_participant`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "is_conversation_participant",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "p_conversation_id uuid, p_user_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-09-11T02:04:24.698Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "title": "Leaked Password Protection Disabled",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Leaked password protection is currently disabled.",
+        "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "Supabase Auth prevents the use of compromised passwords by checking against HaveIBeenPwned.org. Enable this feature to enhance security.",
+            "metadata": {
+              "type": "auth",
+              "entity": "Auth"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,57 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+Scope: 3 of 4 workspace projects
+packages/core test$ vitest run
+packages/core test:  RUN  v2.1.8 /workspace/scratch/4f96fed04eb8/soulbound-astra/packages/core
+packages/core test:  ✓ src/domain/membership/membership-service.test.ts (2 tests) 4ms
+packages/core test:  ✓ src/domain/admission/admission-service.resubmit.test.ts (6 tests) 8ms
+packages/core test:  ✓ src/domain/admission/admission-service.test.ts (18 tests) 15ms
+packages/core test:  Test Files  3 passed (3)
+packages/core test:       Tests  26 passed (26)
+packages/core test:    Start at  10:59:26
+packages/core test:    Duration  313ms (transform 174ms, setup 0ms, collect 233ms, tests 27ms, environment 1ms, prepare 198ms)
+packages/core test: Done
+packages/adapters test$ vitest run
+packages/adapters test:  RUN  v2.1.8 /workspace/scratch/4f96fed04eb8/soulbound-astra/packages/adapters
+packages/adapters test:  ✓ src/supabase/mappers.test.ts (4 tests) 5ms
+packages/adapters test:  ✓ src/supabase/supabase-member-directory-repository.test.ts (1 test) 3ms
+packages/adapters test:  ✓ src/supabase/member-directory-rpc.test.ts (1 test) 6ms
+packages/adapters test:  ✓ src/supabase/supabase-auth-adapter.test.ts (4 tests) 5ms
+packages/adapters test:  ✓ src/supabase/supabase-admission-repository.test.ts (1 test) 8ms
+packages/adapters test:  ✓ src/supabase/supabase-storage-adapter.test.ts (7 tests) 8ms
+packages/adapters test:  ✓ src/scripts/reap-persona-clips.test.ts (1 test) 3ms
+packages/adapters test:  ✓ src/noop/noop-adapters.test.ts (2 tests) 4ms
+packages/adapters test:  ✓ src/supabase/errors.test.ts (5 tests) 3ms
+packages/adapters test:  Test Files  9 passed (9)
+packages/adapters test:       Tests  26 passed (26)
+packages/adapters test:    Start at  10:59:26
+packages/adapters test:    Duration  603ms (transform 571ms, setup 0ms, collect 1.09s, tests 44ms, environment 1ms, prepare 656ms)
+packages/adapters test: Done
+apps/web test$ vitest run
+apps/web test:  RUN  v2.1.8 /workspace/scratch/4f96fed04eb8/soulbound-astra/apps/web
+apps/web test:  ✓ lib/auth-provider.test.tsx (3 tests) 227ms
+apps/web test:  ✓ components/admission/use-persona-clip-recorder.test.ts (9 tests) 272ms
+apps/web test:  ✓ app/apply/page.test.tsx (6 tests) 281ms
+apps/web test:  ✓ app/admin/applications/page.test.tsx (3 tests) 240ms
+apps/web test:  ✓ app/apply/status/page.test.tsx (13 tests) 353ms
+apps/web test:  ✓ app/admin/applications/[id]/page.test.tsx (11 tests) 761ms
+apps/web test:  ✓ app/member/page.test.tsx (10 tests) 808ms
+apps/web test:    ✓ MemberPage > renders the member-number directory for an active membership 360ms
+apps/web test:  ✓ app/api/_lib/schemas.test.ts (13 tests) 11ms
+apps/web test:  ✓ app/api/vote/applications/[voteId]/persona-clip-url/route.test.ts (13 tests) 30ms
+apps/web test:  ✓ app/_components/site-header.test.tsx (3 tests) 168ms
+apps/web test:  ✓ app/signup/page.test.tsx (3 tests) 226ms
+apps/web test:  ✓ app/api/members/route.test.ts (5 tests) 14ms
+apps/web test:  ✓ components/ui/tab-bar.test.tsx (1 test) 205ms
+apps/web test:  ✓ app/gate/page.test.tsx (2 tests) 208ms
+apps/web test:  ✓ app/terms/page.test.tsx (1 test) 174ms
+apps/web test:  ✓ app/api/internal/persona-clip-reap/route.test.ts (5 tests) 12ms
+apps/web test:  ✓ app/api/vote/_lib/supabase-vote-pagination.test.ts (1 test) 4ms
+apps/web test:  ✓ app/api/_lib/http.test.ts (3 tests) 6ms
+apps/web test:  ✓ components/pwa/service-worker.security.test.ts (16 tests) 5ms
+apps/web test:  ✓ app/api/_lib/auth.test.ts (2 tests) 4ms
+apps/web test:  ✓ app/api/_lib/admin.test.ts (2 tests) 6ms
+apps/web test:  Test Files  21 passed (21)
+apps/web test:       Tests  125 passed (125)
+apps/web test:    Start at  10:59:27
+apps/web test:    Duration  3.24s (transform 1.54s, setup 0ms, collect 4.87s, tests 4.01s, environment 7.83s, prepare 1.46s)
+apps/web test: Done

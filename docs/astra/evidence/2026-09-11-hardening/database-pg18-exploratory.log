@@ -1,0 +1,47 @@
+{"cycle":1,"engine":"PostgreSQL 18.3 (PGlite 0.5.8) on wasm32-unknown-emscripten, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit"}
+migration PASS 0001_phase1_schema.sql
+migration PASS 0002_schema_only_tables.sql
+migration PASS 0003_rls.sql
+migration PASS 0004_rpc.sql
+migration PASS 0005_storage.sql
+migration PASS 0006_role_source.sql
+migration PASS 0007_profiles_provisioning.sql
+migration PASS 0008_persona_clip_reap.sql
+migration PASS 0009_audit_hash_chain.sql
+migration PASS 0010_anonymous_identity.sql
+migration PASS 0011_board.sql
+migration PASS 0012_admission_voting.sql
+migration PASS 0013_admission_resubmit.sql
+migration PASS 20260911015117_astra_privacy_hardening.sql
+pgTAP PASS admission_resubmit.sql: 24 assertions
+pgTAP PASS admission_voting.sql: 30 assertions
+pgTAP PASS astra_privacy_hardening.sql: 46 assertions
+pgTAP PASS audit_hash_chain.sql: 17 assertions
+pgTAP PASS board_rls.sql: 14 assertions
+pgTAP PASS persona_clip_reap.sql: 17 assertions
+pgTAP PASS pre_task5_rpc_rls_smoke.sql: 49 assertions
+pgTAP PASS profiles_provisioning.sql: 7 assertions
+{"cycle":2,"engine":"PostgreSQL 18.3 (PGlite 0.5.8) on wasm32-unknown-emscripten, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit"}
+migration PASS 0001_phase1_schema.sql
+migration PASS 0002_schema_only_tables.sql
+migration PASS 0003_rls.sql
+migration PASS 0004_rpc.sql
+migration PASS 0005_storage.sql
+migration PASS 0006_role_source.sql
+migration PASS 0007_profiles_provisioning.sql
+migration PASS 0008_persona_clip_reap.sql
+migration PASS 0009_audit_hash_chain.sql
+migration PASS 0010_anonymous_identity.sql
+migration PASS 0011_board.sql
+migration PASS 0012_admission_voting.sql
+migration PASS 0013_admission_resubmit.sql
+migration PASS 20260911015117_astra_privacy_hardening.sql
+pgTAP PASS admission_resubmit.sql: 24 assertions
+pgTAP PASS admission_voting.sql: 30 assertions
+pgTAP PASS astra_privacy_hardening.sql: 46 assertions
+pgTAP PASS audit_hash_chain.sql: 17 assertions
+pgTAP PASS board_rls.sql: 14 assertions
+pgTAP PASS persona_clip_reap.sql: 17 assertions
+pgTAP PASS pre_task5_rpc_rls_smoke.sql: 49 assertions
+pgTAP PASS profiles_provisioning.sql: 7 assertions
+PASS: migrations, seed and all SQL suites on two fresh in-memory databases.
