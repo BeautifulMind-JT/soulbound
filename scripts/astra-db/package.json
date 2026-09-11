@@ -1,0 +1,13 @@
+{
+  "name": "astra-db-verification",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node verify.mjs"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "@electric-sql/pglite-pgtap": "0.0.9",
+    "pglite-pg17": "npm:@electric-sql/pglite@0.3.16"
+  }
+}
