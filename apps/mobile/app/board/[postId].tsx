@@ -81,11 +81,12 @@ export default function BoardPostScreen() {
 
   function safetyMenu(author: BoardAuthor, target: ReportTarget) {
     openSafetyMenu({
+      api,
       target,
       memberNumber: author.memberNumber,
       memberLabel: author.label,
       blocked: isBlocked(author.memberNumber),
-      onToggleBlock: () => toggle(author.memberNumber),
+      onToggleBlock: () => void toggle(author.memberNumber),
     });
   }
 

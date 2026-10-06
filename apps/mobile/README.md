@@ -27,12 +27,12 @@ Expo SDK 57 · React Native 0.86 · expo-router 기반 iPhone 앱. 웹(`apps/web
 
 | 변수 | 설명 |
 | --- | --- |
-| `EXPO_PUBLIC_API_BASE_URL` | 배포된 웹 origin (예: `https://soulbound.example`). `/api/*`, `/terms`가 여기서 열린다. |
+| `EXPO_PUBLIC_API_BASE_URL` | 배포된 웹 origin (예: `https://soulbound.example`). `/api/*`, `/terms`, `/privacy`가 여기서 열린다. |
 | `EXPO_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL (웹의 `NEXT_PUBLIC_SUPABASE_URL`과 같은 값) |
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (웹과 같은 값, service-role 키 금지) |
-| `EXPO_PUBLIC_PRIVACY_POLICY_URL` | 개인정보 처리방침 URL (BLOCKER: 아직 없음) |
-| `EXPO_PUBLIC_ACCOUNT_DELETION_URL` | 계정 삭제 요청 URL 또는 `mailto:` |
-| `EXPO_PUBLIC_REPORT_URL` | 신고 접수 URL 또는 `mailto:` |
+| `EXPO_PUBLIC_PRIVACY_POLICY_URL` | (선택) 개인정보 처리방침 URL. 비우면 `${EXPO_PUBLIC_API_BASE_URL}/privacy` |
+| `EXPO_PUBLIC_ACCOUNT_DELETION_URL` | (미사용, 선택) 앱 밖 삭제 안내용. 앱은 `DELETE /api/account`로 직접 삭제한다. |
+| `EXPO_PUBLIC_REPORT_URL` | (미사용, 선택) 신고는 `POST /api/reports`로 접수한다. |
 | `IOS_BUNDLE_ID` | (선택) 기본값 `com.soulbound.app` |
 | `EAS_PROJECT_ID` | (선택) `eas init` 후 받은 프로젝트 ID |
 
@@ -71,9 +71,9 @@ eas submit -p ios --profile production   # App Store Connect 업로드 → TestF
 
 ## App Store 제출 체크리스트
 
-- [ ] 개인정보 처리방침 URL (App Store Connect + 앱 내 설정/가입 화면) — **BLOCKER**
-- [ ] 앱 내 계정 삭제 (설정 → 계정 삭제) — 진입점은 있음, **백엔드 삭제 처리 BLOCKER**
-- [ ] UGC 신고/차단 (게시글·댓글·멤버) — 진입점은 있음, **백엔드 신고/차단 BLOCKER**
+- [ ] 개인정보 처리방침 URL — 웹 `/privacy` **초안** 있음(앱 설정/가입 화면 연결됨). **법률 검토 후** App Store Connect에 등록
+- [x] 앱 내 계정 삭제 (설정 → 계정 삭제 → `DELETE /api/account` → 로그아웃) — 프로덕션 DB에 0014 마이그레이션 적용 필요
+- [x] UGC 신고/차단 (게시글·댓글·멤버) — `POST /api/reports`(사유 선택 + 선택 설명), `/api/blocks`(서버 저장·서버 필터) / 운영자 처리 루틴(`/admin/reports`) 필요
 - [ ] 심사용 데모 계정(활성 멤버 1개) + 리뷰 노트(아이디/비밀번호, 입장 절차 설명)
 - [ ] App Privacy 설문(수집: 아이디, 게시글/댓글, 입장 신청 내용 / 추적 없음)
 - [ ] 스크린샷(6.9"·6.5" iPhone), 앱 설명, 지원 URL, 연령 등급(UGC 포함)
@@ -82,9 +82,9 @@ eas submit -p ios --profile production   # App Store Connect 업로드 → TestF
 
 ## Known BLOCKERS
 
-1. **백엔드 계정 삭제 엔드포인트 없음.** 앱은 확인 화면 후 `EXPO_PUBLIC_ACCOUNT_DELETION_URL`(URL/mailto)을 연다. Apple 5.1.1(v)는 앱 내 삭제 *개시*를 요구하므로 운영 측 수동 처리 절차가 필요하고, 실제 삭제 API가 생기면 교체해야 한다.
-2. **백엔드 신고/차단 엔드포인트 없음.** 신고는 `EXPO_PUBLIC_REPORT_URL`(URL/mailto)로 보내고, 차단은 이 기기에만 저장되는 숨김 처리다. Apple 1.2(UGC)는 운영자 대응(24시간 내 조치)을 요구한다.
-3. **개인정보 처리방침 페이지 없음.** 웹에 `/privacy`가 없다. 법률 문서를 작성/게시한 뒤 `EXPO_PUBLIC_PRIVACY_POLICY_URL`에 넣어야 한다.
+1. **개인정보 처리방침은 초안.** 웹 `/privacy`는 "초안 — 법률 검토 전"으로 표시되어 있고 TODO 항목(보관 기간, 국외 이전, 책임자/연락처, 시행일)이 남아 있다.
+2. **신고 처리 운영 루틴 필요.** 신고는 `/admin/reports`에서 reviewer/admin이 처리한다. 새 신고 알림은 없다(푸시 없음). Apple 1.2는 신속한 조치를 요구한다.
+3. **프로덕션 반영 필요.** `supabase/migrations/0014_store_compliance.sql`을 프로덕션 Supabase에 적용하고 웹을 재배포해야 앱의 삭제/신고/차단이 동작한다.
 4. **Persona Clip 녹화 미구현.** 신청은 Persona Clip 없이 가능(선택 항목). 투표 상세의 Persona Clip 재생도 웹에서만.
 5. **검토자/관리자 화면 미구현(P5).** reviewer/admin 계정은 웹 관리 화면 링크만 표시.
 6. Apple Developer 가입, Expo 계정, EAS 프로젝트 ID, 심사용 데모 계정은 JunTae가 직접 준비해야 한다.

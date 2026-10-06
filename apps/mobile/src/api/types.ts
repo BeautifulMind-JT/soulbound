@@ -71,3 +71,46 @@ export interface VoteListResponse {
   readonly items: readonly AdmissionVoteSummary[];
   readonly nextCursor: string | null;
 }
+
+export type ReportTargetType = "board_post" | "board_comment" | "member";
+export type ReportReason =
+  | "spam"
+  | "harassment"
+  | "hate"
+  | "sexual"
+  | "violence"
+  | "illegal"
+  | "impersonation"
+  | "privacy"
+  | "other";
+
+export interface CreateReportRequest {
+  readonly targetType: ReportTargetType;
+  readonly targetId: string;
+  readonly reason: ReportReason;
+  readonly detail?: string;
+}
+
+export interface ReportReceipt {
+  readonly id: string;
+  readonly targetType: ReportTargetType;
+  readonly targetId: string;
+  readonly reason: ReportReason;
+  readonly status: "open" | "resolved" | "dismissed";
+  readonly createdAt: string;
+}
+
+export interface BlockedMember {
+  readonly memberNumber: number;
+  readonly label: string;
+  readonly createdAt: string;
+}
+
+export interface BlockListResponse {
+  readonly items: readonly BlockedMember[];
+}
+
+export interface AccountDeletionResponse {
+  readonly deleted: true;
+  readonly personaClipsRemoved: number;
+}

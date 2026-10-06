@@ -1,6 +1,7 @@
 import Constants from "expo-constants";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Alert, Text } from "react-native";
+import { deleteAccount } from "../api/endpoints";
 import { useAuth } from "../auth/auth-provider";
 import { appConfig, termsUrl } from "../config";
 import { useBlocks } from "../lib/block-store";
@@ -8,10 +9,16 @@ import { openExternal } from "../lib/links";
 import { Badge, Body, Button, Card, ListRow, Message, SectionTitle, styles } from "../ui/components";
 
 export function SettingsContent() {
-  const { signOut } = useAuth();
-  const { blocked, toggle } = useBlocks();
+  const { api, signOut, expireSession } = useAuth();
+  const { blocked, syncError, setBlocked, refresh } = useBlocks();
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deletionError, setDeletionError] = useState("");
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -25,19 +32,36 @@ export function SettingsContent() {
     }
   }
 
+  async function performDeletion() {
+    setDeleting(true);
+    setDeletionError("");
+    try {
+      const result = await deleteAccount(api);
+      if (!result.ok) {
+        setDeletionError(result.status === 401
+          ? "로그인이 만료되었습니다. 다시 로그인한 뒤 삭제해 주세요."
+          : "계정을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
+      Alert.alert("계정 삭제 완료", "계정과 관련 데이터가 삭제되었습니다.");
+      await signOut().catch(() => expireSession());
+    } catch {
+      setDeletionError("계정을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   function confirmDeletion() {
     Alert.alert(
       "계정 삭제",
-      "계정 삭제를 요청하면 멤버십과 계정 정보가 삭제되며 되돌릴 수 없습니다. 삭제 요청 페이지로 이동할까요?",
+      "계정, 멤버십, 입장 신청서, Persona Clip, 게시글·댓글, 차단 목록이 즉시 삭제되며 되돌릴 수 없습니다. 운영 기록은 누구인지 알 수 없도록 연결을 끊은 채 남습니다. 삭제할까요?",
       [
         { text: "취소", style: "cancel" },
         {
-          text: "삭제 요청",
+          text: "영구 삭제",
           style: "destructive",
-          onPress: () => void openExternal(
-            appConfig.accountDeletionUrl,
-            "계정 삭제 요청 경로가 아직 설정되지 않았습니다.",
-          ),
+          onPress: () => void performDeletion(),
         },
       ],
     );
@@ -73,21 +97,28 @@ export function SettingsContent() {
 
       <Card>
         <SectionTitle>차단한 멤버</SectionTitle>
-        <Body muted>차단은 이 기기에만 저장되며, 차단한 멤버의 글과 댓글을 숨깁니다.</Body>
+        <Body muted>차단은 계정에 저장되며, 차단한 멤버의 글·댓글·멤버 목록 항목이 보이지 않습니다. 상대방은 차단 사실을 알 수 없습니다.</Body>
+        <Message text={syncError} />
         {blocked.length === 0 ? <Body muted>차단한 멤버가 없습니다.</Body> : null}
         {blocked.map((memberNumber) => (
           <ListRow
             key={memberNumber}
             title={`soulbound-member-${memberNumber}`}
-            trailing={<Button label="차단 해제" tone="quiet" onPress={() => toggle(memberNumber)} />}
+            trailing={<Button label="차단 해제" tone="quiet" onPress={() => void setBlocked(memberNumber, false)} />}
           />
         ))}
       </Card>
 
       <Card>
         <SectionTitle>계정 삭제</SectionTitle>
-        <Body muted>계정과 멤버십 삭제를 요청합니다. 요청 후에는 되돌릴 수 없습니다.</Body>
-        <Button label="계정 삭제" tone="danger" onPress={confirmDeletion} />
+        <Body muted>계정과 내 데이터를 즉시 삭제합니다. 삭제 후에는 되돌릴 수 없습니다.</Body>
+        <Message text={deletionError} />
+        <Button
+          label={deleting ? "삭제 중" : "계정 삭제"}
+          tone="danger"
+          onPress={confirmDeletion}
+          disabled={deleting}
+        />
       </Card>
 
       <Card>
