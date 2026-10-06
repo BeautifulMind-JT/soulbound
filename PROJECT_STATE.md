@@ -350,6 +350,18 @@ JT 귀환 시 이월 유지 — 완료 전까지 staging의 투표/게시판/재
 1차에서 보충 미반영 2건(prose 타이포·metadata) 적발→수정 후 표적 재확인 PASS. ⚠️ **public 전 법률 검토 필수**
 (개인영상정보·처리방침 분리 — 브리프 §6 이월). **배포 잔여(Codex)**: 커밋 → push → Vercel(프론트 전용, DB 무관).
 
+추가 갱신(2026-10-06, PWA finish — fork 브랜치 `zcode/pwa-finish-2026-10-06`, **감사 전/미승인**): manifest
+(`lang`/`dir`/`orientation`/`categories`, 아이콘 `purpose:"any"` 명시, maskable 192 추가·maskable 512 full-bleed
+재생성), `/offline.html` 정적 오프라인 폴백(실패한 navigation에만), SW 업데이트 UX(대기 워커 → "새 버전이 있습니다 —
+새로고침" 배너 → `SKIP_WAITING` → controllerchange 1회 reload), 설치 UX(iOS/iPadOS 안내·인앱 브라우저 안내·14일 dismiss).
+**SW 릴리스/버전 규칙(신규)**: `apps/web/public/sw.js`의 `SW_RELEASE`(형식 `YYYY-MM-DD.N`)가 **유일한 캐시 버전 상수**다.
+sw.js·precache 대상(`OFFLINE_URL`/`PUBLIC_SHELL_PATHS`)·아이콘/manifest를 바꾸는 릴리스마다 1회 bump. 모든 캐시 이름은
+`soulbound-${SW_RELEASE}:{shell|assets}`로 파생되고 activate가 이전 `soulbound-*` 캐시(구 `soulbound-prealpha-v1` 포함)를
+삭제한다. 자동 `skipWaiting` 없음 — 사용자 수락 시에만. bypass 경계(non-GET/cross-origin/Authorization/no-store/`/api`/
+persona-clip/`/admin`/`/apply`/`/gate`/`/member`)는 동일, bypass 요청은 `respondWith` 미호출(단 비공개 페이지 navigation은
+network-only `no-store` → 실패 시 오프라인 페이지, 캐시 저장 0). 상세·게이트: `docs/pwa/IMPLEMENTATION_NOTES.md`,
+Android 경고 진단: `docs/pwa/android-install-warning.md`. 실기기 설치 스모크/Lighthouse 11 installability는 여전히 host-only.
+
 ---
 
 ## 0. 한 줄 요약
@@ -665,7 +677,8 @@ Pre-alpha UI/UX polish
   `applicantNotice`만 표시하고, `reviewSummary`/`reasonCode`는 ordinary applicant 화면에 렌더하지 않는다.
   새 `app/apply/status/page.test.tsx`가 mock payload에 `reviewSummary`와 `reasonCode`를 넣고도 미렌더를 단언해
   미래 API 변경 시 내부 분류 우발노출을 막는다.
-- **[P2 follow-up — design pass] SW drift-guard test 강화.** 현재 `components/pwa/service-worker.security.test.ts`는
+- **[P2 follow-up — design pass] SW drift-guard test 강화.** (2026-10-06 PWA finish 브랜치: `components/pwa/sw-behavior.test.ts`가
+  shipped `public/sw.js`를 vm에서 실제 이벤트로 구동하는 행동형 테스트 추가 — 감사 PASS 후 완료 처리.) 현재 `components/pwa/service-worker.security.test.ts`는
   helper 동작 테스트 + `public/sw.js` 문자열 동기화(`toContain`)로 shipped SW를 감시한다. `ac62201` 현재 코드는
   `shouldBypassCache()`가 fetch handler 맨 앞에서 실행되어 `/api/**`, Authorization, no-store, persona-clip,
   cross-origin, non-GET을 network-only/no-store로 배제하므로 안전하다. 다만 미래 리팩터가 문자열은 남긴 채
