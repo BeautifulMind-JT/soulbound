@@ -18,7 +18,7 @@ Stack: Expo SDK 57 (`expo ~57.0.26`), React Native 0.86.3, React 19.2.3, expo-ro
 | P1 auth | **Done** | `/` landing + session restore, `/login`, `/signup` (terms consent required, terms + privacy links), sign out (Settings), role routing (`resolveHomeRoute`: reviewer/admin → `/reviewer`, member or active membership → `/member`, else `/gate`), `/gate` |
 | P2 applicant | **Done (without Persona Clip)** | `/apply` (statement, idempotency key reused across retries), `/apply/status` (status badge, reviewer notice, needs-more-info resubmit with idempotency key, 409 → reload) |
 | P3 member | **Done** | `/member` tabs: 멤버 (membership + directory with paging), 투표 (list), 게시판 (list + create), 더보기 (settings); `/vote/[voteId]` (detail, cast yes/no, 409 handling, results when closed); `/board/[postId]` (detail, comments, add comment, delete own post/comment). Edit is not offered because the web/API has no edit endpoint. |
-| P4 settings / store | **Partial (client side done, backend BLOCKERS)** | `/settings` (+ member 더보기): sign out, privacy policy link, terms link (web `/terms`), local block list with unblock, 계정 삭제 confirmation → configurable URL/mailto, app version. Report/block menu on posts, comments, directory members. |
+| P4 settings / store | **Done (backend wired; privacy text is a draft)** | `/settings` (+ member 더보기): sign out, privacy policy link (default `${API_BASE_URL}/privacy`), terms link (web `/terms`), server-backed block list with unblock (`/api/blocks`, secure-store optimistic cache), 계정 삭제 confirmation → `DELETE /api/account` → sign out, app version. Report menu on posts, comments, directory members → reason picker + optional text (iOS `Alert.prompt`) → `POST /api/reports`. |
 | P5 reviewer/admin | **Not done** | `/reviewer` only shows a notice + link to web `/admin/applications`. |
 
 Persona Clip: **not implemented on mobile.** Strict INV-PC rules (in-app capture only, no library/preview/retake/edit) plus the existing `/api/admission/persona-clip` upload contract would require adding a camera/recording module and an upload pipeline that has not been audited; the apply flow ships without it (clip is optional, absence never blocks submit). No camera/microphone usage strings are declared. Vote-detail clip playback is also web-only.
@@ -36,15 +36,18 @@ Persona Clip: **not implemented on mobile.** Strict INV-PC rules (in-app capture
 - `POST /api/board/{postId}/comments` `{ body }`, `DELETE /api/board/{postId}/comments/{commentId}`
 - `GET /api/vote/applications?limit=20&cursor=`, `GET /api/vote/applications/{voteId}`
 - `POST /api/vote/applications/{voteId}/cast` `{ choice: "yes" | "no" }`
+- `DELETE /api/account` `{ confirm: "DELETE_MY_ACCOUNT" }`
+- `POST /api/reports` `{ targetType, targetId, reason, detail? }`
+- `GET /api/blocks`, `POST /api/blocks` `{ memberNumber }`, `DELETE /api/blocks/{memberNumber}`
 - Supabase Auth (auth module only): `signInWithPassword`, `signUp` (synthetic `<username>@soulbound.internal`, `user_already_exists` → 이미 사용 중인 아이디), `signOut`, `getSession`/auto refresh, RPC `current_user_role`.
 
 Not used: `/api/admission/persona-clip`, `/api/vote/applications/{voteId}/persona-clip-url`, all `/api/admin/**`.
 
 ## BLOCKERS
 
-1. Backend account deletion endpoint missing (in-app entry opens `EXPO_PUBLIC_ACCOUNT_DELETION_URL`).
-2. Backend report/block endpoints missing (report via `EXPO_PUBLIC_REPORT_URL`; block is device-local hide stored in secure store).
-3. Web has no `/privacy` page; privacy policy URL must be supplied via `EXPO_PUBLIC_PRIVACY_POLICY_URL` (no legal text written).
+1. `/privacy` is a draft pending legal review (see `docs/store-compliance/IMPLEMENTATION_NOTES.md`).
+2. Production Supabase must get migration `0014_store_compliance.sql` and the web must be redeployed before the in-app deletion/report/block calls work; reports need an operator routine at web `/admin/reports`.
+3. Store-compliance backend: done on `devin/store-compliance-api-2026-10-06` (account deletion, reports, blocks).
 4. Persona Clip recording/playback not implemented on mobile.
 5. Reviewer/admin screens (P5) not implemented.
 6. Apple Developer Program / Expo account / EAS project ID / demo reviewer account must be provisioned by the owner. No EAS build/submit was run.
