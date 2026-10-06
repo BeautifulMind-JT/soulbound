@@ -129,6 +129,10 @@ create policy "blocks delete own"
   to authenticated
   using (blocker_id = auth.uid());
 
+-- SECURITY DEFINER bypasses blocks RLS, and EXECUTE is granted to authenticated.
+-- Without this guard any caller could probe two arbitrary profile ids. Every
+-- legitimate caller passes auth.uid() as p_blocker_id, so only that caller
+-- may learn that their own block exists.
 create or replace function public.is_blocked_by(
   p_blocker_id uuid,
   p_blocked_id uuid
@@ -140,6 +144,7 @@ security definer
 set search_path = ''
 as $$
   select p_blocker_id is not null
+    and p_blocker_id = (select auth.uid())
     and exists (
       select 1
       from public.blocks b

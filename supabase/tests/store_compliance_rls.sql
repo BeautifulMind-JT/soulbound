@@ -137,6 +137,28 @@ select is(
   'blocker sees own block rows'
 );
 
+select set_config('request.jwt.claim.sub', 'f0000000-0000-0000-0000-00000000000c', true);
+
+select is(
+  public.is_blocked_by(
+    'f0000000-0000-0000-0000-00000000000a',
+    'f0000000-0000-0000-0000-00000000000b'
+  ),
+  false,
+  'a third member cannot probe is_blocked_by for someone else''s block'
+);
+
+select set_config('request.jwt.claim.sub', 'f0000000-0000-0000-0000-00000000000a', true);
+
+select is(
+  public.is_blocked_by(
+    'f0000000-0000-0000-0000-00000000000a',
+    'f0000000-0000-0000-0000-00000000000b'
+  ),
+  true,
+  'the blocker''s is_blocked_by returns true for their own block'
+);
+
 select is(
   (select array_agg(member_number)::bigint[] from public.list_my_blocks()),
   array[3002]::bigint[],
