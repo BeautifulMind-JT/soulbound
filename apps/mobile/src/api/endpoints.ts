@@ -1,12 +1,17 @@
 import type { AdmissionApplication, Membership } from "@soulbound/core";
 import type { ApiClient, ApiResult } from "./client";
 import type {
+  AccountDeletionResponse,
   AdmissionVoteDetail,
+  BlockedMember,
+  BlockListResponse,
   BoardComment,
   BoardListResponse,
   BoardPost,
   BoardPostDetail,
+  CreateReportRequest,
   MemberDirectoryResponse,
+  ReportReceipt,
   VoteChoice,
   VoteListResponse,
 } from "./types";
@@ -84,4 +89,29 @@ export function castVote(api: ApiClient, voteId: string, choice: VoteChoice): Pr
     method: "POST",
     body: { choice },
   });
+}
+
+export const ACCOUNT_DELETION_CONFIRMATION = "DELETE_MY_ACCOUNT";
+
+export function deleteAccount(api: ApiClient): Promise<ApiResult<AccountDeletionResponse>> {
+  return api.request("/api/account", {
+    method: "DELETE",
+    body: { confirm: ACCOUNT_DELETION_CONFIRMATION },
+  });
+}
+
+export function createReport(api: ApiClient, body: CreateReportRequest): Promise<ApiResult<ReportReceipt>> {
+  return api.request("/api/reports", { method: "POST", body });
+}
+
+export function listMyBlocks(api: ApiClient): Promise<ApiResult<BlockListResponse>> {
+  return api.request("/api/blocks");
+}
+
+export function blockMember(api: ApiClient, memberNumber: number): Promise<ApiResult<BlockedMember>> {
+  return api.request("/api/blocks", { method: "POST", body: { memberNumber } });
+}
+
+export function unblockMember(api: ApiClient, memberNumber: number): Promise<ApiResult<{ readonly unblocked: boolean }>> {
+  return api.request(`/api/blocks/${id(String(memberNumber))}`, { method: "DELETE" });
 }

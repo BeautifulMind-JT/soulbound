@@ -104,11 +104,12 @@ export default function MemberHomeScreen() {
             description={`익명 멤버 · 입장일 ${formatDate(member.createdAt)}`}
             accessibilityHint={member.isMe ? undefined : "신고 또는 차단 메뉴를 엽니다"}
             onPress={member.isMe ? undefined : () => openSafetyMenu({
+              api,
               target: { kind: "member", id: String(member.memberNumber), memberLabel: member.label },
               memberNumber: member.memberNumber,
               memberLabel: member.label,
               blocked: isBlocked(member.memberNumber),
-              onToggleBlock: () => toggle(member.memberNumber),
+              onToggleBlock: () => void toggle(member.memberNumber),
             })}
             trailing={member.isMe
               ? <Badge label="나" tone="success" />
