@@ -16,6 +16,8 @@ import type {
   ReviewReportView,
 } from "./report-types";
 
+// Authenticated SELECT grant on public.reports. reporter_id, subject_user_id,
+// and resolved_by are not selectable; own rows are scoped by RLS only.
 const reportColumns =
   "id,target_type,target_ref,reason,detail,status,resolution_code,resolved_at,created_at";
 
@@ -86,13 +88,13 @@ export class SupabaseReportRepository implements ReportRepository {
   }
 
   async listMine(
-    reporterId: string,
+    _reporterId: string,
     limit: number,
   ): Promise<readonly ReportView[]> {
+    // RLS "reports select own" is the filter. Do not reference reporter_id.
     const { data, error } = await this.client
       .from("reports")
       .select(reportColumns)
-      .eq("reporter_id", reporterId)
       .order("created_at", { ascending: false })
       .limit(limit);
 

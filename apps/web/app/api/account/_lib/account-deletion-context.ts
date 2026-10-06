@@ -19,5 +19,6 @@ export function serviceRoleAccountDeletionGateway(): AccountDeletionGateway {
     purgePersonaClips: (ownerId, assetIds) =>
       storage.purgeOwnerPersonaClips({ ownerId, assetIds }),
     deleteAuthUser: (userId) => deletion.deleteAuthUser(userId),
+    complete: (userId) => deletion.complete(userId),
   };
 }

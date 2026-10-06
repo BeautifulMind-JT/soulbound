@@ -22,6 +22,7 @@ alter table public.audit_logs
       'role.changed',
       'report.resolved',
       'report.dismissed',
+      'account.deletion_requested',
       'account.deleted'
     )
   );
@@ -121,7 +122,10 @@ create policy "blocks insert own"
   on public.blocks
   for insert
   to authenticated
-  with check (blocker_id = auth.uid());
+  with check (
+    blocker_id = auth.uid()
+    and public.is_active_member(auth.uid())
+  );
 
 create policy "blocks delete own"
   on public.blocks
@@ -441,9 +445,11 @@ alter table public.reports enable row level security;
 
 grant all privileges on public.reports to service_role;
 revoke all privileges on public.reports from anon, authenticated;
+-- reporter_id, subject_user_id, and resolved_by are omitted on purpose.
+-- RLS "reports select own" may still filter on reporter_id; a column SELECT
+-- grant is not required for a policy qual. Reviewers never read this table.
 grant select (
   id,
-  reporter_id,
   target_type,
   target_ref,
   reason,
@@ -468,11 +474,9 @@ create policy "reports select own"
   to authenticated
   using (reporter_id = auth.uid());
 
-create policy "reports select reviewer"
-  on public.reports
-  for select
-  to authenticated
-  using (public.current_user_role() in ('reviewer', 'admin'));
+-- No reviewer/admin SELECT policy. The queue is list_reports_for_review only
+-- (security definer; checks reviewer/admin itself; never returns reporter_id).
+-- resolve_report is also security definer and checks the same role itself.
 
 create policy "reports insert own active"
   on public.reports
@@ -715,10 +719,16 @@ grant execute on function public.list_reports_for_review(text, integer) to authe
 grant execute on function public.resolve_report(uuid, text, text) to authenticated;
 
 -- ---------------------------------------------------------------------------
--- 5. Account deletion (service_role only). Records the codes-only audit entry
---    once, and returns the caller's not-yet-deleted Persona Clip asset ids so
---    the server can remove raw media via StoragePort before the auth user (and
---    every cascading row) is deleted.
+-- 5. Account deletion (service_role only).
+--    prepare_account_deletion shreds the dossier and returns Persona Clip
+--    asset ids. It appends account.deletion_requested at most once per profile
+--    (retries do not append another row). It does not write account.deleted.
+--    complete_account_deletion appends account.deleted / user_requested only
+--    after the id is gone from both auth.users and public.profiles, and it
+--    does not append a second account.deleted for that profile entity.
+--    Both functions share an advisory lock so concurrent calls cannot
+--    double-insert. 0009 hashes the action string as payload data; the new
+--    action needs no hash-trigger change.
 -- ---------------------------------------------------------------------------
 create or replace function public.prepare_account_deletion(p_user_id uuid)
 returns table (persona_clip_asset_id uuid)
@@ -735,10 +745,15 @@ begin
     return;
   end if;
 
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('account-deletion:' || p_user_id::text, 0)
+  );
+
   if not exists (
     select 1
     from public.audit_logs a
-    where a.action = 'account.deleted'
+    where a.action = 'account.deletion_requested'
+      and a.entity_type = 'profile'
       and a.entity_id = p_user_id
   ) then
     insert into public.audit_logs (
@@ -751,7 +766,7 @@ begin
     )
     values (
       p_user_id,
-      'account.deleted',
+      'account.deletion_requested',
       'profile',
       p_user_id,
       'user_requested',
@@ -781,6 +796,70 @@ begin
 end;
 $$;
 
+create or replace function public.complete_account_deletion(p_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if p_user_id is null then
+    raise exception 'user id required' using errcode = '22023';
+  end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('account-deletion:' || p_user_id::text, 0)
+  );
+
+  -- Still present in auth or profiles: deletion has not finished.
+  if exists (select 1 from auth.users u where u.id = p_user_id)
+     or exists (select 1 from public.profiles p where p.id = p_user_id) then
+    return;
+  end if;
+
+  -- Only complete a deletion that this flow actually started.
+  if not exists (
+    select 1
+    from public.audit_logs a
+    where a.action = 'account.deletion_requested'
+      and a.entity_type = 'profile'
+      and a.entity_id = p_user_id
+  ) then
+    return;
+  end if;
+
+  if exists (
+    select 1
+    from public.audit_logs a
+    where a.action = 'account.deleted'
+      and a.entity_type = 'profile'
+      and a.entity_id = p_user_id
+  ) then
+    return;
+  end if;
+
+  insert into public.audit_logs (
+    actor_id,
+    action,
+    entity_type,
+    entity_id,
+    reason_code,
+    metadata
+  )
+  values (
+    p_user_id,
+    'account.deleted',
+    'profile',
+    p_user_id,
+    'user_requested',
+    '{}'::jsonb
+  );
+end;
+$$;
+
 revoke execute on function public.prepare_account_deletion(uuid)
   from public, anon, authenticated;
+revoke execute on function public.complete_account_deletion(uuid)
+  from public, anon, authenticated;
 grant execute on function public.prepare_account_deletion(uuid) to service_role;
+grant execute on function public.complete_account_deletion(uuid) to service_role;

@@ -231,6 +231,15 @@ describe("store compliance routes integration", () => {
     expect(blocks).toEqual([]);
     const { data: reports } = await service.from("reports").select("reporter_id").eq("id", report.id);
     expect(reports).toEqual([{ reporter_id: null }]);
+    const { data: requested } = await service
+      .from("audit_logs")
+      .select("action, reason_code")
+      .eq("entity_id", deleting.id)
+      .eq("action", "account.deletion_requested");
+    expect(requested).toEqual([{
+      action: "account.deletion_requested",
+      reason_code: "user_requested",
+    }]);
     const { data: audit } = await service
       .from("audit_logs")
       .select("action, reason_code, metadata")

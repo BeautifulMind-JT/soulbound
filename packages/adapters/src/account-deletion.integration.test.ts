@@ -61,6 +61,14 @@ describe("account deletion adapter integration", () => {
 
     const prepared = await deletion.prepare(userId);
     expect(prepared.personaClipAssetIds).toEqual([upload.assetId]);
+    await expect(deletion.complete(userId)).resolves.toBeUndefined();
+
+    const { data: requestedOnly } = await client
+      .from("audit_logs")
+      .select("action")
+      .eq("entity_id", userId)
+      .order("created_at", { ascending: true });
+    expect(requestedOnly).toEqual([{ action: "account.deletion_requested" }]);
 
     await expect(storage.purgeOwnerPersonaClips({
       ownerId: userId,
@@ -74,6 +82,8 @@ describe("account deletion adapter integration", () => {
     expect(objects ?? []).toEqual([]);
 
     await expect(deletion.deleteAuthUser(userId)).resolves.toBe("deleted");
+    await expect(deletion.complete(userId)).resolves.toBeUndefined();
+    await expect(deletion.complete(userId)).resolves.toBeUndefined();
     await expect(deletion.deleteAuthUser(userId)).resolves.toBe("already_deleted");
     await expect(deletion.prepare(userId)).resolves.toEqual({ personaClipAssetIds: [] });
 
@@ -87,6 +97,9 @@ describe("account deletion adapter integration", () => {
       .from("audit_logs")
       .select("action")
       .eq("entity_id", userId);
-    expect(audit).toEqual([{ action: "account.deleted" }]);
+    expect(audit?.map((row) => row.action).sort()).toEqual([
+      "account.deleted",
+      "account.deletion_requested",
+    ]);
   });
 });

@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
     prepare: vi.fn(),
     purgePersonaClips: vi.fn(),
     deleteAuthUser: vi.fn(),
+    complete: vi.fn(),
   },
 }));
 
@@ -42,6 +43,7 @@ describe("DELETE /api/account", () => {
       deletedAssetIds: ["clip-1"],
     });
     mocks.gateway.deleteAuthUser.mockReset().mockResolvedValue("deleted");
+    mocks.gateway.complete.mockReset().mockResolvedValue(undefined);
   });
 
   it("returns 401 without an authenticated user", async () => {
@@ -79,6 +81,7 @@ describe("DELETE /api/account", () => {
     expect(mocks.gateway.prepare).toHaveBeenCalledWith("user-1");
     expect(mocks.gateway.purgePersonaClips).toHaveBeenCalledWith("user-1", ["clip-1"]);
     expect(mocks.gateway.deleteAuthUser).toHaveBeenCalledWith("user-1");
+    expect(mocks.gateway.complete).toHaveBeenCalledWith("user-1");
   });
 
   it("returns 502 without leaking details when a dependency fails", async () => {
@@ -89,5 +92,22 @@ describe("DELETE /api/account", () => {
     expect(response.status).toBe(502);
     expect(JSON.stringify(await response.json())).not.toContain("secret detail");
     expect(mocks.gateway.deleteAuthUser).not.toHaveBeenCalled();
+    expect(mocks.gateway.complete).not.toHaveBeenCalled();
+  });
+
+  it("returns success when the completion audit write fails", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mocks.gateway.prepare.mockResolvedValue({ personaClipAssetIds: [] });
+    mocks.gateway.complete.mockRejectedValue(new Error("audit down"));
+    try {
+      const response = await DELETE(request({ confirm: "DELETE_MY_ACCOUNT" }));
+
+      expect(response.status).toBe(200);
+      expect(JSON.stringify(await response.json())).not.toContain("audit down");
+      expect(mocks.gateway.deleteAuthUser).toHaveBeenCalledWith("user-1");
+      expect(warn).toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

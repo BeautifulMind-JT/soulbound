@@ -19,6 +19,9 @@ function gateway(overrides: Partial<AccountDeletionGateway> = {}) {
       calls.push(`auth:${userId}`);
       return "deleted" as const;
     }),
+    complete: vi.fn(async (userId: string) => {
+      calls.push(`complete:${userId}`);
+    }),
     ...overrides,
   };
   return { value, calls };
@@ -32,7 +35,12 @@ describe("deleteOwnAccount", () => {
       deleted: true,
       personaClipsRemoved: 1,
     });
-    expect(calls).toEqual(["prepare:user-1", "purge:user-1:clip-1", "auth:user-1"]);
+    expect(calls).toEqual([
+      "prepare:user-1",
+      "purge:user-1:clip-1",
+      "auth:user-1",
+      "complete:user-1",
+    ]);
   });
 
   it("skips the purge when there is no media", async () => {
@@ -41,7 +49,7 @@ describe("deleteOwnAccount", () => {
     });
 
     await deleteOwnAccount(value, "user-1");
-    expect(calls).toEqual(["auth:user-1"]);
+    expect(calls).toEqual(["auth:user-1", "complete:user-1"]);
   });
 
   it("does not delete the auth user when media removal fails", async () => {
@@ -53,6 +61,19 @@ describe("deleteOwnAccount", () => {
 
     await expect(deleteOwnAccount(value, "user-1")).rejects.toThrow("storage down");
     expect(value.deleteAuthUser).not.toHaveBeenCalled();
+    expect(value.complete).not.toHaveBeenCalled();
+  });
+
+  it("does not write the completion audit when auth deletion fails", async () => {
+    const { value } = gateway({
+      prepare: vi.fn(async () => ({ personaClipAssetIds: [] })),
+      deleteAuthUser: vi.fn(async () => {
+        throw new Error("auth down");
+      }),
+    });
+
+    await expect(deleteOwnAccount(value, "user-1")).rejects.toThrow("auth down");
+    expect(value.complete).not.toHaveBeenCalled();
   });
 
   it("is idempotent when the auth user is already gone", async () => {
@@ -65,5 +86,31 @@ describe("deleteOwnAccount", () => {
       deleted: true,
       personaClipsRemoved: 0,
     });
+    expect(value.complete).toHaveBeenCalledWith("user-1");
+  });
+
+  it("still succeeds when the completion audit write fails", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const { value, calls } = gateway({
+        prepare: vi.fn(async () => ({ personaClipAssetIds: [] })),
+        complete: vi.fn(async () => {
+          throw new Error("audit down");
+        }),
+      });
+
+      await expect(deleteOwnAccount(value, "user-1")).resolves.toEqual({
+        deleted: true,
+        personaClipsRemoved: 0,
+      });
+      expect(calls).toEqual(["auth:user-1"]);
+      expect(value.complete).toHaveBeenCalledWith("user-1");
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining("complete_account_deletion failed"),
+      );
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("user-1"));
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

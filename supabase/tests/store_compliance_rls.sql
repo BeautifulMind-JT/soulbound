@@ -67,6 +67,7 @@ select pg_temp.create_sc_user('f0000000-0000-0000-0000-00000000000b', 'sc_member
 select pg_temp.create_sc_user('f0000000-0000-0000-0000-00000000000c', 'sc_member_c', 'member', 3003);
 select pg_temp.create_sc_user('f0000000-0000-0000-0000-00000000000d', 'sc_member_d', 'member', 3004);
 select pg_temp.create_sc_user('f0000000-0000-0000-0000-0000000000ee', 'sc_reviewer', 'reviewer', null);
+select pg_temp.create_sc_user('f0000000-0000-0000-0000-0000000000ad', 'sc_admin', 'admin', null);
 select pg_temp.create_sc_user('f0000000-0000-0000-0000-0000000000ff', 'sc_applicant', 'applicant', null);
 
 insert into public.board_posts (id, author_id, body) values
@@ -100,6 +101,23 @@ select is(
   '00000',
   'member can insert own block row'
 );
+
+select set_config('request.jwt.claim.sub', 'f0000000-0000-0000-0000-0000000000ff', true);
+
+select throws_ok(
+  $sql$
+    insert into public.blocks (blocker_id, blocked_id)
+    values (
+      'f0000000-0000-0000-0000-0000000000ff',
+      'f0000000-0000-0000-0000-00000000000b'
+    )
+  $sql$,
+  '42501'::char(5),
+  null::text,
+  'a non-active authenticated user cannot insert a block directly'
+);
+
+select set_config('request.jwt.claim.sub', 'f0000000-0000-0000-0000-00000000000a', true);
 
 select is(
   pg_temp.sqlstate_for($sql$
@@ -354,9 +372,35 @@ select is(
 );
 
 select is(
+  pg_temp.sqlstate_for($sql$
+    select
+      id,
+      target_type,
+      target_ref,
+      reason,
+      detail,
+      status,
+      resolution_code,
+      resolved_at,
+      created_at,
+      updated_at
+    from public.reports
+  $sql$),
+  '00000',
+  'reporter can list own reports using granted columns'
+);
+
+select is(
   (select count(*)::int from public.reports),
   3,
   'reporter reads only own reports'
+);
+
+select throws_ok(
+  'select reporter_id from public.reports',
+  '42501'::char(5),
+  null::text,
+  'reporter cannot select reporter_id'
 );
 
 select is(
@@ -388,12 +432,31 @@ select is(
   'authenticated clients cannot select report subject uuid'
 );
 
+select is(
+  has_column_privilege('authenticated', 'public.reports', 'reporter_id', 'SELECT'),
+  false,
+  'authenticated clients cannot select reporter_id'
+);
+
+select is(
+  has_column_privilege('anon', 'public.reports', 'reporter_id', 'SELECT'),
+  false,
+  'anon clients cannot select reporter_id'
+);
+
 select set_config('request.jwt.claim.sub', 'f0000000-0000-0000-0000-00000000000b', true);
 
 select is(
   (select count(*)::int from public.reports),
   0,
   'other members cannot read someone else''s reports'
+);
+
+select throws_ok(
+  'select reporter_id from public.reports',
+  '42501'::char(5),
+  null::text,
+  'an unrelated member cannot select reporter_id'
 );
 
 select set_config('request.jwt.claim.sub', 'f0000000-0000-0000-0000-0000000000ff', true);
@@ -411,14 +474,27 @@ select set_config('request.jwt.claim.sub', 'f0000000-0000-0000-0000-0000000000ee
 
 select is(
   (select count(*)::int from public.reports),
-  3,
-  'reviewer can read all reports'
+  0,
+  'reviewer direct read returns only own reports'
+);
+
+select throws_ok(
+  'select reporter_id from public.reports',
+  '42501'::char(5),
+  null::text,
+  'reviewer cannot select reporter_id'
 );
 
 select is(
   (select count(*)::int from public.list_reports_for_review('open', 50)),
   3,
-  'reviewer can list open reports'
+  'reviewer can list open reports via rpc'
+);
+
+select is(
+  pg_temp.sqlstate_for('select reporter_id from public.list_reports_for_review(''open'', 50)'),
+  '42703',
+  'review queue result has no reporter column'
 );
 
 select is(
@@ -441,11 +517,38 @@ select is(
   'review list exposes target excerpt'
 );
 
+select set_config('request.jwt.claim.sub', 'f0000000-0000-0000-0000-0000000000ad', true);
+
+select is(
+  (select count(*)::int from public.reports),
+  0,
+  'admin direct read returns only own reports'
+);
+
+select throws_ok(
+  'select reporter_id from public.reports',
+  '42501'::char(5),
+  null::text,
+  'admin cannot select reporter_id'
+);
+
+select is(
+  (select count(*)::int from public.list_reports_for_review('open', 50)),
+  3,
+  'admin can list the review queue via rpc'
+);
+
+select set_config('request.jwt.claim.sub', 'f0000000-0000-0000-0000-0000000000ee', true);
+
 select is(
   (
     select status
     from public.resolve_report(
-      (select id from public.reports where target_type = 'board_post'),
+      (
+        select queued.id
+        from public.list_reports_for_review('open', 50) as queued
+        where queued.target_type = 'board_post'
+      ),
       'resolved',
       'content_removed'
     )
@@ -458,7 +561,11 @@ select is(
   (
     select status
     from public.resolve_report(
-      (select id from public.reports where target_type = 'board_post'),
+      (
+        select queued.id
+        from public.list_reports_for_review('resolved', 50) as queued
+        where queued.target_type = 'board_post'
+      ),
       'resolved',
       'content_removed'
     )
@@ -470,7 +577,14 @@ select is(
 select is(
   pg_temp.sqlstate_for($sql$
     select * from public.resolve_report(
-      (select id from public.reports where target_type = 'board_post'), 'dismissed', 'no_violation')
+      (
+        select queued.id
+        from public.list_reports_for_review('resolved', 50) as queued
+        where queued.target_type = 'board_post'
+      ),
+      'dismissed',
+      'no_violation'
+    )
   $sql$),
   'P0001',
   'closed reports cannot be re-decided differently'
@@ -479,7 +593,14 @@ select is(
 select is(
   pg_temp.sqlstate_for($sql$
     select * from public.resolve_report(
-      (select id from public.reports where target_type = 'member'), 'dismissed', 'content_removed')
+      (
+        select queued.id
+        from public.list_reports_for_review('open', 50) as queued
+        where queued.target_type = 'member'
+      ),
+      'dismissed',
+      'content_removed'
+    )
   $sql$),
   '22023',
   'resolution code must match the resolution status'
@@ -621,6 +742,12 @@ select is(
   'authenticated users cannot call prepare_account_deletion'
 );
 
+select is(
+  pg_temp.sqlstate_for('select public.complete_account_deletion(''f0000000-0000-0000-0000-00000000000d'')'),
+  '42501',
+  'authenticated users cannot call complete_account_deletion'
+);
+
 reset role;
 set local role service_role;
 
@@ -640,12 +767,40 @@ select is(
   (
     select count(*)::int
     from public.audit_logs
-    where action = 'account.deleted'
+    where action = 'account.deletion_requested'
+      and entity_type = 'profile'
       and entity_id = 'f0000000-0000-0000-0000-00000000000d'
       and reason_code = 'user_requested'
   ),
   1,
-  'account deletion audit row is written exactly once'
+  'prepare writes account.deletion_requested exactly once'
+);
+
+select is(
+  (
+    select count(*)::int
+    from public.audit_logs
+    where action = 'account.deleted'
+      and entity_id = 'f0000000-0000-0000-0000-00000000000d'
+  ),
+  0,
+  'account.deleted is not written while the user still exists'
+);
+
+select lives_ok(
+  $sql$ select public.complete_account_deletion('f0000000-0000-0000-0000-00000000000d') $sql$,
+  'complete_account_deletion does not raise while the user still exists'
+);
+
+select is(
+  (
+    select count(*)::int
+    from public.audit_logs
+    where action = 'account.deleted'
+      and entity_id = 'f0000000-0000-0000-0000-00000000000d'
+  ),
+  0,
+  'complete_account_deletion appends nothing while the user still exists'
 );
 
 select is(
@@ -728,11 +883,21 @@ select is(
 select is(
   (
     select count(*)::int from public.audit_logs
-    where action = 'account.deleted'
+    where action = 'account.deletion_requested'
       and entity_id = 'f0000000-0000-0000-0000-00000000000d'
   ),
   1,
-  'audit rows are retained after account deletion'
+  'account.deletion_requested is retained after the auth user is gone'
+);
+
+select is(
+  (
+    select count(*)::int from public.audit_logs
+    where action = 'account.deleted'
+      and entity_id = 'f0000000-0000-0000-0000-00000000000d'
+  ),
+  0,
+  'deleting the auth user does not itself append account.deleted'
 );
 
 set local role service_role;
@@ -741,6 +906,54 @@ select is(
   (select count(*)::int from public.prepare_account_deletion('f0000000-0000-0000-0000-00000000000d')),
   0,
   'prepare_account_deletion is a no-op for an already deleted account'
+);
+
+select lives_ok(
+  $sql$ select public.complete_account_deletion('f0000000-0000-0000-0000-00000000000d') $sql$,
+  'complete_account_deletion appends account.deleted after the user is gone'
+);
+
+select is(
+  (
+    select count(*)::int
+    from public.audit_logs
+    where action = 'account.deleted'
+      and entity_type = 'profile'
+      and entity_id = 'f0000000-0000-0000-0000-00000000000d'
+      and reason_code = 'user_requested'
+  ),
+  1,
+  'account.deleted is written only after the auth user is gone'
+);
+
+select lives_ok(
+  $sql$ select public.complete_account_deletion('f0000000-0000-0000-0000-00000000000d') $sql$,
+  'complete_account_deletion can be retried'
+);
+
+select is(
+  (
+    select count(*)::int from public.audit_logs
+    where action = 'account.deleted'
+      and entity_id = 'f0000000-0000-0000-0000-00000000000d'
+  ),
+  1,
+  'complete_account_deletion does not append a second account.deleted row'
+);
+
+select lives_ok(
+  $sql$ select public.complete_account_deletion('f0000000-0000-0000-0000-0000000000aa') $sql$,
+  'complete_account_deletion does not raise for an id that never requested deletion'
+);
+
+select is(
+  (
+    select count(*)::int from public.audit_logs
+    where action = 'account.deleted'
+      and entity_id = 'f0000000-0000-0000-0000-0000000000aa'
+  ),
+  0,
+  'complete_account_deletion appends nothing without a prior deletion request'
 );
 
 select ok(

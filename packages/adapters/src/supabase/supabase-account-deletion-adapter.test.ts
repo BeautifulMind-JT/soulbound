@@ -41,12 +41,25 @@ describe("SupabaseAccountDeletionAdapter", () => {
     ]);
   });
 
+  it("records completion through the service-role RPC", async () => {
+    const calls: unknown[] = [];
+    const adapter = new SupabaseAccountDeletionAdapter(makeClient({ calls }));
+
+    await expect(adapter.complete("user-1")).resolves.toBeUndefined();
+    expect(calls).toEqual([
+      ["rpc", "complete_account_deletion", { p_user_id: "user-1" }],
+    ]);
+  });
+
   it("maps RPC failures to AppError", async () => {
     const adapter = new SupabaseAccountDeletionAdapter(makeClient({
       rpcError: { code: "42501", message: "denied" },
     }));
 
     await expect(adapter.prepare("user-1")).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    await expect(adapter.complete("user-1")).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
   });

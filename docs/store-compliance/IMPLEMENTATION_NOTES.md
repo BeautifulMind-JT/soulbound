@@ -1,13 +1,13 @@
 # Store compliance — account deletion / reports / blocks / privacy draft
 
-> **감사 전/미승인.** Builder output on `devin/store-compliance-api-2026-10-06` (base `3eb533a`, PR #6 head).
+> **감사 전/미승인.** Builder output on `devin/store-compliance-api-2026-10-06` (PR #7, base `3eb533a`).
 > Independent audit has not happened yet.
 >
 > JunTae 승인 2026-10-06: 보호 영역 개방 — 계정삭제/신고/차단
 
 Owner override scope (this task only): `apps/web/app/api`, **new** Supabase migration `0014_store_compliance.sql`,
 `packages/adapters` (additive). `packages/core` was **not** changed: the new audit actions are written only inside
-SQL RPCs (`resolve_report`, `prepare_account_deletion`), so the frozen `AuditAction` TS union did not need to grow.
+SQL RPCs (`resolve_report`, `prepare_account_deletion`, `complete_account_deletion`), so the frozen `AuditAction` TS union did not need to grow.
 No existing migration, existing `*.test.ts`, toolchain file, `sw-security.ts`, `StoragePort`, `NotificationPort` or
 INV-PC rule was edited. No new npm dependency.
 
@@ -51,24 +51,34 @@ Code layout (route → service → repository → adapter):
 - `apps/web/app/api/account/**` — `deleteOwnAccount` service + service-role gateway (`account-deletion-context.ts`)
 - `apps/web/app/api/reports/**`, `apps/web/app/api/admin/reports/**` — `ReportService` + `SupabaseReportRepository`
 - `apps/web/app/api/blocks/**` — `BlockService` + `SupabaseBlockRepository`
-- `packages/adapters`: `SupabaseAccountDeletionAdapter` (`prepare_account_deletion` RPC + `auth.admin.deleteUser`,
-  404 → `already_deleted`), `SupabaseStorageAdapter.purgeOwnerPersonaClips` (concrete-adapter extension like
+- `packages/adapters`: `SupabaseAccountDeletionAdapter` (`prepare_account_deletion` +
+  `complete_account_deletion` RPCs + `auth.admin.deleteUser`, 404 → `already_deleted`),
+  `SupabaseStorageAdapter.purgeOwnerPersonaClips` (concrete-adapter extension like
   `createUploadUrl`; frozen `StoragePort` untouched).
 
 ## Account deletion flow
 
 1. Route authenticates the caller and validates `confirm`. The user id comes only from the verified token.
-2. `prepare_account_deletion(user)` (service_role only): writes one codes-only `account.deleted` /
-   `user_requested` audit row (once, hash-chained), nulls `applicant_statement`, `motivation`, `referral_code` on the
-   user's applications, and returns the user's non-deleted Persona Clip asset ids. Returns nothing if the profile is
-   already gone.
+2. `prepare_account_deletion(user)` (service_role only): appends at most one codes-only
+   `account.deletion_requested` / `user_requested` audit row. A retry does not append another row (deduped per
+   profile; an advisory lock serializes concurrent prepares). It nulls `applicant_statement`, `motivation`,
+   `referral_code` on the user's applications and returns non-deleted Persona Clip asset ids. It returns nothing
+   if the profile is already gone, and it does **not** write `account.deleted`.
 3. For each clip: ownership re-checked (`applicant_id = user`), `StoragePort.markForDeletion`, eligibility re-checked
    via `list_deletable_persona_clips`, bytes removed from bucket `persona-clips`, row marked via
    `mark_persona_clip_deleted` (same path as the 9a reaper). Any failure → 502 and **auth user is not deleted**.
 4. `auth.admin.deleteUser(user)` → `auth.users` → `profiles` cascade removes all owned rows (matrix below).
+   A missing user (`404`) is `already_deleted` and still counts as success.
+5. `complete_account_deletion(user)` (service_role only): appends one codes-only `account.deleted` /
+   `user_requested` row only when that id is gone from **both** `auth.users` and `profiles`. Calling it while the
+   user still exists appends nothing. A second call does not append another `account.deleted`. If this step throws
+   after step 4 succeeded, `deleteOwnAccount` still returns success and logs a server warning
+   (`complete_account_deletion failed`). The caller's token cannot retry (401). An operator can call the RPC again
+   with the service role; it stays idempotent. The 0009 hash trigger treats `action` as payload text, so
+   `account.deletion_requested` needs no trigger change.
 
-Retry safety: every step is idempotent; a retry after partial failure redoes only what is left. After step 4 the old
-access token no longer resolves (401).
+Retry safety: steps 2–4 are idempotent; a retry after a failure before step 4 redoes only what is left. After step 4
+the old access token no longer resolves, so a failed step 5 is repaired by the service-role RPC, not by the user.
 
 ## Deleted vs anonymized vs retained
 
@@ -91,7 +101,7 @@ access token no longer resolves (401).
 | `admission_vote_turnout` | voter_id | **Retained** as unlinked UUID (FK dropped, 0014) | tally must equal anonymous ballots |
 | `admission_vote_ballots` | — (no user column) | Retained | already anonymous |
 | `admission_vote_clip_accesses` | voter_id | **Deleted** (cascade) | access log |
-| `audit_logs` | actor_id / entity_id | **Retained** as unlinked UUID (FK dropped, 0014) | 0009 hash chain covers `actor_id`; codes-only rows (INV-16); rewriting would break `verify_audit_chain` |
+| `audit_logs` | actor_id / entity_id | **Retained** as unlinked UUID (FK dropped, 0014) | 0009 hash chain covers `actor_id`; codes-only rows (INV-16). `account.deletion_requested` is appended at prepare; `account.deleted` only after the auth user is gone. Rewriting a row would break `audit_hash_chain_verify` |
 | `outbox_events` | aggregate ids only | Retained | ids-only payload (INV-16), no direct user reference |
 | `direct_conversations`, `direct_messages`, `conversation_key_envelopes` | user FKs | **Deleted** (cascade) | schema-only, no routes (HARD RULE 9) |
 | `evidence_files`, `soul_balances`, `user_intent_authorizations` | user FKs | **Deleted** (cascade) | schema-only |
@@ -104,21 +114,27 @@ Legal TODO: confirm the retention period/legal basis for `audit_logs`, closed `r
 Migration added: `supabase/migrations/0014_store_compliance.sql` (new file only).
 
 - `blocks(blocker_id, blocked_id, created_at)`, PK `(blocker_id, blocked_id)`, check `blocker_id <> blocked_id`.
-  RLS: `blocks select own` / `insert own` / `delete own` (`blocker_id = auth.uid()`); no policy exposes rows where
-  you are `blocked_id`. RPCs `block_member`, `unblock_member`, `list_my_blocks` (member-number API, no user ids).
-  `is_blocked_by(blocker, blocked)` security-definer helper used by restrictive policies on `profiles`, `board_posts`,
-  `board_comments` and by the replaced `list_board_posts` / `get_board_post` / `list_board_comments`.
+  RLS: `blocks select own` / `delete own` (`blocker_id = auth.uid()`); `blocks insert own` also requires
+  `is_active_member(auth.uid())`. `block_member` is security definer and checks active membership itself.
+  No policy exposes rows where you are `blocked_id`. RPCs `block_member`, `unblock_member`, `list_my_blocks`
+  (member-number API, no user ids). `is_blocked_by(blocker, blocked)` security-definer helper used by restrictive
+  policies on `profiles`, `board_posts`, `board_comments` and by the replaced `list_board_posts` /
+  `get_board_post` / `list_board_comments`.
 - `reports` — the legacy empty schema-only `reports` (0002) is dropped and recreated; **the migration aborts if the
   legacy table has rows**. Columns: `reporter_id`, `target_type`, `target_ref`, `subject_user_id`, `reason`,
   `detail` (1–500), `status` (`open|resolved|dismissed`), `resolution_code`, `resolved_by`, `resolved_at`,
   timestamps. Partial unique index `(reporter_id, target_type, target_ref) where status = 'open'`.
-  RLS: `reports select own`, `reports select reviewer` (reviewer/admin), `reports insert own active`
-  (own row + active membership). Column grants: authenticated can insert only target/reason/detail/reporter_id.
-  `reports_before_insert` trigger resolves the target, sets `subject_user_id`, rejects self-reports and enforces
-  the rate limit. RPCs `list_reports_for_review`, `resolve_report` (reviewer/admin; writes `report.resolved` /
-  `report.dismissed` audit row with enum `reason_code` in the same transaction).
-- Audit check constraints extended with `report.resolved`, `report.dismissed`, `account.deleted` and the
-  resolution / `user_requested` reason codes.
+  RLS: `reports select own` (`reporter_id = auth.uid()`) and `reports insert own active` (own row + active
+  membership). There is **no** reviewer/admin SELECT policy. Reviewers and admins read the queue only through
+  `list_reports_for_review` (security definer; checks `reviewer`/`admin` itself; never returns `reporter_id`).
+  `resolve_report` is security definer and checks the same role itself. Column grants: `anon` has none;
+  `authenticated` can SELECT the non-identity columns only — `reporter_id`, `subject_user_id`, and `resolved_by`
+  are excluded (RLS quals may still reference `reporter_id`). INSERT is limited to target/reason/detail/`reporter_id`.
+  Own listing does not filter, order, or return `reporter_id`; RLS is the scope. `reports_before_insert` resolves
+  the target, sets `subject_user_id`, rejects self-reports and enforces the rate limit.
+  `resolve_report` writes `report.resolved` / `report.dismissed` with enum `reason_code` in the same transaction.
+- Audit check constraints extended with `report.resolved`, `report.dismissed`, `account.deletion_requested`,
+  `account.deleted`, and the resolution / `user_requested` reason codes.
 - FK changes for de-identification listed in the matrix above.
 
 ## Rate limit
@@ -137,9 +153,12 @@ See `apps/mobile/README.md` and `docs/mobile/IMPLEMENTATION_NOTES.md`: Settings 
 
 ## Tests added
 
-- pgTAP `supabase/tests/store_compliance_rls.sql` — blocks own-only / cross-user denial / self-block / hidden from
-  the blocked user, board + profile filtering, reports own-only / cross-user denial / reviewer access / duplicate
-  open / validation / rate limit / audit row, account deletion prep + cascade + de-identification + audit-chain verify.
+- pgTAP `supabase/tests/store_compliance_rls.sql` — blocks own-only / active-member insert guard / cross-user
+  denial / self-block / hidden from the blocked user, board + profile filtering, reports own-only / `reporter_id`
+  SELECT denied for anon, members, reviewers, and admins / reviewer and admin direct reads see only their own rows /
+  queue via `list_reports_for_review` (no reporter column) / duplicate open / validation / rate limit / audit row,
+  account deletion `account.deletion_requested` on prepare, `account.deleted` only after the auth user is gone,
+  cascade + de-identification + audit-chain verify.
 - Web unit: `_lib/compliance-schemas.test.ts`, `_lib/compliance-errors.test.ts`, `account/route.test.ts`,
   `account/_lib/account-deletion-service.test.ts`, `reports/route.test.ts`, `admin/reports/route.test.ts`,
   `blocks/route.test.ts`, `app/admin/reports/page.test.tsx`.
@@ -157,8 +176,8 @@ Run 2026-10-06, Node 24.21.0, pnpm 11.1.3, local Docker Supabase (CLI 2.119.0) o
 | `pnpm install --frozen-lockfile` | PASS — "Already up to date" |
 | `pnpm -r typecheck` | PASS — core / adapters / mobile / web `Done` |
 | `pnpm -F @soulbound/core test` | PASS — 3 files, 26 tests (unchanged) |
-| `pnpm -F @soulbound/adapters test` | PASS — 10 files, 32 tests |
-| `pnpm -F web test` | PASS — 31 files, 235 tests |
+| `pnpm -F @soulbound/adapters test` | PASS — 10 files, 33 tests |
+| `pnpm -F web test` | PASS — 31 files, 238 tests |
 | `bash scripts/audit.sh` | PASS — `AUDIT PASSED` |
 | `pnpm -F web build` | PASS — `Compiled successfully`, 28/28 static pages |
 | `pnpm -F @soulbound/mobile typecheck` | PASS |
@@ -171,6 +190,8 @@ Run 2026-10-06, Node 24.21.0, pnpm 11.1.3, local Docker Supabase (CLI 2.119.0) o
 | `pnpm -F @soulbound/adapters test:integration` | PASS — 4 files, 6 tests |
 
 Not verified: real iPhone/simulator run, production Supabase/Vercel.
+
+Security-review follow-up (same day) re-ran `pnpm -r typecheck`, adapters unit tests (33), web unit tests (238), and `bash scripts/audit.sh`. pgTAP, `supabase db reset`, and the integration suites were not re-run in that follow-up (no database in the environment). The pgTAP file was updated for the `reporter_id` grant, the dropped reviewer SELECT policy, the blocks active-member insert check, and the requested/completed deletion audit rows.
 
 ## Remaining blockers
 

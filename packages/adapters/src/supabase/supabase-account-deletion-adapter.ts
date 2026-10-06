@@ -28,6 +28,15 @@ export class SupabaseAccountDeletionAdapter {
     };
   }
 
+  // No-op until the auth user and profile are both gone. A second call does
+  // not append another account.deleted row.
+  async complete(userId: string): Promise<void> {
+    const { error } = await this.client.rpc("complete_account_deletion", {
+      p_user_id: userId,
+    });
+    throwIfSupabaseError(error);
+  }
+
   async deleteAuthUser(userId: string): Promise<AuthUserDeletionOutcome> {
     const { error } = await this.client.auth.admin.deleteUser(userId);
     if (!error) {

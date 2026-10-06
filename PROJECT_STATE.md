@@ -368,9 +368,11 @@ Android 경고 진단: `docs/pwa/android-install-warning.md`. 실기기 설치 �
 
 추가 갱신(2026-10-06, App Store compliance backend — **감사 전/미승인**): JunTae 승인 2026-10-06: 보호 영역 개방 — 계정삭제/신고/차단
 (이번 태스크 한정: `apps/web/app/api`, 새 마이그레이션 `0014_store_compliance.sql`, `packages/adapters` 추가분; core 무변경).
-브랜치 `devin/store-compliance-api-2026-10-06`(base `3eb533a` = PR #6). `DELETE /api/account`(service-role 삭제 + StoragePort 경로로
-clip 바이트 삭제 + audit/hash-chain·투표 turnout 비식별 보존), `reports`(0002 빈 legacy 테이블 교체, RLS own-only + reviewer,
-중복 open 차단, DB 10건/시간 제한, 해결 시 audit enum reasonCode), `blocks`(RLS own-only, board/members 서버 필터), `/privacy`
+브랜치 `devin/store-compliance-api-2026-10-06`(PR #7, base `3eb533a` = PR #6). `DELETE /api/account`(service-role 삭제 + StoragePort 경로로
+clip 바이트 삭제; prepare는 `account.deletion_requested`, auth 사용자 삭제 후에만 `complete_account_deletion`이
+`account.deleted`를 hash-chain에 추가; 투표 turnout 비식별 보존), `reports`(0002 빈 legacy 테이블 교체, 본인 행만 RLS,
+reviewer/admin 큐는 `list_reports_for_review`만 — `reporter_id` SELECT 없음, 중복 open 차단, DB 10건/시간 제한, 해결 시
+audit enum reasonCode), `blocks`(RLS own-only, insert는 active member, board/members 서버 필터), `/privacy`
 초안(법률 검토 전), `/admin/reports`, 모바일 배선. 상세·보존 매트릭스·프로덕션 적용 절차: docs/store-compliance/IMPLEMENTATION_NOTES.md.
 독립 감사 + 법률 검토 전에는 프로덕션 마이그레이션 금지.
 
